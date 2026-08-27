@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offers - CafeNav</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Green Toast Banner -->
+    <div id="loginSuccessBanner" class="top-banner-success hidden">
+        You're logged in!
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="#3D2314">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            <span class="logo-text">CafeNav</span>
+
+            <!-- USERNAME DISPLAY -->
+            <span id="userGreeting" class="user-greeting hidden">
+                Hello, <span id="usernameDisplay">Username</span>
+            </span>
+        </div>
+
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <li id="navLoginLink"><a href="login.html">Login</a></li>
+            <!-- Offers highlighted with white underline -->
+            <a href="offers.html" class="active-underline">Offers</a>
+            <a href="#">Locate</a>
+            <a href="#">Add Cafe</a>
+            <a href="#">Profile</a>
+
+            <!-- LOGOUT BUTTON -->
+            <li id="navLogoutContainer" class="hidden" style="list-style: none;">
+                <button id="btnLogout" class="btn-logout-pill">Logout</button>
+            </li>
+        </nav>
+    </header>
+
+    <!-- Main Hero Section -->
+    <section class="hero-section offers-hero-section">
+        <div class="hero-overlay"></div>
+
+        <!-- 1. ORIGINAL LANDING VIEW -->
+        <div id="offersLanding" class="hero-content">
+            <h1 class="hero-title" style="font-family: 'Playfair Display', serif; font-size: 3rem;">Find your perfect shop.</h1>
+            <p class="hero-subtitle" style="max-width: 600px; margin: 10px auto; color: #ffff;">
+                Answer a few questions about what you look for in a coffee shop — we'll match you to spaces that suit how you like to spend your time.
+            </p>
+            <button id="btnGetStarted" class="btn-login" style="border-radius: 20px; padding: 12px 245px; font-weight: bold; background: #2b1d19; color: white; cursor: pointer;">Get Started</button>
+            <p style="font-size: 0.85rem; color: #000000; margin-top: 8px;">Takes about 1 minute</p>
+        </div>
+
+        <!-- 2. QUESTIONNAIRE VIEW (Hidden until Get Started is clicked) -->
+        <div id="quizContainer" class="quiz-step-wrapper hidden">
+            <!-- Progress Header (Centered '1 of 4') -->
+            <div class="quiz-top-bar">
+                <div class="quiz-top-left"></div>
+                <span class="quiz-progress-text">1 of 4</span>
+            </div>
+            <div class="quiz-divider"></div>
+
+            <!-- Question Title Header -->
+            <div class="quiz-header">
+                <span class="quiz-category">COFFEE TYPE</span>
+                <h1 class="quiz-title">What are you drinking?</h1>
+                <p class="quiz-subtitle">Pick all that apply — we'll find shops that do them well.</p>
+            </div>
+
+            <!-- Options Grid (Checkmark added to every card) -->
+            <div class="quiz-grid">
+                <label class="quiz-card">
+            <input type="checkbox" name="drink" value="coffee">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Coffee Hot/Iced</h3>
+                <p>Mocha, Spanish Latte, Macchiato</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="drink" value="non-coffee">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Non-Coffee</h3>
+                <p>Cacao Milk, Strawberry Milk</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="drink" value="matcha">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Matcha</h3>
+                <p>Strawberry Matcha, Creamy Matcha Latte</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="drink" value="frappes">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Frappes</h3>
+                <p>Java Chip, Strawberry Cheesecake, Biscoff</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="drink" value="fruit-tea">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Fruit Tea</h3>
+                <p>Strawberry, Blueberry, Lychee</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="drink" value="others">
+            <div class="card-inner single-title">
+                <span class="check-icon">✓</span>
+                <h3>Others</h3>
+            </div>
+        </label>
+            </div>
+
+            <!-- Continue Action -->
+            <button id="btnContinueStep1" class="btn-quiz-continue">Continue</button>
+        </div>
+
+        <!-- STEP 2 QUIZ CONTAINER (HIDDEN INITIALLY) -->
+        <div id="quizStep2" class="quiz-step-wrapper hidden">
+            <!-- Progress Header with Back Button and Progress Bar -->
+            <!-- Progress Header for Step 2 -->
+            <div class="quiz-top-bar">
+                <button id="btnBackToStep1" class="btn-back-text" onclick="handleQuizBack(event)">&lt; Back</button>
+                <span class="quiz-progress-text">2 of 4</span>
+            </div>
+            <div class="quiz-progress-track">
+                <div class="quiz-progress-fill" style="width: 50%;"></div>
+            </div>
+
+            <!-- Question Title Header -->
+            <div class="quiz-header">
+                <span class="quiz-category">NEEDS</span>
+                <h1 class="quiz-title">What do you need there?</h1>
+                <p class="quiz-subtitle">Select what you need.</p>
+            </div>
+
+            <!-- Options Grid -->
+            <div class="quiz-grid">
+                <label class="quiz-card">
+            <input type="checkbox" name="needs" value="wifi">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Wifi</h3>
+                <p>Reliable, Fast Internet</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="needs" value="outlets">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Power Outlets</h3>
+                <p>Plugs at every seats</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="needs" value="food">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Food Menu</h3>
+                <p>Pastries, Brunch, Bites</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="needs" value="card-only">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Card Only</h3>
+                <p>Convenient, Cashless</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="needs" value="parking">
+            <div class="card-inner">
+                <span class="check-icon">✓</span>
+                <h3>Parking Lot</h3>
+                <p>Lot or street nearby</p>
+            </div>
+        </label>
+
+                <label class="quiz-card">
+            <input type="checkbox" name="needs" value="others">
+            <div class="card-inner single-title">
+                <span class="check-icon">✓</span>
+                <h3>Others</h3>
+            </div>
+        </label>
+            </div>
+
+            <!-- Continue Action -->
+            <button id="btnContinueStep2" class="btn-quiz-continue">Continue</button>
+        </div>
+
+        <!-- STEP 3 QUIZ CONTAINER (PRICE RANGE - 3 of 4) -->
+        <div id="quizStep3" class="quiz-step-wrapper hidden">
+            <!-- Progress Header for Step 3 -->
+            <div class="quiz-top-bar">
+                <button id="btnBackToStep2" class="btn-back-text" onclick="handleQuizBackToStep2(event)">&lt; Back</button>
+                <span class="quiz-progress-text">3 of 4</span>
+            </div>
+            <div class="quiz-progress-track">
+                <div class="quiz-progress-fill" style="width: 75%;"></div>
+            </div>
+
+            <!-- Question Title Header -->
+            <div class="quiz-header">
+                <span class="quiz-category">PRICE RANGE</span>
+                <h1 class="quiz-title">Which price fits you?</h1>
+                <p class="quiz-subtitle">Choose what's suit your budget.</p>
+            </div>
+
+            <!-- Options Grid -->
+            <div class="quiz-grid">
+                <label class="quiz-card">
+                    <input type="checkbox" name="price" value="150-200">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>₱ 150-200</h3>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="price" value="100-300">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>₱ 100-300</h3>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="price" value="150-350">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>₱ 150-350</h3>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="price" value="200-400">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>₱ 200-400</h3>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="price" value="170-250">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>₱ 170-250</h3>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="price" value="others">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>Others</h3>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Continue Action -->
+            <button id="btnContinueStep3" class="btn-quiz-continue">Continue</button>
+        </div>
+
+        <!-- STEP 4 QUIZ CONTAINER (PEOPLE'S RATINGS - 4 of 4) -->
+        <div id="quizStep4" class="quiz-step-wrapper hidden">
+            <!-- Progress Header for Step 4 -->
+            <div class="quiz-top-bar">
+                <button id="btnBackToStep3" class="btn-back-text" onclick="handleQuizBackToStep3(event)">&lt; Back</button>
+                <span class="quiz-progress-text">4 of 4</span>
+            </div>
+            <div class="quiz-progress-track">
+                <div class="quiz-progress-fill" style="width: 100%;"></div>
+            </div>
+
+            <!-- Question Title Header -->
+            <div class="quiz-header">
+                <span class="quiz-category">PEOPLE'S RATINGS</span>
+                <h1 class="quiz-title">Which rate caught you?</h1>
+                <p class="quiz-subtitle">Select what would you like to expect.</p>
+            </div>
+
+            <!-- Options Grid -->
+            <div class="quiz-grid">
+                <label class="quiz-card">
+                    <input type="checkbox" name="rating" value="5.0">
+                    <div class="card-inner rating-card-inner">
+                        <span class="check-icon">✓</span>
+                        <span class="rating-num">5.0</span>
+                        <span class="rating-stars">★★★★★</span>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="rating" value="4.0">
+                    <div class="card-inner rating-card-inner">
+                        <span class="check-icon">✓</span>
+                        <span class="rating-num">4.0</span>
+                        <span class="rating-stars">★★★★☆</span>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="rating" value="3.0">
+                    <div class="card-inner rating-card-inner">
+                        <span class="check-icon">✓</span>
+                        <span class="rating-num">3.0</span>
+                        <span class="rating-stars">★★★☆☆</span>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="rating" value="4.5">
+                    <div class="card-inner rating-card-inner">
+                        <span class="check-icon">✓</span>
+                        <span class="rating-num">4.5</span>
+                        <span class="rating-stars">★★★★½</span>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="rating" value="3.5">
+                    <div class="card-inner rating-card-inner">
+                        <span class="check-icon">✓</span>
+                        <span class="rating-num">3.5</span>
+                        <span class="rating-stars">★★★½☆</span>
+                    </div>
+                </label>
+
+                <label class="quiz-card">
+                    <input type="checkbox" name="rating" value="others">
+                    <div class="card-inner single-title">
+                        <span class="check-icon">✓</span>
+                        <h3>Others</h3>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Final Action Button -->
+            <button id="btnFinishQuiz" class="btn-quiz-continue">Find My Coffee Shop</button>
+        </div>
+    </section>
+
+    <!-- 5. RESULTS PAGE VIEW (IMAGES 2-4) -->
+    <div id="resultsContainer" class="results-page-wrapper hidden">
+
+        <!-- TOP HERO HEADER (IMAGE 2) -->
+        <div class="results-hero">
+            <div class="results-hero-overlay"></div>
+            <div class="results-hero-content">
+                <h1 class="results-title">Founded Coffee Shops</h1>
+                <p class="results-subtitle">Everything I brew, I braw it for you.</p>
+                <div class="results-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" placeholder="Search coffee shops...">
+                </div>
+            </div>
+
+            <!-- STICKY GREEN KNN BAR -->
+            <div class="knn-banner">
+                <span class="knn-check">✓</span>
+                <span><strong>KNN Algorithm found</strong> <mark class="knn-highlight">6 personalized matches</mark> based on your preferences.</span>
+            </div>
+        </div>
+
+        <!-- SCROLLABLE CARDS CONTAINER (IMAGES 3 & 4) -->
+        <div class="results-cards-container">
+            <div class="results-grid">
+
+                <!-- CARD 1: Grind -->
+                <div class="cafe-card">
+                    <div class="card-img-wrap">
+                        <img src="images/grind.jpg" alt="Grind">
+                    </div>
+                    <div class="card-details">
+                        <h3>Grind</h3>
+                        <p class="location">📍 219 JP Rizal St, Calamba, 4027 Laguna</p>
+                        <p class="info-row">Price range: <span>₱150 – 200</span></p>
+                        <p class="info-row">Ratings: 5.0 <span class="stars">★★★★★</span></p>
+                        <div class="tags-row">
+                            <span class="tag">Quiet</span>
+                            <span class="tag">Dark Roast</span>
+                            <span class="tag">WiFi</span>
+                        </div>
+                        <button class="btn-navigate">Navigate</button>
+                    </div>
+                </div>
+
+                <!-- CARD 2: Psalm 23:5 Coffee -->
+                <div class="cafe-card">
+                    <div class="card-img-wrap">
+                        <img src="images/psalm.jpg" alt="Psalm 23:5 Coffee">
+                    </div>
+                    <div class="card-details">
+                        <h3>Psalm 23:5 Coffee</h3>
+                        <p class="location">📍 6569+W4V, Pabalan St, Calamba, 4027 Laguna</p>
+                        <p class="info-row">Price range: <span>₱1 – 500</span></p>
+                        <p class="info-row">Ratings: 5.0 <span class="stars">★★★★★</span></p>
+                        <div class="tags-row">
+                            <span class="tag">Social</span>
+                            <span class="tag">Outdoor Seating</span>
+                            <span class="tag">Medium Roast</span>
+                        </div>
+                        <button class="btn-navigate">Navigate</button>
+                    </div>
+                </div>
+
+                <!-- CARD 3: The Elements -->
+                <div class="cafe-card">
+                    <div class="card-img-wrap">
+                        <img src="images/elements.jpg" alt="The Elements">
+                    </div>
+                    <div class="card-details">
+                        <h3>The Elements</h3>
+                        <p class="location">📍 0171 San Jose, Burgos St, Calamba, 4027 Laguna</p>
+                        <p class="info-row">Price range: <span>₱1 – 500</span></p>
+                        <p class="info-row">Ratings: 5.0 <span class="stars">★★★★★</span></p>
+                        <div class="tags-row">
+                            <span class="tag">Lively</span>
+                            <span class="tag">Food Menu</span>
+                            <span class="tag">Light Roast</span>
+                        </div>
+                        <button class="btn-navigate">Navigate</button>
+                    </div>
+                </div>
+
+                <!-- CARD 4: Brewed Awakening -->
+                <div class="cafe-card">
+                    <div class="card-img-wrap">
+                        <img src="images/for.jpg" alt="Brewed Awakening">
+                    </div>
+                    <div class="card-details">
+                        <h3>For:</h3>
+                        <p class="location">📍 16 General Lim St, Barangay 5, Calamba, 4027 Laguna</p>
+                        <p class="info-row">Price range: <span>₱80 – 250</span></p>
+                        <p class="info-row">Ratings: 4.8 <span class="stars">★★★★★</span></p>
+                        <div class="tags-row">
+                            <span class="tag">Cozy</span>
+                            <span class="tag">WiFi</span>
+                            <span class="tag">Power Outlets</span>
+                        </div>
+                        <button class="btn-navigate">Navigate</button>
+                    </div>
+                </div>
+
+                <!-- CARD 5: The Roastery -->
+                <div class="cafe-card">
+                    <div class="card-img-wrap">
+                        <img src="images/brewco.jpg" alt="The Roastery">
+                    </div>
+                    <div class="card-details">
+                        <h3>Brew and Co.</h3>
+                        <p class="location">📍 San Jose Rd, Calamba, 4027 Laguna</p>
+                        <p class="info-row">Price range: <span>₱120 – 350</span></p>
+                        <p class="info-row">Ratings: 4.9 <span class="stars">★★★★★</span></p>
+                        <div class="tags-row">
+                            <span class="tag">Focused</span>
+                            <span class="tag">Dark Roast</span>
+                            <span class="tag">Power Outlets</span>
+                        </div>
+                        <button class="btn-navigate">Navigate</button>
+                    </div>
+                </div>
+
+                <!-- CARD 6: Fernwood Garden Cafe -->
+                <div class="cafe-card">
+                    <div class="card-img-wrap">
+                        <img src="images/wraps.jpg" alt="Fernwood Garden Cafe">
+                    </div>
+                    <div class="card-details">
+                        <h3>The Wraps Cofe</h3>
+                        <p class="location">📍 6579+P68, JP Rizal St, Calamba, 4027 Laguna</p>
+                        <p class="info-row">Price range: <span>₱150 – 400</span></p>
+                        <p class="info-row">Ratings: 4.7 <span class="stars">★★★★★</span></p>
+                        <div class="tags-row">
+                            <span class="tag">Quiet</span>
+                            <span class="tag">Outdoor Seating</span>
+                            <span class="tag">Pet Friendly</span>
+                        </div>
+                        <button class="btn-navigate">Navigate</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Script File (Fixed trailing space) -->
+    <script src="app.js"></script>
+</body>
+
+</html>

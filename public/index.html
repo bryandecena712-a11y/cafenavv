@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CafeNav</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Top Green Toast Banner -->
+    <div id="loginSuccessBanner" class="top-banner-success hidden">
+        You're logged in!
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="logo-container">
+            <!-- Custom SVG Pin Icon matching design -->
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="#3D2314">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            <span class="logo-text">CafeNav</span>
+        </div>
+
+        <nav class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <li id="navLoginLink" style="list-style: none;"><a href="login.html">Login</a></li>
+            <!-- Updated to route directly to offers.html -->
+            <a href="offers.html">Offers</a>
+            <a href="#">Locate</a>
+            <a href="#">Add Cafe</a>
+            <a href="#">Profile</a>
+
+            <!-- LOGOUT BUTTON -->
+            <li id="navLogoutContainer" class="hidden" style="list-style: none;">
+                <button id="btnLogout" class="btn-logout-pill">Logout</button>
+            </li>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">CafeNav</h1>
+            <p class="hero-subtitle">Lost in the daily grind? Let us guide you to great coffee.</p>
+            <a href="login.html"><button class="btn-login">Login</button></a>
+        </div>
+    </section>
+
+    <section class="popular-section">
+        <div class="popular-header-text">
+            <h1 class="popular-title">Popular Cafe</h1>
+            <p class="popular-subtitle">Navigate straight to the brews everyone is talking about.</p>
+        </div>
+
+        <!-- EXACTLY 3 CARDS -->
+        <div class="cafe-cards-container">
+            <!-- Card 1 -->
+            <div class="cafe-card">
+                <div class="card-image-wrapper">
+                    <img src="images/brewco.jpg" alt="Brew Co.">
+                </div>
+                <div class="card-content">
+                    <span class="location-tag">Poblacion, Calamba</span>
+                    <h3 class="cafe-name">Brew Co.</h3>
+                    <p class="cafe-desc">
+                        Brew and Co in Calamba is a great spot if you're looking for a cozy place to relax, enjoy good coffee, and unwind with friends. The café has a warm and modern ambiance that makes it perfect for casual meetups, study sessions, or even a quiet afternoon
+                        alone.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="cafe-card">
+                <div class="card-image-wrapper">
+                    <img src="images/grind.jpg" alt="Grind">
+                </div>
+                <div class="card-content">
+                    <span class="location-tag">Poblacion, Calamba</span>
+                    <h3 class="cafe-name">Grind</h3>
+                    <p class="cafe-desc">
+                        More than just coffee—this is your space to slow down, unwind, and enjoy the moment... for a quick caffeine fix, a quiet night alone, or a long kwentuhan with friends.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="cafe-card">
+                <div class="card-image-wrapper">
+                    <img src="images/elements.jpg" alt="The Elements">
+                </div>
+                <div class="card-content">
+                    <span class="location-tag">Poblacion, Calamba</span>
+                    <h3 class="cafe-name">The Elements</h3>
+                    <p class="cafe-desc">
+                        Calamba At The Elements, we're here to make event planning easier with a comfortable venue, delicious catering, and a team ready to help you every step of the way.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Counter -->
+    <div class="wooden-counter"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
