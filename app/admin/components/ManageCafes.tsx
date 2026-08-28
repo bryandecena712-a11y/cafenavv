@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { defaultCenter } from '@/app/lib/coordinates';
+import { supabase } from '@/app/lib/supabase';
 
 interface Product {
   id: string;
@@ -45,6 +46,45 @@ export default function ManageCafes() {
 
   const removeProduct = (id: string) => {
     setProducts(products.filter(p => p.id !== id));
+  };
+
+  const uploadFileToSupabase = async (file: File, folder: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from('cafes')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error('Upload error:', error);
+      alert('Error uploading image. Is your Supabase bucket set up correctly?');
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('cafes')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const publicUrl = await uploadFileToSupabase(file, 'cafe-covers');
+      setPhoto(publicUrl);
+    } catch (err) {}
+  };
+
+  const handleProductPhotoUpload = async (id: string, file: File | undefined) => {
+    if (!file) return;
+    try {
+      const publicUrl = await uploadFileToSupabase(file, 'products');
+      updateProduct(id, 'photo', publicUrl);
+    } catch (err) {}
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,8 +154,9 @@ export default function ManageCafes() {
                       <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="e.g. Mocha Magic" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Cover Photo URL</label>
-                      <input type="url" required value={photo} onChange={e => setPhoto(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="https://..." />
+                      <label className="text-sm font-medium text-zinc-400">Cover Photo</label>
+                      <input type="file" accept="image/*" onChange={handlePhotoUpload} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-zinc-950 hover:file:bg-amber-400 focus:outline-none focus:border-amber-500/50" />
+                      {photo && <p className="text-xs text-green-400 font-medium">Photo uploaded successfully!</p>}
                     </div>
                     <div className="space-y-2 sm:col-span-2">
                       <label className="text-sm font-medium text-zinc-400">Description</label>
@@ -200,8 +241,9 @@ export default function ManageCafes() {
                               <input required value={product.price} onChange={e => updateProduct(product.id, 'price', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="$4.50" />
                             </div>
                             <div className="sm:col-span-6 space-y-1">
-                              <label className="text-xs text-zinc-500">Photo URL</label>
-                              <input required value={product.photo} onChange={e => updateProduct(product.id, 'photo', e.target.value)} type="url" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="https://..." />
+                              <label className="text-xs text-zinc-500">Photo</label>
+                              <input accept="image/*" type="file" onChange={(e) => handleProductPhotoUpload(product.id, e.target.files?.[0])} className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-400 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-zinc-950 hover:file:bg-amber-400 focus:outline-none focus:border-amber-500/50" />
+                              {product.photo && <p className="text-[10px] text-green-400 mt-1 font-medium">Uploaded</p>}
                             </div>
                             <div className="sm:col-span-12 space-y-1">
                               <label className="text-xs text-zinc-500">Description</label>
