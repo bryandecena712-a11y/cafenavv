@@ -7,6 +7,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
@@ -31,7 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (name: string, email: string) => {
-    const newUser = { id: Date.now().toString(), name, email };
+    const isAdmin = email.toLowerCase() === 'admin@admin.com';
+    const newUser = { id: Date.now().toString(), name, email, isAdmin };
     setUser(newUser);
     localStorage.setItem('cafenav_user', JSON.stringify(newUser));
   };

@@ -13,7 +13,12 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Prototyping: Just require any email/password and mock the name from the email
+    if (email === 'admin' || email === 'admin@admin.com') {
+      login('Admin', 'admin@admin.com');
+      router.push('/');
+      return;
+    }
+
     if (email && password) {
       const name = email.split('@')[0];
       login(name.charAt(0).toUpperCase() + name.slice(1), email);
@@ -36,7 +41,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-300 ml-1">Email</label>
             <input 
-              type="email" 
+              type="text" 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

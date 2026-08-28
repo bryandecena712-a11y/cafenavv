@@ -34,8 +34,28 @@ export default function Navbar() {
                   <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
                   <div className="absolute right-0 mt-3 w-48 bg-zinc-900 border border-white/10 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
                     <div className="px-4 py-3 border-b border-white/5">
-                      <p className="text-sm font-medium text-white">{user?.name}</p>
+                      <p className="text-sm font-medium text-white flex items-center gap-2">
+                        {user?.name}
+                        {user?.isAdmin && <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] uppercase font-bold rounded-md">Admin</span>}
+                      </p>
                       <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
+                    </div>
+                    <div className="p-2 border-b border-white/5">
+                      {user?.isAdmin && (
+                        <Link 
+                          href="/admin"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="block w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                          Admin Dashboard
+                        </Link>
+                      )}
+                      <Link 
+                        href="#"
+                        className="block w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                      >
+                        Profile Settings
+                      </Link>
                     </div>
                     <div className="p-2">
                       <button 
