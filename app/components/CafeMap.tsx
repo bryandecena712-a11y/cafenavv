@@ -94,13 +94,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 )}
                 
                 <Link 
-                  href={`/`}
+                  href={`/cafe/${selectedCafe.id}`}
                   className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-semibold py-2 px-4 rounded-xl text-center transition-colors shadow-sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // We don't have a cafe details page yet, but they can hook it up here
-                    alert(`Navigating to ${selectedCafe.name} details...`);
-                  }}
                 >
                   View Details
                 </Link>
