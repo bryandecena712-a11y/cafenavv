@@ -25,9 +25,9 @@ export async function POST(request: Request) {
         email: user.email,
       },
     }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Database query failed.' }, { status: 500 });
+    return NextResponse.json({ error: 'Database query failed: ' + error.message }, { status: 500 });
   }
 }
 
