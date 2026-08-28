@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { defaultCenter } from '@/app/lib/coordinates';
 import { supabase } from '@/app/lib/supabase';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface Product {
   id: string;
@@ -16,6 +17,7 @@ interface Product {
 export default function ManageCafes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [apiKey, setApiKey] = useState<string>('');
+  const { user } = useAuth();
 
   // Form State
   const [name, setName] = useState('');
@@ -107,7 +109,7 @@ export default function ManageCafes() {
       const res = await fetch('/api/admin/cafes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, photo, description, pinnedLocation, products })
+        body: JSON.stringify({ name, photo, description, pinnedLocation, products, userId: user?.id })
       });
       
       const data = await res.json();

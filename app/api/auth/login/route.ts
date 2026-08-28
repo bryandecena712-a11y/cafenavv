@@ -17,6 +17,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 400 });
     }
 
+    await prisma.audit_logs.create({
+      data: {
+        user_id: user.id,
+        action: 'Admin Login',
+        target: 'System'
+      }
+    });
+
     return NextResponse.json({
       message: 'Login successful!',
       user: {

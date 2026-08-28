@@ -35,6 +35,17 @@ model users {
   password   String
   created_at DateTime? @default(now())
   stories    stories[]
+  audit_logs audit_logs[]
+}
+
+model audit_logs {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  action     String
+  target     String
+  created_at DateTime? @default(now())
+  
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model stories {

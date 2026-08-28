@@ -21,9 +21,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { name, photo, description, pinnedLocation, products } = data;
+    const { name, photo, description, pinnedLocation, products, userId } = data;
 
-    if (!name || !photo || !description || !pinnedLocation) {
+    if (!name || !photo || !description || !pinnedLocation || !userId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -44,6 +44,15 @@ export async function POST(request: Request) {
       },
       include: {
         products: true,
+      }
+    });
+
+    // Create audit log
+    await prisma.audit_logs.create({
+      data: {
+        user_id: userId,
+        action: 'Added Cafe',
+        target: name,
       }
     });
 

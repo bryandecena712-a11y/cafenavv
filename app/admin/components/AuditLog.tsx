@@ -1,14 +1,25 @@
 'use client';
 
-const MOCK_LOGS = [
-  { id: 1, action: 'Added Cafe', target: 'Brew Co.', user: 'Admin', date: 'Oct 12, 10:45 AM' },
-  { id: 2, action: 'Updated Menu', target: 'Latte Art', user: 'Admin', date: 'Oct 12, 09:30 AM' },
-  { id: 3, action: 'Deleted Review', target: 'Review #849', user: 'Admin', date: 'Oct 11, 04:20 PM' },
-  { id: 4, action: 'Pinned Location', target: 'Daily Grind', user: 'Admin', date: 'Oct 10, 02:15 PM' },
-  { id: 5, action: 'Admin Login', target: 'System', user: 'Admin', date: 'Oct 10, 08:00 AM' },
-];
+import { useEffect, useState } from 'react';
 
 export default function AuditLog() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        const res = await fetch('/api/admin/audit-logs');
+        const data = await res.json();
+        setLogs(data);
+      } catch (err) {
+        console.error('Failed to fetch audit logs', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLogs();
+  }, []);
   return (
     <div className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden shadow-xl">
       <div className="overflow-x-auto">
@@ -22,24 +33,36 @@ export default function AuditLog() {
             </tr>
           </thead>
           <tbody>
-            {MOCK_LOGS.map((log, index) => (
-              <tr 
-                key={log.id} 
-                className={`border-b border-white/5 hover:bg-zinc-800/50 transition-colors ${index % 2 === 0 ? 'bg-zinc-900/30' : 'bg-transparent'}`}
-              >
-                <td className="px-6 py-4 font-medium text-white">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    {log.action}
-                  </div>
-                </td>
-                <td className="px-6 py-4">{log.target}</td>
-                <td className="px-6 py-4">
-                  <span className="px-2 py-1 bg-white/5 rounded-md text-xs font-semibold">{log.user}</span>
-                </td>
-                <td className="px-6 py-4 text-zinc-500">{log.date}</td>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">Loading logs...</td>
               </tr>
-            ))}
+            ) : logs.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">No recent activity.</td>
+              </tr>
+            ) : (
+              logs.map((log, index) => (
+                <tr 
+                  key={log.id} 
+                  className={`border-b border-white/5 hover:bg-zinc-800/50 transition-colors ${index % 2 === 0 ? 'bg-zinc-900/30' : 'bg-transparent'}`}
+                >
+                  <td className="px-6 py-4 font-medium text-white">
+                    <div className="flex items-center gap-3">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      {log.action}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">{log.target}</td>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 bg-white/5 rounded-md text-xs font-semibold">{log.user?.username || 'Unknown'}</span>
+                  </td>
+                  <td className="px-6 py-4 text-zinc-500">
+                    {new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
