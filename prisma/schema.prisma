@@ -13,6 +13,18 @@ model cafes {
   location    String?
   description String?
   image_url   String?
+  products    products[]
+}
+
+model products {
+  id          Int     @id @default(autoincrement())
+  cafe_id     Int
+  name        String
+  price       String
+  description String?
+  image_url   String?
+  
+  cafe        cafes   @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 }
 
 model users {

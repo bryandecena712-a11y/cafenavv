@@ -23,8 +23,21 @@ export default function ManageCafes() {
   const [description, setDescription] = useState('');
   const [pinnedLocation, setPinnedLocation] = useState<{ lat: number, lng: number } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeCafes, setActiveCafes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchCafes = async () => {
+    try {
+      const res = await fetch('/api/admin/cafes');
+      const data = await res.json();
+      if (res.ok) setActiveCafes(data);
+    } catch (err) {
+      console.error('Failed to fetch cafes', err);
+    }
+  };
 
   useEffect(() => {
+    fetchCafes();
     if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
       setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
     }
@@ -87,14 +100,30 @@ export default function ManageCafes() {
     } catch (err) {}
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Prototyping: Just close the modal and pretend it was saved
-    alert(`Cafe "${name}" with ${products.length} products has been successfully mocked/saved!`);
-    setIsModalOpen(false);
-    
-    // Reset
-    setName(''); setPhoto(''); setDescription(''); setPinnedLocation(null); setProducts([]);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/cafes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, photo, description, pinnedLocation, products })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setIsModalOpen(false);
+        setName(''); setPhoto(''); setDescription(''); setPinnedLocation(null); setProducts([]);
+        fetchCafes();
+      } else {
+        alert(data.error || 'Failed to create cafe');
+      }
+    } catch (err) {
+      alert('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -103,7 +132,7 @@ export default function ManageCafes() {
       <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-2xl border border-white/5">
         <div>
           <h2 className="text-xl font-semibold text-white">Active Cafes</h2>
-          <p className="text-sm text-zinc-400">You currently have 3 cafes listed.</p>
+          <p className="text-sm text-zinc-400">You currently have {activeCafes.length} cafes listed.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -113,15 +142,24 @@ export default function ManageCafes() {
         </button>
       </div>
 
-      {/* Placeholder List */}
+      {/* Active Cafes List */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {['Brew Co.', 'Latte Art', 'Daily Grind'].map(cafe => (
-          <div key={cafe} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:border-amber-500/50 transition-colors">
-            <div className="w-12 h-12 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center text-xl">☕</div>
-            <h3 className="font-bold text-white mb-1">{cafe}</h3>
-            <p className="text-sm text-zinc-400">Active • 12 Products</p>
+        {activeCafes.map(cafe => (
+          <div key={cafe.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:border-amber-500/50 transition-colors">
+            {cafe.image_url ? (
+              <img src={cafe.image_url} alt={cafe.name} className="w-12 h-12 rounded-xl mb-4 object-cover" />
+            ) : (
+              <div className="w-12 h-12 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center text-xl">☕</div>
+            )}
+            <h3 className="font-bold text-white mb-1">{cafe.name}</h3>
+            <p className="text-sm text-zinc-400">Active • {cafe.products?.length || 0} Products</p>
           </div>
         ))}
+        {activeCafes.length === 0 && (
+          <div className="col-span-full text-center py-12 text-zinc-500 border border-dashed border-white/10 rounded-2xl">
+            No cafes added yet. Click "+ Add New Cafe" to get started.
+          </div>
+        )}
       </div>
 
       {/* Add Cafe Modal */}
@@ -264,8 +302,8 @@ export default function ManageCafes() {
               <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-zinc-400 hover:text-white font-medium transition-colors">
                 Cancel
               </button>
-              <button type="submit" form="add-cafe-form" className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50" disabled={!pinnedLocation}>
-                Publish Cafe
+              <button type="submit" form="add-cafe-form" className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50" disabled={!pinnedLocation || loading}>
+                {loading ? 'Publishing...' : 'Publish Cafe'}
               </button>
             </div>
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';
 
@@ -11,6 +12,7 @@ interface CafeMapProps {
 
 export default function CafeMap({ cafes }: CafeMapProps) {
   const [apiKey, setApiKey] = useState<string>('');
+  const [selectedCafe, setSelectedCafe] = useState<any>(null);
 
   useEffect(() => {
     // In production, this should be accessed from process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -48,21 +50,63 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           disableDefaultUI={true}
         >
           {cafes.map((cafe) => {
-            const coords = cafeCoordinates[cafe.name] || center;
+            let coords = center;
+            if (cafe.location) {
+              const [lat, lng] = cafe.location.split(',');
+              coords = { lat: parseFloat(lat), lng: parseFloat(lng) };
+            } else if (cafeCoordinates[cafe.name]) {
+              coords = cafeCoordinates[cafe.name];
+            }
+            
             return (
-              <AdvancedMarker key={cafe.id} position={coords} title={cafe.name}>
+              <AdvancedMarker 
+                key={cafe.id} 
+                position={coords} 
+                title={cafe.name}
+                onClick={() => setSelectedCafe({ ...cafe, coords })}
+              >
                 <div className="group relative z-10 cursor-pointer">
-                  <div className="w-8 h-8 rounded-full bg-amber-500 border-2 border-zinc-950 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${selectedCafe?.id === cafe.id ? 'bg-amber-400 border-white scale-110' : 'bg-amber-500 border-zinc-950'}`}>
                     <span className="text-zinc-950 font-bold text-[10px] block">☕</span>
-                  </div>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <p className="text-xs font-semibold text-zinc-100">{cafe.name}</p>
                   </div>
                 </div>
               </AdvancedMarker>
             );
           })}
+          
+          {selectedCafe && (
+            <InfoWindow
+              position={selectedCafe.coords}
+              onCloseClick={() => setSelectedCafe(null)}
+              headerContent={<div className="font-semibold text-zinc-900 pr-4">{selectedCafe.name}</div>}
+            >
+              <div className="flex flex-col gap-3 min-w-[200px] pb-1">
+                {selectedCafe.image_url ? (
+                  <img src={selectedCafe.image_url} alt={selectedCafe.name} className="w-full h-32 object-cover rounded-xl shadow-sm" />
+                ) : (
+                  <div className="w-full h-32 bg-zinc-100 rounded-xl flex items-center justify-center shadow-sm">
+                    <span className="text-4xl">☕</span>
+                  </div>
+                )}
+                
+                {selectedCafe.description && (
+                  <p className="text-sm text-zinc-600 line-clamp-2">{selectedCafe.description}</p>
+                )}
+                
+                <Link 
+                  href={`/`}
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-semibold py-2 px-4 rounded-xl text-center transition-colors shadow-sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // We don't have a cafe details page yet, but they can hook it up here
+                    alert(`Navigating to ${selectedCafe.name} details...`);
+                  }}
+                >
+                  View Details
+                </Link>
+              </div>
+            </InfoWindow>
+          )}
         </Map>
       </APIProvider>
     </div>
