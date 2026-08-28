@@ -103,13 +103,16 @@ export default async function Home() {
                 
                 <div className="p-8 flex flex-col flex-1 relative z-10 -mt-10">
                   <h3 className="text-2xl font-semibold text-zinc-100 mb-2">{cafe.name}</h3>
-                  <p className="text-zinc-400 text-sm leading-relaxed mb-8 flex-1">
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-8 flex-1 line-clamp-3">
                     {cafe.description}
                   </p>
                   
-                  <button className="w-full bg-zinc-800/80 text-zinc-200 font-medium py-3.5 rounded-xl border border-zinc-700/50 hover:bg-amber-500 hover:text-zinc-950 hover:border-amber-500 active:scale-[0.98] transition-all">
+                  <Link 
+                    href={`/cafe/${cafe.id}`}
+                    className="w-full bg-zinc-800/80 text-zinc-200 font-medium py-3.5 rounded-xl border border-zinc-700/50 hover:bg-amber-500 hover:text-zinc-950 hover:border-amber-500 active:scale-[0.98] transition-all text-center block"
+                  >
                     View Details
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
