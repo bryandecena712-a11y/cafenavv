@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import CafeMap from './components/CafeMap';
 import StoriesBar from './components/StoriesBar';
+import EmptyState from './components/EmptyState';
 
 export default async function Home() {
   const cafes = await prisma.cafes.findMany();
@@ -85,13 +86,7 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            {cafes.length === 0 && (
-              <div className="col-span-full py-24 px-6 bg-zinc-900/30 backdrop-blur-md border border-dashed border-white/10 rounded-[32px] text-center flex flex-col items-center justify-center">
-                <div className="w-20 h-20 bg-zinc-800/80 rounded-full flex items-center justify-center text-3xl mb-6 border border-white/5 shadow-xl">☕</div>
-                <h3 className="text-2xl font-semibold text-white mb-3">No coffee shops yet</h3>
-                <p className="text-zinc-400 max-w-md mb-8 text-lg">Wait for the admin to add one.</p>
-              </div>
-            )}
+            {cafes.length === 0 && <EmptyState />}
             
             {cafes.map((cafe) => (
               <div key={cafe.id} className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500">
