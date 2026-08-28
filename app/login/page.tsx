@@ -11,18 +11,40 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'admin' || email === 'admin@admin.com') {
-      login('Admin', 'admin@admin.com');
-      router.push('/');
-      return;
-    }
+    setError('');
+    setLoading(true);
 
     if (email && password) {
-      const name = email.split('@')[0];
-      login(name.charAt(0).toUpperCase() + name.slice(1), email);
-      router.push('/');
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          login({
+            id: data.user.id,
+            name: data.user.username,
+            email: data.user.email,
+            isAdmin: data.user.email.toLowerCase() === 'admin@admin.com'
+          });
+          router.push('/');
+        } else {
+          setError(data.error || 'Login failed');
+        }
+      } catch (err) {
+        setError('An unexpected error occurred');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -38,6 +60,11 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl text-center">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-300 ml-1">Email</label>
             <input 
@@ -67,9 +94,10 @@ export default function LoginPage() {
 
           <button 
             type="submit"
-            className="w-full bg-amber-500 text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-amber-400 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+            disabled={loading}
+            className="w-full bg-amber-500 text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-amber-400 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:pointer-events-none"
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 

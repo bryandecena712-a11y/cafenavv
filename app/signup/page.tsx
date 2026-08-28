@@ -12,12 +12,41 @@ export default function SignupPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     if (name && email && password) {
-      // Mock signup by immediately logging them in
-      login(name, email);
-      router.push('/');
+      try {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: name, email, password }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Log the user in on successful signup
+          login({
+            id: data.userId,
+            name: name,
+            email: email,
+            isAdmin: email.toLowerCase() === 'admin@admin.com'
+          });
+          router.push('/');
+        } else {
+          setError(data.error || 'Signup failed');
+        }
+      } catch (err) {
+        setError('An unexpected error occurred');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -33,6 +62,11 @@ export default function SignupPage() {
         </div>
 
         <form onSubmit={handleSignup} className="space-y-6">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl text-center">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-300 ml-1">Full Name</label>
             <input 
@@ -71,9 +105,10 @@ export default function SignupPage() {
 
           <button 
             type="submit"
-            className="w-full bg-white text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            disabled={loading}
+            className="w-full bg-white text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 disabled:pointer-events-none"
           >
-            Create Account
+            {loading ? 'Creating...' : 'Create Account'}
           </button>
         </form>
 

@@ -12,7 +12,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (name: string, email: string) => void;
+  login: (user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -31,11 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (name: string, email: string) => {
-    const isAdmin = email.toLowerCase() === 'admin@admin.com';
-    const newUser = { id: Date.now().toString(), name, email, isAdmin };
-    setUser(newUser);
-    localStorage.setItem('cafenav_user', JSON.stringify(newUser));
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('cafenav_user', JSON.stringify(userData));
   };
 
   const logout = () => {
