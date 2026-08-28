@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface CafeDetailsClientProps {
   cafe: any;
@@ -28,6 +30,9 @@ const INITIAL_CHAT = [
 const ACTIVE_USERS = ['S', 'M', 'J', 'A', 'K'];
 
 export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
+  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+
   // Tabs State
   const [activeTab, setActiveTab] = useState<'menu' | 'reviews' | 'community'>('menu');
 
@@ -88,7 +93,7 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
       title: newReview.title || 'Review',
       rating: newReview.rating,
       body: newReview.body,
-      author: 'You',
+      author: user?.name || 'You',
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     };
     
@@ -103,8 +108,8 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
 
     setMessages([...messages, {
       id: Date.now(),
-      author: 'You',
-      avatar: 'Y',
+      author: user?.name || 'You',
+      avatar: user?.name?.charAt(0) || 'Y',
       text: newMessage,
       time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
       isMe: true
@@ -248,7 +253,7 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
             <div className="flex items-center justify-between mb-10">
               <h2 className="text-2xl font-bold text-white tracking-tight">Ratings & Reviews</h2>
               <button 
-                onClick={() => setIsReviewModalOpen(true)}
+                onClick={() => isAuthenticated ? setIsReviewModalOpen(true) : router.push('/login')}
                 className="bg-white hover:bg-zinc-200 text-zinc-950 text-sm font-bold px-5 py-2.5 rounded-full transition-transform active:scale-95 shadow-lg"
               >
                 Write Review
@@ -360,24 +365,33 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
 
             {/* Chat Input */}
             <div className="p-4 bg-zinc-900/80 backdrop-blur-md border-t border-white/5">
-              <form onSubmit={sendMessage} className="flex items-center gap-3 relative">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Ask the community..."
-                  className="flex-1 bg-zinc-950/50 border border-white/10 rounded-full px-5 py-3.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all pr-12"
-                />
-                <button 
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className="absolute right-2 w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-zinc-950 disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-600 transition-all hover:bg-amber-400 active:scale-95"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                  </svg>
-                </button>
-              </form>
+              {isAuthenticated ? (
+                <form onSubmit={sendMessage} className="flex items-center gap-3 relative">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Ask the community..."
+                    className="flex-1 bg-zinc-950/50 border border-white/10 rounded-full px-5 py-3.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all pr-12"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!newMessage.trim()}
+                    className="absolute right-2 w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-zinc-950 disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-600 transition-all hover:bg-amber-400 active:scale-95"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                  </button>
+                </form>
+              ) : (
+                <div className="flex items-center justify-between bg-zinc-950/50 border border-white/10 rounded-xl px-5 py-3">
+                  <span className="text-sm text-zinc-400">Log in to join the conversation</span>
+                  <Link href="/login" className="text-sm font-bold text-amber-500 hover:text-amber-400">
+                    Log In
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

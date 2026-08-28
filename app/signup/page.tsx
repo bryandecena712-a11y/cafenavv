@@ -1,0 +1,89 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
+
+export default function SignupPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name && email && password) {
+      // Mock signup by immediately logging them in
+      login(name, email);
+      router.push('/');
+    }
+  };
+
+  return (
+    <main className="flex-1 flex items-center justify-center bg-zinc-950 p-6 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="w-full max-w-md bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-[32px] p-8 sm:p-12 shadow-2xl relative z-10 animate-in slide-in-from-bottom-8 duration-700">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Join CafeNav</h1>
+          <p className="text-zinc-400 text-sm">Create an account to join the community.</p>
+        </div>
+
+        <form onSubmit={handleSignup} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-300 ml-1">Full Name</label>
+            <input 
+              type="text" 
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Alex Coffee"
+              className="w-full bg-zinc-950/50 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-300 ml-1">Email</label>
+            <input 
+              type="email" 
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full bg-zinc-950/50 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-300 ml-1">Password</label>
+            <input 
+              type="password" 
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-zinc-950/50 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+            />
+          </div>
+
+          <button 
+            type="submit"
+            className="w-full bg-white text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+          >
+            Create Account
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-sm text-zinc-400">
+          Already have an account?{' '}
+          <Link href="/login" className="text-amber-500 font-semibold hover:text-amber-400 transition-colors">
+            Sign in
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}

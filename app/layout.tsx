@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
+import { AuthProvider } from "./context/AuthContext";
 
 const outfit = Outfit({ subsets: ["latin"], display: 'swap' });
 
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.className}>
       <body className="min-h-[100dvh] flex flex-col">
-        <Navbar />
-        {children}
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

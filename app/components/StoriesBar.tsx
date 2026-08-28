@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
 import { cafeCoordinates, getDistanceInMeters } from '@/app/lib/coordinates';
 
 interface Cafe {
@@ -14,6 +16,9 @@ interface StoriesBarProps {
 }
 
 export default function StoriesBar({ cafes }: StoriesBarProps) {
+  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDevMode, setIsDevMode] = useState(false);
   
@@ -32,6 +37,10 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
   ]);
 
   const openAddModal = () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
     setIsAddModalOpen(true);
     setLocationStatus('idle');
     setLocationMessage('');
@@ -90,7 +99,7 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
     
     setTimeout(() => {
       setStories([
-        { id: Date.now(), user: 'You', cafe: selectedCafeName, time: 'Just now', color: 'bg-amber-500' },
+        { id: Date.now(), user: user?.name || 'You', cafe: selectedCafeName, time: 'Just now', color: 'bg-amber-500' },
         ...stories
       ]);
       setIsAddModalOpen(false);
