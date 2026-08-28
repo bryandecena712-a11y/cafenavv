@@ -9,7 +9,7 @@ import { supabase } from '@/app/lib/supabase';
 
 interface Cafe {
   id: number;
-  name: string;
+  name: string | null;
 }
 
 interface StoriesBarProps {
