@@ -22,6 +22,21 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
   const [sortMethod, setSortMethod] = useState<'popularity' | 'price'>('popularity');
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
+  // Review State
+  const [reviews, setReviews] = useState([
+    {
+      id: 1,
+      title: 'Amazing atmosphere',
+      rating: 5,
+      body: 'This has become my go-to spot for working. The wifi is fast, the coffee is top tier, and the staff are always friendly. Highly recommend the flat white!',
+      author: 'Alex D.',
+      date: 'Oct 12'
+    }
+  ]);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [newReview, setNewReview] = useState({ title: '', rating: 0, body: '' });
+  const [hoveredStar, setHoveredStar] = useState(0);
+
   const toggleFavorite = (id: number) => {
     setFavorites(prev => {
       const next = new Set(prev);
@@ -36,10 +51,31 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
     return a.price - b.price;
   });
 
+  const submitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newReview.rating === 0) {
+      alert('Please select a star rating.');
+      return;
+    }
+    
+    const review = {
+      id: Date.now(),
+      title: newReview.title || 'Review',
+      rating: newReview.rating,
+      body: newReview.body,
+      author: 'You',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    };
+    
+    setReviews([review, ...reviews]);
+    setIsReviewModalOpen(false);
+    setNewReview({ title: '', rating: 0, body: '' });
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 pb-24">
       {/* Back Button Overlay */}
-      <div className="fixed top-6 left-6 z-50">
+      <div className="fixed top-6 left-6 z-40">
         <Link 
           href="/"
           className="flex items-center justify-center w-11 h-11 rounded-full bg-zinc-900/60 backdrop-blur-xl border border-white/10 text-white/90 hover:text-white hover:bg-zinc-800/80 hover:scale-105 active:scale-95 transition-all shadow-2xl"
@@ -145,7 +181,15 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
           {/* Sidebar (Right) - Ratings */}
           <div className="md:col-span-5 lg:col-span-4">
             <div className="sticky top-24">
-              <h2 className="text-2xl font-bold mb-8 text-white tracking-tight">Ratings & Reviews</h2>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-white tracking-tight">Ratings & Reviews</h2>
+                <button 
+                  onClick={() => setIsReviewModalOpen(true)}
+                  className="bg-zinc-100 hover:bg-white text-zinc-950 text-sm font-semibold px-4 py-2 rounded-full transition-transform active:scale-95 shadow-lg"
+                >
+                  Write Review
+                </button>
+              </div>
               
               {/* App Store Style Rating Block */}
               <div className="flex items-center gap-6 mb-8">
@@ -194,30 +238,112 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
               </div>
               
               <div className="flex items-center justify-between text-sm text-zinc-400 mb-8 pb-8 border-b border-white/5">
-                <span>124 Ratings</span>
-                <Link href="#" className="text-amber-500 font-semibold hover:text-amber-400">See All</Link>
+                <span>{123 + reviews.length} Ratings</span>
               </div>
 
-              {/* Sample Review */}
-              <div className="bg-white/[0.02] rounded-[24px] p-6 border border-white/5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="font-semibold text-white text-base tracking-tight">Amazing atmosphere</div>
-                  <div className="text-zinc-500 text-sm font-medium">Oct 12</div>
-                </div>
-                <div className="flex text-amber-500 text-sm mb-4 tracking-tight">★★★★★</div>
-                <p className="text-[15px] text-zinc-300 leading-relaxed">
-                  "This has become my go-to spot for working. The wifi is fast, the coffee is top tier, and the staff are always friendly. Highly recommend the flat white!"
-                </p>
-                <div className="mt-5 text-sm font-medium text-zinc-500 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-white">A</div>
-                  Alex D.
-                </div>
+              {/* Reviews List */}
+              <div className="flex flex-col gap-6 max-h-[600px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {reviews.map((review) => (
+                  <div key={review.id} className="bg-white/[0.02] rounded-[24px] p-6 border border-white/5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="font-semibold text-white text-base tracking-tight">{review.title}</div>
+                      <div className="text-zinc-500 text-sm font-medium">{review.date}</div>
+                    </div>
+                    <div className="flex text-amber-500 text-sm mb-4 tracking-tight">
+                      {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                    </div>
+                    <p className="text-[15px] text-zinc-300 leading-relaxed">
+                      "{review.body}"
+                    </p>
+                    <div className="mt-5 text-sm font-medium text-zinc-500 flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-white">
+                        {review.author.charAt(0)}
+                      </div>
+                      {review.author}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Review Modal */}
+      {isReviewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsReviewModalOpen(false)} />
+          <div className="relative w-full sm:w-[500px] bg-zinc-950/90 backdrop-blur-2xl sm:rounded-[32px] rounded-t-[32px] border border-white/10 shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+            <button 
+              onClick={() => setIsReviewModalOpen(false)}
+              className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+            
+            <h3 className="text-2xl font-bold text-white mb-8 tracking-tight">Write a Review</h3>
+            
+            <form onSubmit={submitReview} className="flex flex-col gap-6">
+              {/* Star Rating */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="text-sm font-medium text-zinc-400">Tap to Rate</div>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoveredStar(star)}
+                      onMouseLeave={() => setHoveredStar(0)}
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                      className="text-4xl transition-transform active:scale-90 hover:scale-110"
+                    >
+                      <span className={`${star <= (hoveredStar || newReview.rating) ? 'text-amber-500' : 'text-zinc-800'}`}>
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title Input */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-zinc-300">Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Summarize your experience"
+                  value={newReview.title}
+                  onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
+                  className="bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                />
+              </div>
+
+              {/* Body Input */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-zinc-300">Review</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="What did you think of the coffee and atmosphere?"
+                  value={newReview.body}
+                  onChange={(e) => setNewReview({ ...newReview, body: e.target.value })}
+                  className="bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-amber-500 text-zinc-950 font-bold py-4 rounded-xl mt-4 hover:bg-amber-400 active:scale-[0.98] transition-all shadow-lg shadow-amber-500/20"
+              >
+                Submit Review
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
