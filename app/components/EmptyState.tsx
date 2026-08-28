@@ -1,10 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function EmptyState() {
   const { user } = useAuth();
+  const router = useRouter();
 
   return (
     <div className="col-span-full py-24 px-6 bg-zinc-900/30 backdrop-blur-md border border-dashed border-white/10 rounded-[32px] text-center flex flex-col items-center justify-center">
@@ -14,9 +15,12 @@ export default function EmptyState() {
       {user?.isAdmin ? (
         <>
           <p className="text-zinc-400 max-w-md mb-8 text-lg">It looks like there aren't any cafes listed in your area right now. Be the first to add one from the Admin Dashboard!</p>
-          <Link href="/admin" className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-8 py-3.5 rounded-full transition-transform active:scale-95 shadow-lg shadow-amber-500/20">
+          <button 
+            onClick={() => router.push('/admin')} 
+            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-8 py-3.5 rounded-full transition-transform active:scale-95 shadow-lg shadow-amber-500/20"
+          >
             Go to Admin Dashboard
-          </Link>
+          </button>
         </>
       ) : (
         <p className="text-zinc-400 max-w-md mb-8 text-lg">Wait for the admin to add one.</p>
