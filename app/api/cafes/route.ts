@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '../../generated/prisma/client';
-import { PrismaLibSql } from '@prisma/adapter-libsql';
-import { createClient } from '@libsql/client';
+import { prisma } from '@/app/lib/prisma';
 
 export async function GET() {
   try {
-    const client = createClient({ url: 'file:cafenav.db' });
-    const adapter = new PrismaLibSql(client);
-    const prisma = new PrismaClient({ adapter });
-
     const cafes = await prisma.cafes.findMany({
       orderBy: { id: 'desc' }
     });

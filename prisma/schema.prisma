@@ -4,12 +4,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model cafes {
   id          Int     @id @default(autoincrement())
-  name        String? @unique(map: "sqlite_autoindex_cafes_1")
+  name        String? @unique
   location    String?
   description String?
   image_url   String?
@@ -18,7 +18,7 @@ model cafes {
 model users {
   id         Int       @id @default(autoincrement())
   username   String
-  email      String    @unique(map: "sqlite_autoindex_users_1")
+  email      String    @unique
   password   String
   created_at DateTime? @default(now())
 }
