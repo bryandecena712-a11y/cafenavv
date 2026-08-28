@@ -84,11 +84,7 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="mb-10 w-full">
-            <CafeMap cafes={cafes} />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
             {cafes.map((cafe) => (
               <div key={cafe.id} className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500">
                 <div className="relative w-full aspect-[4/3] bg-zinc-950 overflow-hidden">
@@ -117,6 +113,10 @@ export default async function Home() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="mb-10 w-full">
+            <CafeMap cafes={cafes} />
           </div>
         </div>
       </section>

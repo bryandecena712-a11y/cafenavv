@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 
 // Hardcoded coordinates since the DB doesn't have lat/lng yet
 const cafeCoordinates: Record<string, { lat: number; lng: number }> = {
+  "Brew Co.": { lat: 14.2120, lng: 121.1630 },
+  "The Elements": { lat: 14.2130, lng: 121.1650 },
   "Grind. Coffee": { lat: 14.2144, lng: 121.1627 },
   "Usual Coffee": { lat: 14.2114, lng: 121.1648 },
   "250 Cafe": { lat: 14.2116, lng: 121.1644 },
