@@ -14,6 +14,7 @@ model cafes {
   description String?
   image_url   String?
   products    products[]
+  stories     stories[]
 }
 
 model products {
@@ -33,4 +34,16 @@ model users {
   email      String    @unique
   password   String
   created_at DateTime? @default(now())
+  stories    stories[]
+}
+
+model stories {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  cafe_id    Int
+  image_url  String
+  created_at DateTime? @default(now())
+  
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  cafe       cafes     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 }

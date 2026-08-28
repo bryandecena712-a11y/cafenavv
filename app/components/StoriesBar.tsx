@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { cafeCoordinates, getDistanceInMeters } from '@/app/lib/coordinates';
+import { supabase } from '@/app/lib/supabase';
 
 interface Cafe {
   id: number;
@@ -25,16 +26,25 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
   const [selectedCafeName, setSelectedCafeName] = useState<string>('');
   const [locationStatus, setLocationStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [locationMessage, setLocationMessage] = useState('');
+  const [storyPhoto, setStoryPhoto] = useState<File | null>(null);
   
   const [viewingStory, setViewingStory] = useState<any | null>(null);
 
-  // Mock initial stories
-  const [stories, setStories] = useState([
-    { id: 1, user: 'Alex', cafe: 'Brew Co.', time: '2m', color: 'bg-emerald-500' },
-    { id: 2, user: 'Sarah', cafe: 'Grind. Coffee', time: '1h', color: 'bg-purple-500' },
-    { id: 3, user: 'Mike', cafe: '250 Cafe', time: '3h', color: 'bg-blue-500' },
-    { id: 4, user: 'Jen', cafe: 'The Elements', time: '5h', color: 'bg-rose-500' },
-  ]);
+  const [stories, setStories] = useState<any[]>([]);
+
+  const fetchStories = async () => {
+    try {
+      const res = await fetch('/api/stories');
+      if (res.ok) setStories(await res.json());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Fetch initial stories
+  if (stories.length === 0) {
+    fetchStories();
+  }
 
   const openAddModal = () => {
     if (!isAuthenticated) {
@@ -44,10 +54,29 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
     setIsAddModalOpen(true);
     setLocationStatus('idle');
     setLocationMessage('');
+    setStoryPhoto(null);
     if (cafes.length > 0) setSelectedCafeName(cafes[0].name);
   };
 
+  const uploadFileToSupabase = async (file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `stories/${fileName}`;
+
+    const { error } = await supabase.storage.from('cafes').upload(filePath, file);
+    if (error) throw error;
+    
+    const { data: { publicUrl } } = supabase.storage.from('cafes').getPublicUrl(filePath);
+    return publicUrl;
+  };
+
   const handlePostStory = () => {
+    if (!storyPhoto) {
+      setLocationStatus('error');
+      setLocationMessage('Please select a photo for your story!');
+      return;
+    }
+
     setLocationStatus('checking');
     setLocationMessage('Checking your location...');
 
@@ -93,17 +122,36 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
     );
   };
 
-  const postSuccess = (userLat: number, userLng: number, targetCoords: any) => {
+  const postSuccess = async (userLat: number, userLng: number, targetCoords: any) => {
     setLocationStatus('success');
-    setLocationMessage('Location verified! Posting your story...');
+    setLocationMessage('Location verified! Uploading photo...');
     
-    setTimeout(() => {
-      setStories([
-        { id: Date.now(), user: user?.name || 'You', cafe: selectedCafeName, time: 'Just now', color: 'bg-amber-500' },
-        ...stories
-      ]);
-      setIsAddModalOpen(false);
-    }, 1500);
+    try {
+      const publicUrl = await uploadFileToSupabase(storyPhoto!);
+      
+      setLocationMessage('Saving story...');
+      const cafe = cafes.find(c => c.name === selectedCafeName);
+      
+      const res = await fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          cafeId: cafe?.id,
+          imageUrl: publicUrl
+        })
+      });
+      
+      if (res.ok) {
+        setIsAddModalOpen(false);
+        fetchStories();
+      } else {
+        throw new Error('Failed to save to database');
+      }
+    } catch (err: any) {
+      setLocationStatus('error');
+      setLocationMessage('Error uploading story: ' + err.message);
+    }
   };
 
   return (
@@ -132,8 +180,12 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
                 onClick={() => setViewingStory(story)}
               >
                 <div className="relative w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-amber-500 to-rose-500 transition-transform group-hover:scale-105">
-                  <div className={`w-full h-full rounded-full border-2 border-zinc-950 ${story.color} flex items-center justify-center`}>
-                    <span className="text-xl font-bold text-white/50">{story.user.charAt(0)}</span>
+                  <div className={`w-full h-full rounded-full border-2 border-zinc-950 ${story.color} flex items-center justify-center overflow-hidden`}>
+                    {story.image_url ? (
+                      <img src={story.image_url} alt="Story" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl font-bold text-white/50">{story.user.charAt(0)}</span>
+                    )}
                   </div>
                 </div>
                 <span className="text-xs font-medium text-zinc-300">{story.user}</span>
@@ -170,6 +222,16 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
                     <option key={cafe.id} value={cafe.name}>{cafe.name}</option>
                   ))}
                 </select>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-zinc-300">Story Photo</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={e => setStoryPhoto(e.target.files?.[0] || null)}
+                  className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-zinc-950 hover:file:bg-amber-400 focus:outline-none focus:border-amber-500/50" 
+                />
               </div>
 
               {/* Dev Mode Toggle */}
@@ -233,11 +295,12 @@ export default function StoriesBar({ cafes }: StoriesBarProps) {
           {/* Story Content */}
           <div className="relative z-10 w-full max-w-sm aspect-[9/16] bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-end p-8 border border-zinc-800">
             <div className={`absolute inset-0 opacity-20 ${viewingStory.color}`} />
+            {viewingStory.image_url && (
+              <img src={viewingStory.image_url} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
             
-            <div className="relative z-10 text-center">
-              <div className={`w-24 h-24 mx-auto rounded-full ${viewingStory.color} mb-6 flex items-center justify-center border-4 border-zinc-950 shadow-xl`}>
-                <span className="text-5xl text-white/50 font-bold">{viewingStory.user.charAt(0)}</span>
-              </div>
+            <div className="relative z-10 text-center drop-shadow-lg">
               <h3 className="text-3xl font-bold text-white mb-2">{viewingStory.user}'s Day</h3>
               <p className="text-zinc-300 mb-2">Chilling at <span className="font-semibold text-amber-500">{viewingStory.cafe}</span></p>
               <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">{viewingStory.time} ago</p>

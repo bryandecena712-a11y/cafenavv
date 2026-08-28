@@ -82,13 +82,17 @@ export default async function Home() {
                 Navigate straight to the brews everyone is talking about. Hand-picked spots for studying, catching up, or just zoning out.
               </p>
             </div>
-            <Link href="/explore" className="group flex items-center gap-2 text-sm font-medium text-amber-500 hover:text-amber-400 transition-colors pb-2">
-              Explore all locations
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {cafes.length === 0 && (
+              <div className="col-span-full py-24 px-6 bg-zinc-900/30 backdrop-blur-md border border-dashed border-white/10 rounded-[32px] text-center flex flex-col items-center justify-center">
+                <div className="w-20 h-20 bg-zinc-800/80 rounded-full flex items-center justify-center text-3xl mb-6 border border-white/5 shadow-xl">☕</div>
+                <h3 className="text-2xl font-semibold text-white mb-3">No coffee shops yet</h3>
+                <p className="text-zinc-400 max-w-md mb-8 text-lg">Wait for the admin to add one.</p>
+              </div>
+            )}
+            
             {cafes.map((cafe) => (
               <div key={cafe.id} className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500">
                 <div className="relative w-full aspect-[4/3] bg-zinc-950 overflow-hidden">
