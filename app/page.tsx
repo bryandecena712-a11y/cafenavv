@@ -2,6 +2,7 @@ import { prisma } from '@/app/lib/prisma';
 import Link from 'next/link';
 import Image from 'next/image';
 import CafeMap from './components/CafeMap';
+import StoriesBar from './components/StoriesBar';
 
 export default async function Home() {
   const cafes = await prisma.cafes.findMany();
@@ -67,6 +68,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Stories Bar */}
+      <StoriesBar cafes={cafes} />
 
       {/* Popular Cafes Section */}
       <section className="w-full relative z-10 py-24 border-t border-zinc-900/50 bg-zinc-950">
