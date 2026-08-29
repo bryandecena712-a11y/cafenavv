@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ReviewForm from './ReviewForm';
 import BookmarkButton from '@/app/components/BookmarkButton';
+import ShareButton from '@/app/components/ShareButton';
 
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
@@ -44,7 +45,10 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
 
       {/* Bookmark Button */}
       <div className="absolute top-6 right-6 z-20">
-        <BookmarkButton cafeId={cafe.id} />
+        <div className="flex gap-4">
+          <ShareButton cafeName={cafe.name} />
+          <BookmarkButton cafeId={cafe.id} />
+        </div>
       </div>
 
       {/* Hero Section */}
@@ -117,6 +121,8 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
             <p className="text-zinc-500">This cafe hasn't added any products to their menu yet.</p>
           </div>
         )}
+      </div>
+      
       {/* Reviews Section */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">

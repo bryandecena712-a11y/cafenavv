@@ -1,0 +1,63 @@
+import { NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
+import { prisma } from '@/app/lib/prisma';
+
+// Initialize the SDK. It automatically picks up GEMINI_API_KEY from the environment.
+const ai = new GoogleGenAI({});
+
+export async function POST(request: Request) {
+  try {
+    const { messages } = await request.json();
+    
+    // Fetch all active cafes to provide as context
+    const cafes = await prisma.cafes.findMany({
+      where: { status: 'APPROVED' },
+      include: { products: true }
+    });
+
+    const cafeContext = cafes.map(c => `
+      Name: ${c.name}
+      Location: ${c.location}
+      Vibe: ${c.vibe}
+      Price: ${c.price_level}
+      Description: ${c.description || 'N/A'}
+      Products: ${c.products.map(p => p.name).join(', ') || 'N/A'}
+    `).join('\n\n');
+
+    const systemInstruction = `
+      You are the AI Barista Assistant for CafeNav, a platform for finding great cafes.
+      Your goal is to help users find the perfect cafe based on their preferences (e.g., vibe, price, location).
+      Here is the list of currently active cafes in our database:
+      ${cafeContext}
+      
+      Always base your recommendations on the cafes provided above. If a user asks for something we don't have, politely let them know and suggest the closest match.
+      Keep your answers friendly, concise, and helpful. Format your responses with markdown if necessary.
+    `;
+
+    // Construct the conversation history for the model
+    // The Gemini SDK expects a specific format or we can just pass the string.
+    // We will use the generateContent API with systemInstruction.
+    
+    // Convert messages to Gemini format. We assume messages is an array of { role: 'user' | 'model', content: string }
+    const formattedMessages = messages.map((m: any) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents: formattedMessages,
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+      }
+    });
+
+    const aiText = response.text;
+
+    return NextResponse.json({ text: aiText });
+  } catch (error) {
+    console.error('Error generating AI response:', error);
+    return NextResponse.json({ error: 'Failed to generate response' }, { status: 500 });
+  }
+}

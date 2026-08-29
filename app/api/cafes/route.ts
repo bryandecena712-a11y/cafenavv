@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const price = searchParams.get('price');
     const vibe = searchParams.get('vibe');
 
-    const where: any = {};
+    const where: any = { status: 'APPROVED' };
     if (price) where.price_level = price;
     if (vibe) where.vibe = vibe;
 

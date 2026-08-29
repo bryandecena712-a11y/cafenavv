@@ -15,6 +15,7 @@ model cafes {
   image_url   String?
   price_level String?
   vibe        String?
+  status      String? @default("APPROVED")
   products    products[]
   stories     stories[]
   reviews     reviews[]

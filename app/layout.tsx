@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
+import AIAssistant from "./components/AIAssistant";
 
 const outfit = Outfit({ subsets: ["latin"], display: 'swap' });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <AIAssistant />
         </AuthProvider>
       </body>
     </html>
