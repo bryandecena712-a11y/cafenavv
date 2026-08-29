@@ -278,7 +278,7 @@ export default function ManageCafes() {
                             </div>
                             <div className="sm:col-span-2 space-y-1">
                               <label className="text-xs text-zinc-500">Price</label>
-                              <input required value={product.price} onChange={e => updateProduct(product.id, 'price', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="$4.50" />
+                              <input required value={product.price} onChange={e => updateProduct(product.id, 'price', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="₱150" />
                             </div>
                             <div className="sm:col-span-6 space-y-1">
                               <label className="text-xs text-zinc-500">Photo</label>

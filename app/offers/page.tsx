@@ -44,9 +44,9 @@ export default function Offers() {
       title: "Which price fits you?",
       category: "PRICE RANGE",
       options: [
-        { title: "$ (Affordable)", desc: "Daily driver coffee" },
-        { title: "$$ (Moderate)", desc: "Specialty beans, standard price" },
-        { title: "$$$ (Premium)", desc: "Geisha beans, high-end experience" }
+        { title: "₱ (Affordable)", desc: "Daily driver coffee" },
+        { title: "₱₱ (Moderate)", desc: "Specialty beans, standard price" },
+        { title: "₱₱₱ (Premium)", desc: "Geisha beans, high-end experience" }
       ]
     }
   ];
