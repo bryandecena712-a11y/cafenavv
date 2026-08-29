@@ -40,7 +40,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profileData) {
+  if (!profileData || profileData.error) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
         <p className="text-xl mb-4">Error loading profile.</p>
@@ -55,7 +55,7 @@ export default function ProfilePage() {
       <div className="w-full bg-zinc-900 border-b border-white/5 py-12 px-6 pt-24">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-8">
           <div className="w-32 h-32 rounded-full bg-amber-500 flex items-center justify-center text-5xl font-bold text-zinc-950 border-4 border-zinc-950 shadow-2xl">
-            {profileData.username.charAt(0).toUpperCase()}
+            {profileData.username ? profileData.username.charAt(0).toUpperCase() : '?'}
           </div>
           <div className="text-center md:text-left flex-1">
             <h1 className="text-4xl font-bold mb-2">{profileData.username}</h1>
