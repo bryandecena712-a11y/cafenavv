@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       3. Do not engage in any tasks outside of recommending or discussing the cafes provided above.
       
       Always base your recommendations on the cafes provided above. If a user asks for something we don't have, politely let them know and suggest the closest match.
-      Keep your answers friendly, concise, and helpful. Format your responses with markdown if necessary.
+      Keep your answers friendly, concise, and helpful. DO NOT use markdown formatting (no asterisks for bolding, no hashes) because the chat interface only supports plain text. Use normal spacing and plain text instead.
     `;
 
     // Construct the conversation history for the model
