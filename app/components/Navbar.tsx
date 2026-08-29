@@ -51,10 +51,11 @@ export default function Navbar() {
                         </Link>
                       )}
                       <Link 
-                        href="#"
+                        href="/profile"
+                        onClick={() => setIsDropdownOpen(false)}
                         className="block w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
                       >
-                        Profile Settings
+                        My Profile
                       </Link>
                     </div>
                     <div className="p-2">

@@ -2,6 +2,7 @@ import { prisma } from '@/app/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ReviewForm from './ReviewForm';
+import BookmarkButton from '@/app/components/BookmarkButton';
 
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
@@ -39,6 +40,11 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
           <span className="text-lg leading-none">←</span>
           Go to Map
         </Link>
+      </div>
+
+      {/* Bookmark Button */}
+      <div className="absolute top-6 right-6 z-20">
+        <BookmarkButton cafeId={cafe.id} />
       </div>
 
       {/* Hero Section */}
