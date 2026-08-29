@@ -4,6 +4,7 @@ import Link from 'next/link';
 import ReviewForm from './ReviewForm';
 import BookmarkButton from '@/app/components/BookmarkButton';
 import ShareButton from '@/app/components/ShareButton';
+import SuggestProductForm from './SuggestProductForm';
 
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
@@ -15,7 +16,14 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
   const cafe = await prisma.cafes.findUnique({
     where: { id: cafeId },
     include: {
-      products: true,
+      products: {
+        where: {
+          OR: [
+            { status: 'APPROVED' },
+            { status: null }
+          ]
+        }
+      },
       reviews: {
         include: {
           user: { select: { username: true } }
@@ -121,6 +129,9 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
             <p className="text-zinc-500">This cafe hasn't added any products to their menu yet.</p>
           </div>
         )}
+        
+        {/* Suggest Menu Item Form */}
+        <SuggestProductForm cafeId={cafe.id} />
       </div>
       
       {/* Reviews Section */}

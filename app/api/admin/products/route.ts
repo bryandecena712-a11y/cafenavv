@@ -27,6 +27,27 @@ export async function POST(request: Request) {
   }
 }
 
+export async function PUT(request: Request) {
+  try {
+    const data = await request.json();
+    const { id, status } = data;
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'Product ID and status are required' }, { status: 400 });
+    }
+
+    const product = await prisma.products.update({
+      where: { id: parseInt(id, 10) },
+      data: { status }
+    });
+
+    return NextResponse.json(product, { status: 200 });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const data = await request.json();

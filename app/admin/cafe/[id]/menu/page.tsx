@@ -89,8 +89,22 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
     } catch (err) {}
   };
 
+  const handleApprove = async (id: number) => {
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'APPROVED' })
+      });
+      if (res.ok) fetchData();
+    } catch (err) {}
+  };
+
   if (loading) return <div className="p-8 text-white">Loading...</div>;
   if (!cafe) return <div className="p-8 text-white">Cafe not found</div>;
+
+  const approvedProducts = products.filter(p => p.status !== 'PENDING');
+  const pendingProducts = products.filter(p => p.status === 'PENDING');
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -100,6 +114,40 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
           <h1 className="text-3xl font-bold text-white">Manage Menu: {cafe.name}</h1>
         </div>
       </div>
+
+      {pendingProducts.length > 0 && (
+        <div className="mb-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
+          <h2 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            Pending User Suggestions ({pendingProducts.length})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pendingProducts.map(product => (
+              <div key={product.id} className="bg-zinc-950/50 border border-amber-500/20 rounded-2xl p-4 flex gap-4 relative group">
+                <button onClick={() => handleDelete(product.id)} className="absolute top-2 right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">✕</button>
+                <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-xl" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xl">☕</div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-white">{product.name}</h3>
+                  <p className="text-amber-500 text-sm font-semibold mb-1">{product.price}</p>
+                  <p className="text-xs text-zinc-400 line-clamp-1 mb-2">{product.description}</p>
+                  <button 
+                    onClick={() => handleApprove(product.id)}
+                    className="bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Approve Item
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
@@ -131,9 +179,9 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
 
         {/* Existing Products */}
         <div className="md:col-span-2">
-          <h2 className="text-xl font-bold text-white mb-4">Current Menu ({products.length})</h2>
+          <h2 className="text-xl font-bold text-white mb-4">Current Menu ({approvedProducts.length})</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {products.map(product => (
+            {approvedProducts.map(product => (
               <div key={product.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex gap-4 relative group">
                 <button onClick={() => handleDelete(product.id)} className="absolute top-2 right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                 <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0">
@@ -150,7 +198,7 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             ))}
-            {products.length === 0 && (
+            {approvedProducts.length === 0 && (
               <p className="text-zinc-500 col-span-full">No products added yet.</p>
             )}
           </div>
