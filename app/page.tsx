@@ -38,6 +38,12 @@ export default async function Home() {
               >
                 Take the Quiz
               </Link>
+              <Link
+                href="/suggest"
+                className="bg-zinc-800 text-zinc-50 font-medium px-8 py-3.5 rounded-full hover:bg-zinc-700 hover:-translate-y-[1px] active:scale-[0.98] transition-all border border-zinc-700"
+              >
+                Suggest a Cafe
+              </Link>
             </div>
           </div>
           
