@@ -17,6 +17,7 @@ model cafes {
   vibe        String?
   products    products[]
   stories     stories[]
+  reviews     reviews[]
 }
 
 model products {
@@ -39,6 +40,7 @@ model users {
   created_at DateTime? @default(now())
   stories    stories[]
   audit_logs audit_logs[]
+  reviews    reviews[]
 }
 
 model audit_logs {
@@ -56,6 +58,18 @@ model stories {
   user_id    Int
   cafe_id    Int
   image_url  String
+  created_at DateTime? @default(now())
+  
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  cafe       cafes     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+}
+
+model reviews {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  cafe_id    Int
+  rating     Int
+  content    String
   created_at DateTime? @default(now())
   
   user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)

@@ -1,6 +1,7 @@
 import { prisma } from '@/app/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import ReviewForm from './ReviewForm';
 
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
@@ -12,7 +13,13 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
   const cafe = await prisma.cafes.findUnique({
     where: { id: cafeId },
     include: {
-      products: true
+      products: true,
+      reviews: {
+        include: {
+          user: { select: { username: true } }
+        },
+        orderBy: { created_at: 'desc' }
+      }
     }
   });
 
@@ -104,6 +111,54 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
             <p className="text-zinc-500">This cafe hasn't added any products to their menu yet.</p>
           </div>
         )}
+      {/* Reviews Section */}
+      <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">⭐</span>
+          Community Reviews
+        </h2>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Reviews List */}
+          <div className="lg:col-span-2 space-y-4">
+            {cafe.reviews && cafe.reviews.length > 0 ? (
+              cafe.reviews.map((review) => (
+                <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-zinc-950 font-bold text-lg">
+                        {review.user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white leading-none">{review.user.username}</h4>
+                        <span className="text-xs text-zinc-500">{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className={`text-lg ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-zinc-300 leading-relaxed">{review.content}</p>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl">
+                <span className="text-4xl mb-4 block">💬</span>
+                <h3 className="text-xl font-medium text-white mb-2">No reviews yet</h3>
+                <p className="text-zinc-500">Be the first to share your thoughts on {cafe.name}!</p>
+              </div>
+            )}
+          </div>
+
+          {/* Leave a Review Form */}
+          <div className="lg:col-span-1">
+            <ReviewForm cafeId={cafe.id} />
+          </div>
+        </div>
       </div>
 
     </div>
