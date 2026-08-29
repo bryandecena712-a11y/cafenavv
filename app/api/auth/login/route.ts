@@ -29,8 +29,9 @@ export async function POST(request: Request) {
       message: 'Login successful!',
       user: {
         id: user.id,
-        username: user.username,
         email: user.email,
+        username: user.username,
+        isAdmin: user.role === 'ADMIN'
       },
     }, { status: 200 });
   } catch (error: any) {

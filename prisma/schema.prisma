@@ -13,6 +13,8 @@ model cafes {
   location    String?
   description String?
   image_url   String?
+  price_level String?
+  vibe        String?
   products    products[]
   stories     stories[]
 }
@@ -33,6 +35,7 @@ model users {
   username   String
   email      String    @unique
   password   String
+  role       String    @default("USER")
   created_at DateTime? @default(now())
   stories    stories[]
   audit_logs audit_logs[]

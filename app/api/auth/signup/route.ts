@@ -27,7 +27,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: 'User registered successfully!',
-      userId: newUser.id,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        username: newUser.username,
+        isAdmin: newUser.role === 'ADMIN'
+      },
     }, { status: 200 });
   } catch (error) {
     console.error('Signup error:', error);

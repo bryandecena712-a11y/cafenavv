@@ -169,22 +169,26 @@ export default function Offers() {
 
   // Results Page
   if (step === 4) {
-    return <ResultsView />;
+    return <ResultsView selections={selections} />;
   }
 
   return null;
 }
 
-function ResultsView() {
+function ResultsView({ selections }: { selections: Record<number, string> }) {
   const [cafes, setCafes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/cafes')
+    // selections[2] is Needs (Vibe)
+    // selections[3] is Price
+    const vibe = selections[2] || '';
+    const price = selections[3] || '';
+    
+    fetch(`/api/cafes?vibe=${encodeURIComponent(vibe)}&price=${encodeURIComponent(price)}`)
       .then(res => res.json())
       .then(data => {
-        // Filter to just the 4 seeded cafes from Calamba, or take the first 3
-        setCafes(data.filter((c: any) => c.name !== 'Brew Co.' && c.name !== 'The Elements').slice(0, 3));
+        setCafes(data);
         setLoading(false);
       })
       .catch(e => {

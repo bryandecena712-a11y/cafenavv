@@ -23,6 +23,8 @@ export default function ManageCafes() {
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState('');
   const [description, setDescription] = useState('');
+  const [priceLevel, setPriceLevel] = useState('₱ (Affordable)');
+  const [vibe, setVibe] = useState('Deep Work');
   const [pinnedLocation, setPinnedLocation] = useState<{ lat: number, lng: number } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCafes, setActiveCafes] = useState<any[]>([]);
@@ -109,14 +111,14 @@ export default function ManageCafes() {
       const res = await fetch('/api/admin/cafes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, photo, description, pinnedLocation, products, userId: user?.id })
+        body: JSON.stringify({ name, photo, description, priceLevel, vibe, pinnedLocation, products, userId: user?.id })
       });
       
       const data = await res.json();
       
       if (res.ok) {
         setIsModalOpen(false);
-        setName(''); setPhoto(''); setDescription(''); setPinnedLocation(null); setProducts([]);
+        setName(''); setPhoto(''); setDescription(''); setPriceLevel('₱ (Affordable)'); setVibe('Deep Work'); setPinnedLocation(null); setProducts([]);
         fetchCafes();
       } else {
         alert(data.error || 'Failed to create cafe');
@@ -201,6 +203,23 @@ export default function ManageCafes() {
                     <div className="space-y-2 sm:col-span-2">
                       <label className="text-sm font-medium text-zinc-400">Description</label>
                       <textarea required value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="A cozy place to..." />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Price Level</label>
+                      <select value={priceLevel} onChange={e => setPriceLevel(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
+                        <option value="₱ (Affordable)">₱ (Affordable)</option>
+                        <option value="₱₱ (Moderate)">₱₱ (Moderate)</option>
+                        <option value="₱₱₱ (Premium)">₱₱₱ (Premium)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Vibe / Atmosphere</label>
+                      <select value={vibe} onChange={e => setVibe(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
+                        <option value="Deep Work">Deep Work</option>
+                        <option value="Social Catch-up">Social Catch-up</option>
+                        <option value="Quick Grab">Quick Grab</option>
+                        <option value="Reading/Chill">Reading/Chill</option>
+                      </select>
                     </div>
                   </div>
                 </section>

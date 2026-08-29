@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { name, photo, description, pinnedLocation, products, userId } = data;
+    const { name, photo, description, priceLevel, vibe, pinnedLocation, products, userId } = data;
 
     if (!name || !photo || !description || !pinnedLocation || !userId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -30,8 +30,10 @@ export async function POST(request: Request) {
     const newCafe = await prisma.cafes.create({
       data: {
         name,
-        image_url: photo,
         description,
+        image_url: photo,
+        price_level: priceLevel,
+        vibe: vibe,
         location: `${pinnedLocation.lat},${pinnedLocation.lng}`,
         products: {
           create: products.map((p: any) => ({

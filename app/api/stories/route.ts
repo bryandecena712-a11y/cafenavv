@@ -4,7 +4,14 @@ import { prisma } from '@/app/lib/prisma';
 // Fetch all stories
 export async function GET() {
   try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
     const stories = await prisma.stories.findMany({
+      where: {
+        created_at: {
+          gt: twentyFourHoursAgo
+        }
+      },
       include: {
         user: { select: { username: true } },
         cafe: { select: { name: true } }
