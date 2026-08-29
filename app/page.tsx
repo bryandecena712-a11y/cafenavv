@@ -5,6 +5,8 @@ import CafeMap from './components/CafeMap';
 import StoriesBar from './components/StoriesBar';
 import EmptyState from './components/EmptyState';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const cafes = await prisma.cafes.findMany();
 
