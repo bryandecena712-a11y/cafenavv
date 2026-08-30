@@ -81,19 +81,39 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
           {/* Cafe Markers */}
           {cafes?.map((cafe) => {
-            let coords = defaultCenter;
-            if (cafe.location) {
-              const [lat, lng] = cafe.location.split(',');
-              coords = { lat: parseFloat(lat), lng: parseFloat(lng) };
-            } else if (cafeCoordinates[cafe.name]) {
-              coords = cafeCoordinates[cafe.name];
+            let lat: number | null = null;
+            let lng: number | null = null;
+
+            // Parse explicit numerical properties
+            if (cafe.latitude !== undefined && cafe.longitude !== undefined && cafe.latitude !== null) {
+              lat = parseFloat(cafe.latitude);
+              lng = parseFloat(cafe.longitude);
+            } else if (cafe.lat !== undefined && cafe.lng !== undefined && cafe.lat !== null) {
+              lat = parseFloat(cafe.lat);
+              lng = parseFloat(cafe.lng);
+            } 
+            // Parse comma-separated "lat,lng" string from database or admin pin
+            else if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
+              const parts = cafe.location.split(',');
+              lat = parseFloat(parts[0].trim());
+              lng = parseFloat(parts[1].trim());
+            } 
+            // Fallback to static coordinate dictionary
+            else if (cafeCoordinates[cafe.name]) {
+              lat = cafeCoordinates[cafe.name].lat;
+              lng = cafeCoordinates[cafe.name].lng;
             }
 
-            if (!coords.lat || !coords.lng) return null;
+            // Skip rendering if coordinates could not be parsed
+            if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
+              return null;
+            }
+
+            const coords = { lat, lng };
 
             return (
               <Marker
-                key={cafe.id}
+                key={cafe.id || cafe.name}
                 longitude={coords.lng}
                 latitude={coords.lat}
                 onClick={(e) => {
@@ -118,7 +138,19 @@ export default function CafeMap({ cafes }: CafeMapProps) {
               closeOnClick={false}
               className="text-zinc-950"
             >
-              <div className="flex flex-col gap-2 min-w-[180px] p-1">
+              <div className="flex flex-col gap-2 min-w-[200px] max-w-[240px] p-1">
+                {selectedCafe.cafe.image_url && (
+                  <div className="w-full h-24 rounded-lg overflow-hidden bg-zinc-800">
+                    <img
+                      src={selectedCafe.cafe.image_url}
+                      alt={selectedCafe.cafe.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
                 <strong className="text-zinc-900 text-sm font-bold">{selectedCafe.cafe.name}</strong>
                 {selectedCafe.cafe.description && (
                   <p className="text-xs text-zinc-600 line-clamp-2">{selectedCafe.cafe.description}</p>
@@ -126,9 +158,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 <div className="flex gap-2 mt-1">
                   <Link
                     href={`/cafe/${selectedCafe.cafe.id}`}
-                    className="flex-1 bg-zinc-900 text-white text-xs py-1.5 px-2 rounded-lg text-center no-underline hover:bg-zinc-800 transition-colors"
+                    className="flex-1 bg-zinc-900 text-white text-xs py-1.5 px-2 rounded-lg text-center no-underline hover:bg-zinc-800 transition-colors font-medium"
                   >
-                    Details
+                    View Details
                   </Link>
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCafe.coords.lat},${selectedCafe.coords.lng}`}
