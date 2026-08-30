@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';
@@ -61,14 +61,14 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       {/* CSS Dark Mode Filter applied directly to the map canvas */}
       <div className="w-full h-full [&_.maplibregl-canvas]:invert-[92%] [&_.maplibregl-canvas]:hue-rotate-[180deg] [&_.maplibregl-canvas]:brightness-[85%] [&_.maplibregl-canvas]:contrast-[120%]">
         <Map
-          mapLib={maplibregl}
+          mapLib={maplibregl as any}
           initialViewState={{
             longitude: center.lng,
             latitude: center.lat,
             zoom: 14,
           }}
           mapStyle={openStreetMapStyle}
-          className="w-full h-full"
+          style={{ width: '100%', height: '100%' }}
         >
           <NavigationControl position="top-right" />
 
