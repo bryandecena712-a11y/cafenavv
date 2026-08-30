@@ -11,26 +11,27 @@ interface CafeMapProps {
   cafes: any[];
 }
 
-const darkRasterStyle = {
+const freeDarkStyle = {
   version: 8 as const,
   sources: {
-    'carto-dark': {
+    'osm-dark': {
       type: 'raster' as const,
       tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     },
   },
   layers: [
     {
-      id: 'carto-dark-layer',
+      id: 'osm-dark-layer',
       type: 'raster' as const,
-      source: 'carto-dark',
+      source: 'osm-dark',
       minzoom: 0,
-      maxzoom: 22,
+      maxzoom: 19,
     },
   ],
 };
@@ -65,7 +66,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           latitude: center.lat,
           zoom: 14,
         }}
-        mapStyle={darkRasterStyle}
+        mapStyle={freeDarkStyle}
         className="w-full h-full"
       >
         <NavigationControl position="top-right" />
