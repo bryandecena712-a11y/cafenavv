@@ -6,7 +6,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const auth = useAuth() as any;
+  const user = auth?.user;
+  const isAuthenticated = auth?.isAuthenticated;
+  const isLoading = auth?.isLoading ?? auth?.loading ?? false;
+  const logout = auth?.logout;
+
   const router = useRouter();
 
   const [profileData, setProfileData] = useState<any>(null);
