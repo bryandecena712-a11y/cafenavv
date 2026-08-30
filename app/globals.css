@@ -1,22 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+@import 'leaflet/dist/leaflet.css';
 @layer base {
-  :root {
-    --background: 240 10% 4%; /* zinc-950 */
-    --foreground: 60 5% 96%; /* stone-50 */
-    --accent: 38 92% 50%; /* amber-500 ish */
-    --accent-foreground: 240 10% 4%;
-  }
-
-  body {
-    @apply bg-zinc-950 text-stone-50 antialiased selection:bg-amber-500/30;
-  }
+     :root {
+        --background: 240 10% 4%;
+        /* zinc-950 */
+        --foreground: 60 5% 96%;
+        /* stone-50 */
+        --accent: 38 92% 50%;
+        /* amber-500 ish */
+        --accent-foreground: 240 10% 4%;
+    }
+    body {
+        @apply bg-zinc-950 text-stone-50 antialiased selection: bg-amber-500/30;
+    }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+    .text-balance {
+        text-wrap: balance;
+    }
 }
