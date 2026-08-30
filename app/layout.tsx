@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+// @ts-ignore
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
 import AIAssistant from "./components/AIAssistant";
 
-const outfit = Outfit({ subsets: ["latin"], display: 'swap' });
+const outfit = Outfit({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "CafeNav | Find your perfect shop",
@@ -19,13 +20,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={outfit.className}>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
-        />
-      </head>
-      <body className="min-h-[100dvh] flex flex-col bg-zinc-950 text-stone-50">
+      <head />
+      <body className="bg-zinc-950 text-white antialiased">
         <AuthProvider>
           <Navbar />
           {children}
