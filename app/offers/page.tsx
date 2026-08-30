@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle } from '@phosphor-icons/react';
 
@@ -12,7 +13,7 @@ export default function Offers() {
   const startQuiz = () => setStep(1);
   const nextStep = () => setStep((s) => s + 1);
   const prevStep = () => setStep((s) => s - 1);
-  
+
   const handleSelect = (optionTitle: string) => {
     setSelections({ ...selections, [step]: optionTitle });
   };
@@ -232,9 +233,12 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-500 mb-2 block">Match {i + 1}</span>
                     <h3 className="text-2xl font-bold mb-2">{cafe.name}</h3>
                     <p className="text-zinc-300 text-sm mb-6 leading-relaxed line-clamp-1">{cafe.address}</p>
-                    <button className="w-full bg-white text-zinc-950 font-medium py-3 rounded-xl hover:bg-zinc-200 transition-colors">
+                    <Link
+                      href={`/cafe/${cafe.id}`}
+                      className="block w-full text-center bg-white text-zinc-950 font-medium py-3 rounded-xl hover:bg-zinc-200 transition-colors"
+                    >
                       View Details
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </motion.div>
