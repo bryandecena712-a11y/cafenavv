@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import "./globals.css";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
 import AIAssistant from "./components/AIAssistant";
@@ -18,6 +19,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={outfit.className}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin=""
+        />
+      </head>
       <body className="min-h-[100dvh] flex flex-col">
         <AuthProvider>
           <Navbar />
