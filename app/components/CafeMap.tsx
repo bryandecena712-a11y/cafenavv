@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
+// Add this critical CSS import to enable absolute marker positioning:
+import 'maplibre-gl/dist/maplibre-gl.css'; 
 import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';

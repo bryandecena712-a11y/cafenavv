@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase';
 
-export default function ManageMenuPage({ params }: { params: { id: string } }) {
+export default function ManageMenuPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const cafeId = parseInt(params.id, 10);
+  const resolvedParams = use(params);
+  const cafeId = parseInt(resolvedParams.id, 10);
   
   const [cafe, setCafe] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form
+  // Form states
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -22,11 +23,6 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
 
   const fetchData = async () => {
     try {
-      // We can fetch the specific cafe's products. For simplicity, we just use the existing API if possible.
-      // Wait, we don't have a specific API for fetching ONE cafe in admin. 
-      // Let's just fetch all and find it, or build a quick GET in admin.
-      // Actually, since we're Client Side, we can fetch from /api/cafes?id=... if it supported it.
-      // We'll just fetch all active cafes for now.
       const res = await fetch('/api/admin/cafes');
       const data = await res.json();
       const found = data.find((c: any) => c.id === cafeId);
@@ -34,12 +30,16 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
         setCafe(found);
         setProducts(found.products || []);
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('Failed to fetch cafe data:', err);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchData();
+    if (cafeId) {
+      fetchData();
+    }
   }, [cafeId]);
 
   const handleUpload = async (file: File) => {
@@ -86,7 +86,9 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
         body: JSON.stringify({ id })
       });
       if (res.ok) fetchData();
-    } catch (err) {}
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+    }
   };
 
   const handleApprove = async (id: number) => {
@@ -97,11 +99,13 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
         body: JSON.stringify({ id, status: 'APPROVED' })
       });
       if (res.ok) fetchData();
-    } catch (err) {}
+    } catch (err) {
+      console.error('Failed to approve product:', err);
+    }
   };
 
-  if (loading) return <div className="p-8 text-white">Loading...</div>;
-  if (!cafe) return <div className="p-8 text-white">Cafe not found</div>;
+  if (loading) return <div className="p-8 text-white">Loading menu manager...</div>;
+  if (!cafe) return <div className="p-8 text-white">Cafe not found.</div>;
 
   const approvedProducts = products.filter(p => p.status !== 'PENDING');
   const pendingProducts = products.filter(p => p.status === 'PENDING');
@@ -125,7 +129,7 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
             {pendingProducts.map(product => (
               <div key={product.id} className="bg-zinc-950/50 border border-amber-500/20 rounded-2xl p-4 flex gap-4 relative group">
                 <button onClick={() => handleDelete(product.id)} className="absolute top-2 right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">✕</button>
-                <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0">
+                <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden">
                   {product.image_url ? (
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-xl" />
                   ) : (
@@ -150,7 +154,6 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
         {/* Add Product Form */}
         <div className="md:col-span-1 bg-zinc-900 border border-white/5 p-6 rounded-2xl h-fit">
           <h2 className="text-xl font-bold text-white mb-4">Add Item</h2>
@@ -171,7 +174,7 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
               <label className="block text-sm text-zinc-400 mb-1">Photo</label>
               <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
             </div>
-            <button disabled={isSubmitting} className="w-full bg-amber-500 text-zinc-950 font-bold py-2 rounded-xl">
+            <button disabled={isSubmitting} className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl transition-colors">
               {isSubmitting ? 'Adding...' : 'Add Product'}
             </button>
           </form>
@@ -184,7 +187,7 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
             {approvedProducts.map(product => (
               <div key={product.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex gap-4 relative group">
                 <button onClick={() => handleDelete(product.id)} className="absolute top-2 right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0">
+                <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden">
                   {product.image_url ? (
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-xl" />
                   ) : (
@@ -203,7 +206,6 @@ export default function ManageMenuPage({ params }: { params: { id: string } }) {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
