@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';

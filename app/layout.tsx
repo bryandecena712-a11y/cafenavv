@@ -22,12 +22,10 @@ export default function RootLayout({
       <head>
         <link
           rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossOrigin=""
+          href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
         />
       </head>
-      <body className="min-h-[100dvh] flex flex-col">
+      <body className="min-h-[100dvh] flex flex-col bg-zinc-950 text-stone-50">
         <AuthProvider>
           <Navbar />
           {children}
