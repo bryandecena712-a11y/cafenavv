@@ -11,25 +11,25 @@ interface CafeMapProps {
   cafes: any[];
 }
 
-const freeDarkStyle = {
+const openStreetMapStyle = {
   version: 8 as const,
   sources: {
-    'osm-dark': {
+    'osm-tiles': {
       type: 'raster' as const,
       tiles: [
-        'https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     },
   },
   layers: [
     {
-      id: 'osm-dark-layer',
+      id: 'osm-tiles-layer',
       type: 'raster' as const,
-      source: 'osm-dark',
+      source: 'osm-tiles',
       minzoom: 0,
       maxzoom: 19,
     },
@@ -66,15 +66,15 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           latitude: center.lat,
           zoom: 14,
         }}
-        mapStyle={freeDarkStyle}
-        className="w-full h-full"
+        mapStyle={openStreetMapStyle}
+        className="w-full h-full [filter:invert(100%)_hue-rotate(180deg)_brightness(95%)_contrast(90%)]"
       >
         <NavigationControl position="top-right" />
 
         {/* User Location Marker */}
         {userLocation && (
           <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
-            <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md animate-pulse" />
+            <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md animate-pulse [filter:invert(100%)_hue-rotate(180deg)]" />
           </Marker>
         )}
 
@@ -100,7 +100,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 setSelectedCafe({ cafe, coords });
               }}
             >
-              <div className="w-8 h-8 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-sm shadow-lg cursor-pointer hover:scale-110 transition-transform">
+              <div className="w-8 h-8 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-sm shadow-lg cursor-pointer hover:scale-110 transition-transform [filter:invert(100%)_hue-rotate(180deg)]">
                 ☕
               </div>
             </Marker>
@@ -115,7 +115,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             anchor="bottom"
             onClose={() => setSelectedCafe(null)}
             closeOnClick={false}
-            className="text-zinc-950"
+            className="text-zinc-950 [filter:invert(100%)_hue-rotate(180deg)]"
           >
             <div className="flex flex-col gap-2 min-w-[180px] p-1">
               <strong className="text-zinc-900 text-sm">{selectedCafe.cafe.name}</strong>
