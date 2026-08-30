@@ -11,6 +11,30 @@ interface CafeMapProps {
   cafes: any[];
 }
 
+const darkRasterStyle = {
+  version: 8 as const,
+  sources: {
+    'carto-dark': {
+      type: 'raster' as const,
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+    },
+  },
+  layers: [
+    {
+      id: 'carto-dark-layer',
+      type: 'raster' as const,
+      source: 'carto-dark',
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+};
+
 export default function CafeMap({ cafes }: CafeMapProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
@@ -41,7 +65,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           latitude: center.lat,
           zoom: 14,
         }}
-        mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        mapStyle={darkRasterStyle}
         className="w-full h-full"
       >
         <NavigationControl position="top-right" />
