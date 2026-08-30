@@ -6,45 +6,64 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
-  
+
   const [profileData, setProfileData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
+    // 1. Wait for AuthContext to finish checking session status
+    if (isLoading) return;
+
+    // 2. Redirect to login if user is unauthenticated
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
-    if (user) {
+    // 3. Ensure user ID exists before requesting profile endpoint
+    if (user?.id) {
+      setDataLoading(true);
       fetch(`/api/user/profile?userId=${user.id}`)
-        .then(res => res.json())
-        .then(data => {
-          setProfileData(data);
-          setLoading(false);
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to load profile data');
+          return res.json();
         })
-        .catch(err => {
-          console.error(err);
-          setLoading(false);
+        .then((data) => {
+          setProfileData(data);
+          setDataLoading(false);
+        })
+        .catch((err) => {
+          console.error('Profile fetch error:', err);
+          setFetchError(true);
+          setDataLoading(false);
         });
     }
-  }, [isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
-  if (loading) {
+  // Loading spinner during auth check or API fetch
+  if (isLoading || dataLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">
-        <div className="animate-spin text-amber-500 text-4xl">◒</div>
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
+        <div className="animate-spin text-amber-500 text-4xl mb-4">◒</div>
+        <p className="text-zinc-400 text-sm">Loading profile...</p>
       </div>
     );
   }
 
-  if (!profileData || profileData.error) {
+  // Error fallback screen
+  if (fetchError || !profileData || profileData.error) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
         <p className="text-xl mb-4">Error loading profile.</p>
-        <button onClick={() => router.push('/')} className="text-amber-500 hover:underline">Go Home</button>
+        <button
+          onClick={() => router.push('/')}
+          className="text-amber-500 hover:underline font-medium"
+        >
+          Go Home
+        </button>
       </div>
     );
   }
@@ -62,10 +81,16 @@ export default function ProfilePage() {
             <p className="text-zinc-400">{profileData.email}</p>
           </div>
           <div className="flex gap-4">
-            <Link href="/" className="px-6 py-2.5 rounded-full bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700 transition-colors border border-white/5">
+            <Link
+              href="/"
+              className="px-6 py-2.5 rounded-full bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700 transition-colors border border-white/5"
+            >
               Home
             </Link>
-            <button onClick={logout} className="px-6 py-2.5 rounded-full bg-red-500/10 text-red-500 font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">
+            <button
+              onClick={logout}
+              className="px-6 py-2.5 rounded-full bg-red-500/10 text-red-500 font-medium hover:bg-red-500/20 transition-colors border border-red-500/20"
+            >
               Log Out
             </button>
           </div>
@@ -73,14 +98,15 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-2 gap-12">
-        
         {/* Bookmarks Section */}
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🔖</span>
+            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">
+              🔖
+            </span>
             Saved Cafes
           </h2>
-          
+
           <div className="space-y-4">
             {profileData.bookmarks && profileData.bookmarks.length > 0 ? (
               profileData.bookmarks.map((bookmark: any) => (
@@ -88,13 +114,19 @@ export default function ProfilePage() {
                   <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex gap-4 hover:border-amber-500/50 transition-colors items-center">
                     <div className="w-16 h-16 rounded-xl bg-zinc-800 overflow-hidden flex-shrink-0">
                       {bookmark.cafe.image_url ? (
-                        <img src={bookmark.cafe.image_url} alt={bookmark.cafe.name} className="w-full h-full object-cover" />
+                        <img
+                          src={bookmark.cafe.image_url}
+                          alt={bookmark.cafe.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl">☕</div>
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg group-hover:text-amber-500 transition-colors">{bookmark.cafe.name}</h3>
+                      <h3 className="font-bold text-lg group-hover:text-amber-500 transition-colors">
+                        {bookmark.cafe.name}
+                      </h3>
                       <p className="text-sm text-zinc-400 truncate">{bookmark.cafe.location}</p>
                     </div>
                   </div>
@@ -103,7 +135,9 @@ export default function ProfilePage() {
             ) : (
               <div className="text-center py-8 bg-zinc-900/50 border border-white/5 rounded-2xl">
                 <p className="text-zinc-500 mb-2">You haven't saved any cafes yet.</p>
-                <Link href="/" className="text-amber-500 hover:underline text-sm font-medium">Explore Map</Link>
+                <Link href="/" className="text-amber-500 hover:underline text-sm font-medium">
+                  Explore Map
+                </Link>
               </div>
             )}
           </div>
@@ -112,21 +146,29 @@ export default function ProfilePage() {
         {/* Reviews Section */}
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-sm">⭐</span>
+            <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-sm">
+              ⭐
+            </span>
             My Reviews
           </h2>
-          
+
           <div className="space-y-4">
             {profileData.reviews && profileData.reviews.length > 0 ? (
               profileData.reviews.map((review: any) => (
                 <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6 relative">
-                  <Link href={`/cafe/${review.cafe.id}`} className="absolute top-6 right-6 text-xs font-bold text-amber-500 hover:underline">
+                  <Link
+                    href={`/cafe/${review.cafe.id}`}
+                    className="absolute top-6 right-6 text-xs font-bold text-amber-500 hover:underline"
+                  >
                     View Cafe
                   </Link>
                   <h3 className="font-bold text-lg mb-1">{review.cafe.name}</h3>
                   <div className="flex gap-1 mb-3">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <span key={star} className={`text-sm ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
+                      <span
+                        key={star}
+                        className={`text-sm ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}
+                      >
                         ★
                       </span>
                     ))}
@@ -141,7 +183,6 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
