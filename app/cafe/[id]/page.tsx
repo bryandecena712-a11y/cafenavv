@@ -5,6 +5,7 @@ import ReviewForm from './ReviewForm';
 import BookmarkButton from '@/app/components/BookmarkButton';
 import ShareButton from '@/app/components/ShareButton';
 import SuggestProductForm from './SuggestProductForm';
+import DeleteReviewButton from './DeleteReviewButton';
 
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
@@ -51,7 +52,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </Link>
       </div>
 
-      {/* Bookmark Button */}
+      {/* Bookmark & Share Buttons */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex gap-4">
           <ShareButton cafeName={cafe.name} />
@@ -94,7 +95,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         
         {cafe.products && cafe.products.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cafe.products.map((product) => (
+            {cafe.products.map((product: any) => (
               <div 
                 key={product.id} 
                 className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden hover:border-amber-500/50 transition-colors flex flex-col group shadow-lg"
@@ -145,24 +146,27 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
           {/* Reviews List */}
           <div className="lg:col-span-2 space-y-4">
             {cafe.reviews && cafe.reviews.length > 0 ? (
-              cafe.reviews.map((review) => (
+              cafe.reviews.map((review: any) => (
                 <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-zinc-950 font-bold text-lg">
-                        {review.user.username.charAt(0).toUpperCase()}
+                        {review.user?.username ? review.user.username.charAt(0).toUpperCase() : 'U'}
                       </div>
                       <div>
-                        <h4 className="font-bold text-white leading-none">{review.user.username}</h4>
+                        <h4 className="font-bold text-white leading-none">{review.user?.username || 'Anonymous'}</h4>
                         <span className="text-xs text-zinc-500">{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently'}</span>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className={`text-lg ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
-                          ★
-                        </span>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span key={star} className={`text-lg ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <DeleteReviewButton reviewId={review.id} reviewUserId={review.user_id} />
                     </div>
                   </div>
                   <p className="text-zinc-300 leading-relaxed">{review.content}</p>
