@@ -32,6 +32,7 @@ export default function ManageCafes() {
   const activeCafes = cafes.filter(c => c.status === 'APPROVED');
   const pendingCafes = cafes.filter(c => c.status === 'PENDING');
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchCafes = async () => {
     try {
@@ -152,6 +153,31 @@ export default function ManageCafes() {
     } catch (err) {}
   };
 
+  const handleDeleteCafe = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      // Try calling admin dynamic route endpoint, fallback to base api route
+      let res = await fetch(`/api/admin/cafes/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        res = await fetch('/api/cafes', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cafeId: id })
+        });
+      }
+      if (res.ok) {
+        fetchCafes();
+      } else {
+        alert('Failed to delete cafe.');
+      }
+    } catch (err) {
+      alert('An error occurred while deleting the cafe.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Actions */}
@@ -214,18 +240,30 @@ export default function ManageCafes() {
         <h3 className="text-lg font-bold text-white mb-4">Active Directory</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {activeCafes.map(cafe => (
-            <div key={cafe.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:border-amber-500/50 transition-colors">
-              {cafe.image_url ? (
-                <img src={cafe.image_url} alt={cafe.name} className="w-12 h-12 rounded-xl mb-4 object-cover" />
-              ) : (
-                <div className="w-12 h-12 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center text-xl">☕</div>
-              )}
-              <h3 className="font-bold text-white mb-1">{cafe.name}</h3>
-              <p className="text-sm text-zinc-400 mb-4">Active • {cafe.products?.length || 0} Products</p>
+            <div key={cafe.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:border-amber-500/50 transition-colors flex flex-col justify-between">
+              <div>
+                {cafe.image_url ? (
+                  <img src={cafe.image_url} alt={cafe.name} className="w-12 h-12 rounded-xl mb-4 object-cover" />
+                ) : (
+                  <div className="w-12 h-12 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center text-xl">☕</div>
+                )}
+                <h3 className="font-bold text-white mb-1">{cafe.name}</h3>
+                <p className="text-sm text-zinc-400 mb-4">Active • {cafe.products?.length || 0} Products</p>
+              </div>
               
-              <Link href={`/admin/cafe/${cafe.id}/menu`} className="block text-center w-full bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-white font-medium py-2 rounded-xl text-sm transition-colors">
-                Manage Menu
-              </Link>
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+                <Link href={`/admin/cafe/${cafe.id}/menu`} className="flex-1 text-center bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-white font-medium py-2 rounded-xl text-sm transition-colors">
+                  Manage Menu
+                </Link>
+                <button
+                  onClick={() => handleDeleteCafe(cafe.id, cafe.name)}
+                  disabled={deletingId === cafe.id}
+                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-medium px-3 py-2 rounded-xl text-sm transition-colors"
+                  title="Delete Cafe"
+                >
+                  {deletingId === cafe.id ? '...' : '🗑️'}
+                </button>
+              </div>
             </div>
           ))}
           {activeCafes.length === 0 && (
@@ -355,7 +393,7 @@ export default function ManageCafes() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {products.map((product, index) => (
+                      {products.map((product) => (
                         <div key={product.id} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl relative group">
                           <button type="button" onClick={() => removeProduct(product.id)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shadow-lg">
                             ✕

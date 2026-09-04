@@ -1,72 +1,91 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-// Fetch all cafes and their products
-export async function GET() {
+// Fetch a single cafe by ID
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const cafes = await prisma.cafes.findMany({
-      include: {
-        products: true,
-      },
-      orderBy: { id: 'desc' }
+    const { id } = await params;
+    const cafeId = Number(id);
+
+    if (!cafeId || isNaN(cafeId)) {
+      return NextResponse.json({ error: 'Invalid Cafe ID' }, { status: 400 });
+    }
+
+    const cafe = await prisma.cafes.findUnique({
+      where: { id: cafeId },
+      include: { products: true },
     });
-    return NextResponse.json(cafes);
+
+    if (!cafe) {
+      return NextResponse.json({ error: 'Cafe not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(cafe);
   } catch (error) {
-    console.error('Error fetching cafes:', error);
-    return NextResponse.json({ error: 'Failed to fetch cafes' }, { status: 500 });
+    console.error('Error fetching cafe:', error);
+    return NextResponse.json({ error: 'Failed to fetch cafe' }, { status: 500 });
   }
 }
 
-// Create a new cafe and its products
-export async function POST(request: Request) {
+// Update cafe status (e.g., Approve pending cafe)
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const data = await request.json();
-    const { name, photo, description, priceLevel, vibe, pinnedLocation, products, userId } = data;
+    const { id } = await params;
+    const cafeId = Number(id);
+    const body = await request.json();
 
-    if (!name || !photo || !description || !pinnedLocation || !userId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!cafeId || isNaN(cafeId)) {
+      return NextResponse.json({ error: 'Invalid Cafe ID' }, { status: 400 });
     }
 
-    const newCafe = await prisma.cafes.create({
-      data: {
-        name,
-        description,
-        image_url: photo,
-        price_level: priceLevel,
-        vibe: vibe,
-        location: `${pinnedLocation.lat},${pinnedLocation.lng}`,
-        products: {
-          create: products.map((p: any) => ({
-            name: p.name,
-            price: p.price,
-            description: p.description,
-            image_url: p.photo,
-          }))
-        }
-      },
-      include: {
-        products: true,
-      }
+    const updatedCafe = await prisma.cafes.update({
+      where: { id: cafeId },
+      data: { status: body.status },
     });
 
-    // Create audit log
-    await prisma.audit_logs.create({
-      data: {
-        user_id: userId,
-        action: 'Added Cafe',
-        target: name,
-      }
-    });
+    return NextResponse.json(updatedCafe);
+  } catch (error) {
+    console.error('Error updating cafe:', error);
+    return NextResponse.json({ error: 'Failed to update cafe' }, { status: 500 });
+  }
+}
 
-    return NextResponse.json(newCafe, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating cafe:', error);
-    
-    // Handle unique constraint violation on cafe name
-    if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'A cafe with this name already exists' }, { status: 400 });
+// Delete a cafe and its associated records
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const cafeId = Number(id);
+
+    if (!cafeId || isNaN(cafeId)) {
+      return NextResponse.json({ error: 'Invalid Cafe ID' }, { status: 400 });
     }
-    
-    return NextResponse.json({ error: 'Failed to create cafe' }, { status: 500 });
+
+    // Delete related records first to prevent Foreign Key constraint errors
+    await prisma.reviews.deleteMany({
+      where: { cafe_id: cafeId },
+    });
+
+    await prisma.products.deleteMany({
+      where: { cafe_id: cafeId },
+    });
+
+    // Delete the cafe entry
+    await prisma.cafes.delete({
+      where: { id: cafeId },
+    });
+
+    return NextResponse.json({ message: 'Cafe deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Error deleting cafe:', error);
+    return NextResponse.json({ error: 'Failed to delete cafe' }, { status: 500 });
   }
 }

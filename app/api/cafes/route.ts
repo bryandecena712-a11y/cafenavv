@@ -1,24 +1,31 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-export async function GET(request: Request) {
+export async function DELETE(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const price = searchParams.get('price');
-    const vibe = searchParams.get('vibe');
+    const { cafeId } = await request.json();
 
-    const where: any = { status: 'APPROVED' };
-    if (price) where.price_level = price;
-    if (vibe) where.vibe = vibe;
+    if (!cafeId) {
+      return NextResponse.json({ error: 'Cafe ID is required' }, { status: 400 });
+    }
 
-    const cafes = await prisma.cafes.findMany({
-      where,
-      orderBy: { id: 'desc' }
+    // Delete related reviews and products first to maintain referential integrity
+    await prisma.reviews.deleteMany({
+      where: { cafe_id: Number(cafeId) },
     });
-    
-    return NextResponse.json(cafes);
+
+    await prisma.products.deleteMany({
+      where: { cafe_id: Number(cafeId) },
+    });
+
+    // Delete the cafe
+    await prisma.cafes.delete({
+      where: { id: Number(cafeId) },
+    });
+
+    return NextResponse.json({ message: 'Cafe deleted successfully' }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching cafes:', error);
-    return NextResponse.json({ error: 'Failed to fetch cafes' }, { status: 500 });
+    console.error('Failed to delete cafe:', error);
+    return NextResponse.json({ error: 'Failed to delete cafe' }, { status: 500 });
   }
 }
