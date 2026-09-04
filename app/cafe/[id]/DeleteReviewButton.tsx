@@ -5,28 +5,31 @@ import { useRouter } from 'next/navigation';
 
 export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewId: number; reviewUserId: number }) {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [canDelete, setCanDelete] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Read the logged-in user from localStorage (or adjust to your Auth system)
-    const userJson = localStorage.getItem('user');
-    if (userJson) {
+    // Check multiple common key locations for the user session
+    const storedUser = localStorage.getItem('user') || localStorage.getItem('cafenav_user');
+    
+    if (storedUser) {
       try {
-        const user = JSON.parse(userJson);
-        if (user && user.id) {
-          setCurrentUserId(user.id);
+        const parsed = JSON.parse(storedUser);
+        // Extract ID whether stored as `id` or `user_id`
+        const currentId = parsed.id || parsed.user_id;
+        
+        if (currentId && Number(currentId) === Number(reviewUserId)) {
+          setUserId(Number(currentId));
+          setCanDelete(true);
         }
       } catch (e) {
-        console.error('Failed to parse user session', e);
+        console.error('Error parsing stored user:', e);
       }
     }
-  }, []);
+  }, [reviewUserId]);
 
-  // Only render the delete button if the logged-in user matches the review author
-  if (!currentUserId || currentUserId !== reviewUserId) {
-    return null;
-  }
+  if (!canDelete) return null;
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this review?')) return;
@@ -38,15 +41,15 @@ export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reviewId,
-          userId: currentUserId,
+          userId: userId,
         }),
       });
 
       if (res.ok) {
         router.refresh();
       } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete review.');
+        const errorData = await res.json();
+        alert(errorData.error || 'Failed to delete review.');
       }
     } catch (err) {
       alert('An error occurred while deleting the review.');
@@ -59,10 +62,10 @@ export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewI
     <button
       onClick={handleDelete}
       disabled={isDeleting}
-      className="text-zinc-500 hover:text-rose-500 text-xs transition-colors p-1"
-      title="Delete Review"
+      className="text-zinc-400 hover:text-rose-500 text-sm font-medium transition-colors bg-zinc-800/80 hover:bg-rose-500/10 border border-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1"
+      title="Delete your review"
     >
-      {isDeleting ? '...' : '🗑️'}
+      {isDeleting ? 'Deleting...' : '🗑️ Delete'}
     </button>
   );
 }
