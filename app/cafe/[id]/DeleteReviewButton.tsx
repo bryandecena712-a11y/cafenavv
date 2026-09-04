@@ -10,21 +10,19 @@ export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewI
   const router = useRouter();
 
   useEffect(() => {
-    // Check multiple common key locations for the user session
-    const storedUser = localStorage.getItem('user') || localStorage.getItem('cafenav_user');
-    
+    const storedUser = localStorage.getItem('cafenav_user') || localStorage.getItem('user');
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
-        // Extract ID whether stored as `id` or `user_id`
-        const currentId = parsed.id || parsed.user_id;
-        
-        if (currentId && Number(currentId) === Number(reviewUserId)) {
-          setUserId(Number(currentId));
+        const currentId = Number(parsed.id || parsed.user_id);
+        const targetId = Number(reviewUserId);
+
+        if (currentId && currentId === targetId) {
+          setUserId(currentId);
           setCanDelete(true);
         }
       } catch (e) {
-        console.error('Error parsing stored user:', e);
+        console.error('Error parsing user session:', e);
       }
     }
   }, [reviewUserId]);
@@ -40,7 +38,7 @@ export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewI
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reviewId,
+          reviewId: Number(reviewId),
           userId: userId,
         }),
       });
@@ -62,8 +60,8 @@ export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewI
     <button
       onClick={handleDelete}
       disabled={isDeleting}
-      className="text-zinc-400 hover:text-rose-500 text-sm font-medium transition-colors bg-zinc-800/80 hover:bg-rose-500/10 border border-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1"
-      title="Delete your review"
+      className="text-rose-400 hover:text-rose-300 text-xs font-semibold transition-colors bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-2 py-1 rounded-md flex items-center gap-1"
+      title="Delete Review"
     >
       {isDeleting ? 'Deleting...' : '🗑️ Delete'}
     </button>

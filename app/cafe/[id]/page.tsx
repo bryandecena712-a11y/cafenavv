@@ -27,7 +27,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
       },
       reviews: {
         include: {
-          user: { select: { username: true } }
+          user: { select: { id: true, username: true } }
         },
         orderBy: { created_at: 'desc' }
       }
@@ -52,7 +52,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </Link>
       </div>
 
-      {/* Bookmark & Share Buttons */}
+      {/* Bookmark Button */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex gap-4">
           <ShareButton cafeName={cafe.name} />
@@ -166,7 +166,10 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
                           </span>
                         ))}
                       </div>
-                      <DeleteReviewButton reviewId={review.id} reviewUserId={review.user_id} />
+                      <DeleteReviewButton 
+                        reviewId={review.id} 
+                        reviewUserId={review.user_id || review.user?.id} 
+                      />
                     </div>
                   </div>
                   <p className="text-zinc-300 leading-relaxed">{review.content}</p>
