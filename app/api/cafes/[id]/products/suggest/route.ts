@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
-import { cookies } from 'next/headers';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const cafeId = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const cafeId = parseInt(resolvedParams.id, 10);
+
     if (isNaN(cafeId)) {
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
@@ -23,8 +27,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         price,
         description,
         image_url,
-        status: 'PENDING'
-      }
+        status: 'PENDING',
+      },
     });
 
     return NextResponse.json(product, { status: 201 });
