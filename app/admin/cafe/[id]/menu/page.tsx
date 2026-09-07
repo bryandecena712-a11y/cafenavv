@@ -169,7 +169,12 @@ export default function ManageMenuPage() {
     <div className="p-8 max-w-6xl mx-auto text-white">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <Link href="/admin" className="text-amber-500 hover:underline mb-2 inline-block">← Back to Admin</Link>
+          <Link
+  href="/admin"
+  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors mb-4 shadow-md"
+>
+  ← Back to Dashboard
+</Link>
           <h1 className="text-3xl font-bold">{cafe.name} - Manage Menu</h1>
         </div>
       </div>
