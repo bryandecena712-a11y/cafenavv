@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // ADDED CODE: Imported Link component for navigation
+import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function SuggestPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   
-  // ==========================================
-  // ADDED CODE: Tab Selection & Cafe List State
-  // ==========================================
   const [suggestionType, setSuggestionType] = useState<'cafe' | 'product'>('cafe');
   const [cafes, setCafes] = useState<any[]>([]);
 
@@ -55,20 +52,20 @@ export default function SuggestPage() {
 
     fetchCafes();
   }, []);
-  // ==========================================
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
-        {/* ADDED CODE: Back to Home Button on Unauthenticated View */}
-        <div className="mb-6">
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white relative">
+        {/* Back to Home Button - Top Left */}
+        <div className="absolute top-6 left-6 z-20">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
           >
             ← Back to Home
           </Link>
         </div>
+
         <span className="text-4xl mb-4">🔒</span>
         <h1 className="text-2xl font-bold mb-2">Login Required</h1>
         <p className="text-zinc-400 mb-6">You must be logged in to make suggestions.</p>
@@ -79,9 +76,6 @@ export default function SuggestPage() {
     );
   }
 
-  // ==========================================
-  // MODIFIED CODE: Dynamic Submit Handler
-  // ==========================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -115,20 +109,20 @@ export default function SuggestPage() {
       setIsSubmitting(false);
     }
   };
-  // ==========================================
 
   if (success) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white p-6 text-center">
-        {/* ADDED CODE: Back to Home Button on Success View */}
-        <div className="mb-6">
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white p-6 text-center relative">
+        {/* Back to Home Button - Top Left */}
+        <div className="absolute top-6 left-6 z-20">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
           >
             ← Back to Home
           </Link>
         </div>
+
         <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center text-4xl mb-6">
           ✓
         </div>
@@ -144,27 +138,22 @@ export default function SuggestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6">
-      <div className="max-w-2xl mx-auto">
-        {/* ========================================== */}
-        {/* ADDED CODE: Back to Home Button            */}
-        {/* ========================================== */}
-        <div className="mb-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors"
-          >
-            ← Back to Home
-          </Link>
-        </div>
-        {/* ========================================== */}
+    <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6 relative">
+      {/* Back to Home Button - Upper Left Corner */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
+        >
+          ← Back to Home
+        </Link>
+      </div>
 
+      <div className="max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold mb-2">Submit a Suggestion</h1>
         <p className="text-zinc-400 mb-6">Help us grow CafeNav by suggesting a new cafe or a missing menu item.</p>
 
-        {/* ========================================== */}
-        {/* ADDED CODE: Tab Navigation UI             */}
-        {/* ========================================== */}
+        {/* Tab Navigation UI */}
         <div className="flex bg-zinc-900 border border-white/5 rounded-xl p-1 mb-8">
           <button
             type="button"
@@ -185,7 +174,6 @@ export default function SuggestPage() {
             Suggest Menu Item
           </button>
         </div>
-        {/* ========================================== */}
 
         <form onSubmit={handleSubmit} className="bg-zinc-900 border border-white/5 rounded-2xl p-8 space-y-6">
           {suggestionType === 'cafe' ? (
@@ -264,9 +252,6 @@ export default function SuggestPage() {
               </div>
             </>
           ) : (
-            /* ========================================== */
-            /* ADDED CODE: Product Suggestion Form        */
-            /* ========================================== */
             <>
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Select Cafe *</label>
@@ -329,7 +314,6 @@ export default function SuggestPage() {
                 />
               </div>
             </>
-            /* ========================================== */
           )}
 
           <button 
