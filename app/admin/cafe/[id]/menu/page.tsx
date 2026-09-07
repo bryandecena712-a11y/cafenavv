@@ -162,11 +162,11 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
       <div className="mb-8 flex items-center justify-between">
         <div>
           <Link href="/admin" className="text-amber-500 hover:underline mb-2 inline-block">← Back to Admin</Link>
-          <h1 className="text-3xl font-bold">{cafe.name} - Menu Management</h1>
+          <h1 className="text-3xl font-bold">{cafe.name} - Manage Menu</h1>
         </div>
       </div>
 
-      {/* Pending User Suggestions */}
+      {/* Pending Suggestions */}
       {pendingProducts.length > 0 && (
         <div className="mb-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
           <h2 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2">
@@ -179,14 +179,14 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
                 <button onClick={() => handleDelete(product.id)} className="absolute top-2 right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                 <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden">
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-xl" />
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xl">☕</div>
                   )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-white">{product.name}</h3>
-                  <p className="text-amber-500 text-sm font-semibold mb-1">{product.price}</p>
+                  <p className="text-amber-500 text-sm font-semibold mb-1">₱{product.price}</p>
                   <p className="text-xs text-zinc-400 line-clamp-1 mb-2">{product.description}</p>
                   <button onClick={() => handleApprove(product.id)} className="bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
                     Approve Item
@@ -198,7 +198,7 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      {/* Main Grid: Add Product & Existing Products */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Add Product Form */}
         <div className="md:col-span-1 bg-zinc-900 border border-white/5 p-6 rounded-2xl h-fit">
@@ -226,28 +226,30 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
           </form>
         </div>
 
-        {/* Existing Products List */}
+        {/* Current Approved Menu */}
         <div className="md:col-span-2">
           <h2 className="text-xl font-bold mb-4">Current Menu ({approvedProducts.length})</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {approvedProducts.map(product => (
               <div key={product.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex gap-4 relative group">
-                <div className="w-20 h-20 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden relative">
+                <div className="w-20 h-20 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden">
                   {product.image_url ? (
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-2xl">☕</div>
                   )}
-                  <span className="absolute top-1 right-1 bg-black/60 text-amber-500 text-xs font-bold px-1.5 py-0.5 rounded-md">{product.price}</span>
                 </div>
 
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-white text-base">{product.name}</h3>
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-bold text-white text-base">{product.name}</h3>
+                      <span className="text-amber-500 text-sm font-bold">₱{product.price}</span>
+                    </div>
                     <p className="text-xs text-zinc-400 line-clamp-2 mt-1">{product.description || 'No description'}</p>
                   </div>
 
-                  {/* Actions: Edit & Delete */}
+                  {/* Actions: Edit & Delete Buttons */}
                   <div className="flex items-center gap-2 mt-3">
                     <button onClick={() => handleStartEdit(product)} className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/5 transition-colors">
                       ✏️ Edit
@@ -259,14 +261,11 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
                 </div>
               </div>
             ))}
-            {approvedProducts.length === 0 && (
-              <p className="text-zinc-500 col-span-full">No active products added to this cafe yet.</p>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Edit Product Modal */}
+      {/* Edit Modal */}
       {editingProduct && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
