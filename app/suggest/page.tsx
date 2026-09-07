@@ -235,7 +235,6 @@ export default function SuggestPage() {
                     <option value="chill">Chill</option>
                     <option value="focused">Focused</option>
                     <option value="social">Social</option>
-                    <option value="aesthetic">Aesthetic</option>
                   </select>
                 </div>
               </div>
