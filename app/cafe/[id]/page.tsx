@@ -41,7 +41,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative">
       
-      {/* Absolute "Go to Map" button over the hero image */}
+      {/* Absolute "Back to Home" button over the hero image */}
       <div className="absolute top-6 left-6 z-20">
         <Link 
           href="/" 
