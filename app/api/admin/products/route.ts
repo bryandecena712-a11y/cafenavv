@@ -16,6 +16,7 @@ export async function GET() {
   }
 }
 
+// POST: Create a new product
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -29,15 +30,11 @@ export async function POST(request: Request) {
       data: {
         cafe_id: parseInt(cafeId, 10),
         name,
-        // ==========================================
-        // FIXED CODE: Ensure price is stored cleanly as string/number
-        // ==========================================
         price: String(price),
         description: description || null,
         image_url: image_url || null,
         status: 'PENDING',
-        // ==========================================
-      }
+      },
     });
 
     return NextResponse.json(product, { status: 201 });
@@ -47,27 +44,35 @@ export async function POST(request: Request) {
   }
 }
 
+// PUT: Update an existing product (Supports status changes & full field edits)
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const { id, status } = data;
+    const { id, name, price, description, image_url, status } = data;
 
-    if (!id || !status) {
-      return NextResponse.json({ error: 'Product ID and status are required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
 
-    const product = await prisma.products.update({
+    const updatedProduct = await prisma.products.update({
       where: { id: parseInt(id, 10) },
-      data: { status }
+      data: {
+        ...(name && { name }),
+        ...(price && { price: String(price) }),
+        ...(description !== undefined && { description }),
+        ...(image_url !== undefined && { image_url }),
+        ...(status && { status }),
+      },
     });
 
-    return NextResponse.json(product, { status: 200 });
+    return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
     console.error('Error updating product:', error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
 
+// DELETE: Delete a product by ID
 export async function DELETE(request: Request) {
   try {
     const data = await request.json();
@@ -78,7 +83,7 @@ export async function DELETE(request: Request) {
     }
 
     await prisma.products.delete({
-      where: { id: parseInt(id, 10) }
+      where: { id: parseInt(id, 10) },
     });
 
     return NextResponse.json({ success: true });
