@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
 
-export default function ManageMenuPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const cafeId = parseInt(resolvedParams.id, 10);
+export default function ManageMenuPage() {
+  const params = useParams();
+  const rawId = params?.id;
+  const cafeId = rawId ? parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10) : null;
 
   const [cafe, setCafe] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -27,13 +29,16 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
 
   const fetchData = async () => {
+    if (!cafeId) return;
     try {
       const res = await fetch('/api/admin/cafes');
       const data = await res.json();
-      const found = data.find((c: any) => c.id === cafeId);
-      if (found) {
-        setCafe(found);
-        setProducts(found.products || []);
+      if (Array.isArray(data)) {
+        const found = data.find((c: any) => c.id === cafeId);
+        if (found) {
+          setCafe(found);
+          setProducts(found.products || []);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch cafe data:', err);
@@ -42,7 +47,9 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
   };
 
   useEffect(() => {
-    if (cafeId) fetchData();
+    if (cafeId) {
+      fetchData();
+    }
   }, [cafeId]);
 
   const handleUpload = async (file: File) => {
@@ -57,6 +64,7 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cafeId) return;
     setIsSubmitting(true);
     try {
       let image_url = '';
@@ -166,7 +174,7 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
-      {/* Pending Suggestions */}
+      {/* Pending User Suggestions */}
       {pendingProducts.length > 0 && (
         <div className="mb-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
           <h2 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2">
@@ -198,7 +206,7 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      {/* Main Grid */}
+      {/* Main Grid: Add Product & Current Approved Menu */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Add Product Form */}
         <div className="md:col-span-1 bg-zinc-900 border border-white/5 p-6 rounded-2xl h-fit">
