@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // ADDED CODE: Imported Link component for navigation
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function SuggestPage() {
@@ -59,6 +60,15 @@ export default function SuggestPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
+        {/* ADDED CODE: Back to Home Button on Unauthenticated View */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors"
+          >
+            ← Back to Home
+          </Link>
+        </div>
         <span className="text-4xl mb-4">🔒</span>
         <h1 className="text-2xl font-bold mb-2">Login Required</h1>
         <p className="text-zinc-400 mb-6">You must be logged in to make suggestions.</p>
@@ -110,6 +120,15 @@ export default function SuggestPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white p-6 text-center">
+        {/* ADDED CODE: Back to Home Button on Success View */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors"
+          >
+            ← Back to Home
+          </Link>
+        </div>
         <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center text-4xl mb-6">
           ✓
         </div>
@@ -127,6 +146,19 @@ export default function SuggestPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6">
       <div className="max-w-2xl mx-auto">
+        {/* ========================================== */}
+        {/* ADDED CODE: Back to Home Button            */}
+        {/* ========================================== */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+        {/* ========================================== */}
+
         <h1 className="text-4xl font-bold mb-2">Submit a Suggestion</h1>
         <p className="text-zinc-400 mb-6">Help us grow CafeNav by suggesting a new cafe or a missing menu item.</p>
 
