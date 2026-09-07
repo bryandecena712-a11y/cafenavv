@@ -48,7 +48,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
           className="flex items-center gap-2 bg-zinc-950/80 backdrop-blur-md hover:bg-amber-500 hover:text-zinc-950 text-white px-5 py-2.5 rounded-full border border-white/10 transition-all font-medium text-sm shadow-xl"
         >
           <span className="text-lg leading-none">←</span>
-          Go to Map
+          Back to Home
         </Link>
       </div>
 
