@@ -3,56 +3,56 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/context/AuthContext';
 
-export default function SignupPage() {
+export default function SignUpPage() {
+  const router = useRouter();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
-  const router = useRouter();
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (name && email && password) {
-      try {
-        const response = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: name, email, password }),
-        });
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (response.ok) {
-          // Log the user in on successful signup
-          login({
-            id: data.userId,
-            name: name,
-            email: email,
-            isAdmin: email.toLowerCase() === 'admin@admin.com'
-          });
-          router.push('/');
-        } else {
-          setError(data.error || 'Signup failed');
-        }
-      } catch (err) {
-        setError('An unexpected error occurred');
-      } finally {
-        setLoading(false);
+      if (response.ok) {
+        router.push('/login');
+      } else {
+        setError(data.error || 'Registration failed');
       }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <main className="flex-1 flex items-center justify-center bg-zinc-950 p-6 relative overflow-hidden">
+    <main className="flex-1 flex items-center justify-center bg-zinc-950 p-6 relative overflow-hidden min-h-screen">
+      {/* Back to Home Button - Upper Left Corner */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
+        >
+          ← Back to Home
+        </Link>
+      </div>
+
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -62,12 +62,13 @@ export default function SignupPage() {
           <p className="text-zinc-400 text-sm">Create an account to join the community.</p>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-6">
+        <form onSubmit={handleSignUp} className="space-y-6">
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl text-center">
               {error}
             </div>
           )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-300 ml-1">Full Name</label>
             <input 
@@ -121,16 +122,16 @@ export default function SignupPage() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full bg-amber-500 text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-amber-400 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:pointer-events-none"
           >
-            {loading ? 'Creating...' : 'Create Account'}
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
         <div className="mt-8 text-center text-sm text-zinc-400">
           Already have an account?{' '}
           <Link href="/login" className="text-amber-500 font-semibold hover:text-amber-400 transition-colors">
-            Sign in
+            Log in
           </Link>
         </div>
       </div>
