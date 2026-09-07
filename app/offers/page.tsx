@@ -59,6 +59,23 @@ export default function Offers() {
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
         
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center max-w-2xl mx-auto">
+          {/* ========================================== */}
+          {/* ADDED CODE: Back to Home Button            */}
+          {/* ========================================== */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white font-semibold rounded-full text-sm hover:bg-amber-500 transition-colors shadow-md"
+            >
+              ← Back to Home
+            </Link>
+          </motion.div>
+          {/* ========================================== */}
+
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -95,6 +112,19 @@ export default function Offers() {
     return (
       <main className="flex-1 flex flex-col bg-stone-50">
         <div className="max-w-4xl mx-auto w-full px-6 py-12 flex-1 flex flex-col">
+          {/* ========================================== */}
+          {/* ADDED CODE: Back to Home Button            */}
+          {/* ========================================== */}
+          <div className="mb-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white font-semibold rounded-full text-xs hover:bg-zinc-800 transition-colors"
+            >
+              ← Back to Home
+            </Link>
+          </div>
+          {/* ========================================== */}
+
           {/* Progress Bar */}
           <div className="mb-12">
             <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-4">
@@ -201,6 +231,19 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
   return (
     <main className="flex-1 flex flex-col bg-zinc-950 text-stone-50">
       <div className="max-w-6xl mx-auto px-6 py-20 w-full">
+        {/* ========================================== */}
+        {/* ADDED CODE: Back to Home Button            */}
+        {/* ========================================== */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white font-semibold rounded-full text-sm hover:bg-amber-500 transition-colors shadow-md"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+        {/* ========================================== */}
+
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
