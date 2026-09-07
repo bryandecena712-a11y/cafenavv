@@ -1,8 +1,45 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
-import { cookies } from 'next/headers';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+// GET: Fetch a single cafe with only APPROVED products
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const cafeId = parseInt(params.id, 10);
+    if (isNaN(cafeId)) {
+      return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
+    }
+
+    const cafe = await prisma.cafes.findUnique({
+      where: { id: cafeId },
+      include: {
+        products: {
+          where: {
+            status: 'APPROVED',
+          },
+        },
+        reviews: true,
+      },
+    });
+
+    if (!cafe) {
+      return NextResponse.json({ error: 'Cafe not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(cafe);
+  } catch (error) {
+    console.error('Error fetching cafe:', error);
+    return NextResponse.json({ error: 'Failed to fetch cafe' }, { status: 500 });
+  }
+}
+
+// POST: Handle user menu item suggestions (saved as PENDING)
+export async function POST(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const cafeId = parseInt(params.id, 10);
     if (isNaN(cafeId)) {
@@ -23,8 +60,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         price,
         description,
         image_url,
-        status: 'PENDING'
-      }
+        status: 'PENDING',
+      },
     });
 
     return NextResponse.json(product, { status: 201 });

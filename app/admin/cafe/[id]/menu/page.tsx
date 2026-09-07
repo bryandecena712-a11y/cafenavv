@@ -68,6 +68,18 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
       });
       
       if (res.ok) {
+        const newProduct = await res.json();
+        
+        // ==========================================
+        // ADDED CODE: Immediately approve direct admin additions
+        // ==========================================
+        await fetch('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: newProduct.id, status: 'APPROVED' }),
+        });
+        // ==========================================
+
         setName(''); setPrice(''); setDescription(''); setImageFile(null);
         fetchData();
       }
@@ -107,8 +119,12 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
   if (loading) return <div className="p-8 text-white">Loading menu manager...</div>;
   if (!cafe) return <div className="p-8 text-white">Cafe not found.</div>;
 
-  const approvedProducts = products.filter(p => p.status !== 'PENDING');
+  // ==========================================
+  // MODIFIED CODE: Filter products into Pending vs Approved
+  // ==========================================
+  const approvedProducts = products.filter(p => p.status === 'APPROVED' || !p.status);
   const pendingProducts = products.filter(p => p.status === 'PENDING');
+  // ==========================================
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -138,7 +154,7 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-white">{product.name}</h3>
-                  <p className="text-amber-500 text-sm font-semibold mb-1">{product.price}</p>
+                  <p className="text-amber-500 text-sm font-semibold mb-1">₱{product.price}</p>
                   <p className="text-xs text-zinc-400 line-clamp-1 mb-2">{product.description}</p>
                   <button 
                     onClick={() => handleApprove(product.id)}
@@ -164,7 +180,7 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
             </div>
             <div>
               <label className="block text-sm text-zinc-400 mb-1">Price *</label>
-              <input required value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. ₱150" className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+              <input required value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 150" className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
             </div>
             <div>
               <label className="block text-sm text-zinc-400 mb-1">Description</label>
@@ -196,13 +212,13 @@ export default function ManageMenuPage({ params }: { params: Promise<{ id: strin
                 </div>
                 <div>
                   <h3 className="font-bold text-white">{product.name}</h3>
-                  <p className="text-amber-500 text-sm font-semibold mb-1">{product.price}</p>
+                  <p className="text-amber-500 text-sm font-semibold mb-1">₱{product.price}</p>
                   <p className="text-xs text-zinc-400 line-clamp-2">{product.description}</p>
                 </div>
               </div>
             ))}
             {approvedProducts.length === 0 && (
-              <p className="text-zinc-500 col-span-full">No products added yet.</p>
+              <p className="text-zinc-500 col-span-full">No approved products added yet.</p>
             )}
           </div>
         </div>

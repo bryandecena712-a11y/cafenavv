@@ -30,7 +30,6 @@ model products {
   description String?
   image_url   String?
   status      String? @default("APPROVED")
-  
   cafe        cafes   @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 }
 

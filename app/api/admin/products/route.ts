@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// Fetch Pending Menu Suggestions for Admin
+export async function GET() {
+  try {
+    const pendingProducts = await prisma.products.findMany({
+      where: { status: 'PENDING' },
+      include: { cafe: true },
+      orderBy: { id: 'desc' },
+    });
+    return NextResponse.json(pendingProducts, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching pending products:', error);
+    return NextResponse.json({ error: 'Failed to fetch pending products' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -14,9 +29,14 @@ export async function POST(request: Request) {
       data: {
         cafe_id: parseInt(cafeId, 10),
         name,
-        price,
-        description,
-        image_url
+        // ==========================================
+        // FIXED CODE: Ensure price is stored cleanly as string/number
+        // ==========================================
+        price: String(price),
+        description: description || null,
+        image_url: image_url || null,
+        status: 'PENDING',
+        // ==========================================
       }
     });
 
