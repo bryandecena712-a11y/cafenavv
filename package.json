@@ -18,6 +18,7 @@
     "@types/leaflet": "^1.9.22",
     "@vis.gl/react-google-maps": "^1.9.0",
     "agent-base": "^9.0.0",
+    "cheerio": "^1.2.0",
     "leaflet": "^1.9.4",
     "maplibre-gl": "^6.6.0",
     "motion": "^13.1.1",
