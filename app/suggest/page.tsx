@@ -56,7 +56,6 @@ export default function SuggestPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white relative">
-        {/* Back to Home Button - Top Left */}
         <div className="absolute top-6 left-6 z-20">
           <Link
             href="/"
@@ -69,7 +68,7 @@ export default function SuggestPage() {
         <span className="text-4xl mb-4">🔒</span>
         <h1 className="text-2xl font-bold mb-2">Login Required</h1>
         <p className="text-zinc-400 mb-6">You must be logged in to make suggestions.</p>
-        <button onClick={() => router.push('/login')} className="bg-amber-500 text-zinc-950 font-medium px-6 py-2 rounded-full hover:bg-amber-400 transition-colors">
+        <button onClick={() => router.push('/login')} className="bg-amber-500 text-zinc-950 font-medium px-6 py-2 rounded-full hover:bg-amber-400 transition-colors cursor-pointer">
           Go to Login
         </button>
       </div>
@@ -81,30 +80,39 @@ export default function SuggestPage() {
     setIsSubmitting(true);
     
     try {
-      let endpoint = '/api/cafes/suggest';
-      let payload = cafeFormData;
+      if (suggestionType === 'cafe') {
+        // Triggers OpenStreetMap search & adds directly to Admin Queue
+        const res = await fetch('/api/suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ searchQuery: `${cafeFormData.name} ${cafeFormData.location}` })
+        });
 
-      if (suggestionType === 'product') {
-        endpoint = '/api/admin/products';
-        payload = productFormData as any;
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      if (res.ok) {
-        setSuccess(true);
-        setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
-        setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
+        if (res.ok) {
+          setSuccess(true);
+          setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
+        } else {
+          const errorData = await res.json();
+          alert(errorData.error || 'Failed to locate or submit coffee shop.');
+        }
       } else {
-        alert('Failed to submit suggestion. Please try again.');
+        // Submitting menu product suggestion
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(productFormData)
+        });
+
+        if (res.ok) {
+          setSuccess(true);
+          setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
+        } else {
+          alert('Failed to submit menu item. Please try again.');
+        }
       }
     } catch (err) {
       console.error(err);
-      alert('An error occurred.');
+      alert('An error occurred during submission.');
     } finally {
       setIsSubmitting(false);
     }
@@ -113,7 +121,6 @@ export default function SuggestPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white p-6 text-center relative">
-        {/* Back to Home Button - Top Left */}
         <div className="absolute top-6 left-6 z-20">
           <Link
             href="/"
@@ -128,9 +135,9 @@ export default function SuggestPage() {
         </div>
         <h1 className="text-3xl font-bold mb-4">Thanks for the suggestion!</h1>
         <p className="text-zinc-400 max-w-md mb-8">
-          Your submission has been received. Our team will review it shortly!
+          Your submission has been received and routed to our admin queue for real-time review!
         </p>
-        <button onClick={() => setSuccess(false)} className="bg-amber-500 text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-amber-400 transition-colors">
+        <button onClick={() => setSuccess(false)} className="bg-amber-500 text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-amber-400 transition-colors cursor-pointer">
           Suggest Another Item
         </button>
       </div>
@@ -139,7 +146,6 @@ export default function SuggestPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6 relative">
-      {/* Back to Home Button - Upper Left Corner */}
       <div className="absolute top-6 left-6 z-20">
         <Link
           href="/"
@@ -153,12 +159,11 @@ export default function SuggestPage() {
         <h1 className="text-4xl font-bold mb-2">Submit a Suggestion</h1>
         <p className="text-zinc-400 mb-6">Help us grow CafeNav by suggesting a new cafe or a missing menu item.</p>
 
-        {/* Tab Navigation UI */}
         <div className="flex bg-zinc-900 border border-white/5 rounded-xl p-1 mb-8">
           <button
             type="button"
             onClick={() => setSuggestionType('cafe')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               suggestionType === 'cafe' ? 'bg-amber-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -167,7 +172,7 @@ export default function SuggestPage() {
           <button
             type="button"
             onClick={() => setSuggestionType('product')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               suggestionType === 'product' ? 'bg-amber-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -186,19 +191,19 @@ export default function SuggestPage() {
                   value={cafeFormData.name}
                   onChange={e => setCafeFormData({...cafeFormData, name: e.target.value})}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
-                  placeholder="e.g. Brew & Co."
+                  placeholder="e.g. Starbucks"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Location/Address *</label>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Location / City *</label>
                 <input 
                   required
                   type="text" 
                   value={cafeFormData.location}
                   onChange={e => setCafeFormData({...cafeFormData, location: e.target.value})}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
-                  placeholder="e.g. 123 Main St"
+                  placeholder="e.g. Manila"
                 />
               </div>
               
@@ -318,9 +323,9 @@ export default function SuggestPage() {
           <button 
             disabled={isSubmitting}
             type="submit" 
-            className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-4"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-4 cursor-pointer"
           >
-            {isSubmitting ? 'Submitting...' : `Submit ${suggestionType === 'cafe' ? 'Cafe' : 'Menu Item'} Suggestion`}
+            {isSubmitting ? 'Searching & Submitting...' : `Submit ${suggestionType === 'cafe' ? 'Cafe' : 'Menu Item'} Suggestion`}
           </button>
         </form>
       </div>
