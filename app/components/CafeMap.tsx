@@ -12,8 +12,29 @@ interface CafeMapProps {
   cafes: any[];
 }
 
-// Native dark vector style (no CSS filters required)
-const darkMapStyle = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// Clean light OpenStreetMap basemap style
+const openStreetMapStyle = {
+  version: 8 as const,
+  sources: {
+    'osm-tiles': {
+      type: 'raster' as const,
+      tiles: [
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-layer',
+      type: 'raster' as const,
+      source: 'osm-tiles',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
 
 export default function CafeMap({ cafes }: CafeMapProps) {
   const mapRef = useRef<any>(null);
@@ -93,18 +114,18 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   };
 
   return (
-    <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-black">
+    <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
       
-      {/* Route Info Badge Overlay */}
+      {/* Travel Time & Distance Overlay Badge */}
       {routeInfo && (
-        <div className="absolute top-4 left-4 z-20 bg-zinc-900/95 backdrop-blur-md border border-amber-500/30 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-lg">
+        <div className="absolute top-4 left-4 z-20 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
             🚗
           </div>
           <div>
             <div className="text-xs text-zinc-400 font-medium">Fastest Route to <span className="text-zinc-200">{routeInfo.destinationName}</span></div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-amber-400 font-extrabold text-base">{routeInfo.duration}</span>
+              <span className="text-blue-400 font-extrabold text-base">{routeInfo.duration}</span>
               <span className="text-zinc-500 text-xs">•</span>
               <span className="text-zinc-300 font-semibold text-sm">{routeInfo.distance}</span>
             </div>
@@ -119,7 +140,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         </div>
       )}
 
-      {/* Map Container without CSS Filters */}
+      {/* Map Element (No CSS inversion filters) */}
       <div className="w-full h-full">
         <Map
           ref={mapRef}
@@ -129,17 +150,45 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             latitude: center.lat,
             zoom: 14,
           }}
-          mapStyle={darkMapStyle}
+          mapStyle={openStreetMapStyle}
           style={{ width: '100%', height: '100%' }}
         >
           <NavigationControl position="top-right" />
+
+          {/* Direct Vector Polyline Overlay for Google-Maps Blue Route */}
+          {routeGeoJSON && (
+            <Source id="route-source" type="geojson" data={routeGeoJSON}>
+              {/* Route Outer Border / Shadow */}
+              <Layer
+                id="route-casing"
+                type="line"
+                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                paint={{
+                  'line-color': '#1e3a8a',
+                  'line-width': 10,
+                  'line-opacity': 0.8,
+                }}
+              />
+              {/* Main Solid Blue Driving Pathway Line */}
+              <Layer
+                id="route-line"
+                type="line"
+                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                paint={{
+                  'line-color': '#2563eb',
+                  'line-width': 6,
+                  'line-opacity': 1,
+                }}
+              />
+            </Source>
+          )}
 
           {/* User Location Marker */}
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
               <div className="relative flex items-center justify-center">
-                <div className="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,1)] animate-pulse z-10" />
-                <div className="absolute w-8 h-8 bg-blue-500/40 rounded-full animate-ping" />
+                <div className="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_12px_rgba(37,99,235,0.8)] animate-pulse z-10" />
+                <div className="absolute w-8 h-8 bg-blue-400/40 rounded-full animate-ping" />
               </div>
             </Marker>
           )}
@@ -186,34 +235,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
               </Marker>
             );
           })}
-
-          {/* High-Visibility Blue Route Line */}
-          {routeGeoJSON && (
-            <Source id="route-source" type="geojson" data={routeGeoJSON}>
-              {/* Black Outer Casing */}
-              <Layer
-                id="route-casing"
-                type="line"
-                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-                paint={{
-                  'line-color': '#000000',
-                  'line-width': 10,
-                  'line-opacity': 0.9,
-                }}
-              />
-              {/* Bright Google-Maps Style Blue Line */}
-              <Layer
-                id="route-line"
-                type="line"
-                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-                paint={{
-                  'line-color': '#3b82f6',
-                  'line-width': 6,
-                  'line-opacity': 1,
-                }}
-              />
-            </Source>
-          )}
 
           {/* Selected Cafe Popup */}
           {selectedCafe && (
