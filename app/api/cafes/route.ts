@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-// GET: Fetch all cafes with only APPROVED products for public view
+export const dynamic = 'force-dynamic';
+
+// GET: Fetch all APPROVED cafes with their approved products and reviews for public view
 export async function GET() {
   try {
     const cafes = await prisma.cafes.findMany({
+      where: {
+        status: 'APPROVED',
+      },
       include: {
         products: {
           where: {
@@ -12,6 +17,9 @@ export async function GET() {
           },
         },
         reviews: true,
+      },
+      orderBy: {
+        id: 'desc',
       },
     });
 
@@ -26,22 +34,30 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, location, description, price_level, vibe, image_url, status } = body;
+    const { name, location, description, price_level, vibe, image_url, status, latitude, longitude, lat, lng } = body;
 
     if (!name || !location) {
       return NextResponse.json({ error: 'Name and location are required fields' }, { status: 400 });
     }
 
+    const dataPayload: any = {
+      name,
+      location,
+      description: description || 'No description provided',
+      price_level: price_level || '₱₱',
+      vibe: vibe || 'chill',
+      image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+      status: status || 'PENDING',
+    };
+
+    // Safely assign coordinates depending on schema naming
+    if (latitude !== undefined) dataPayload.latitude = latitude;
+    if (longitude !== undefined) dataPayload.longitude = longitude;
+    if (lat !== undefined) dataPayload.lat = lat;
+    if (lng !== undefined) dataPayload.lng = lng;
+
     const newCafe = await prisma.cafes.create({
-      data: {
-        name,
-        location,
-        description: description || 'No description provided',
-        price_level: price_level || '₱₱',
-        vibe: vibe || 'chill',
-        image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
-        status: status || 'PENDING',
-      },
+      data: dataPayload,
     });
 
     return NextResponse.json(newCafe, { status: 201 });
