@@ -4,7 +4,23 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle } from '@phosphor-icons/react';
+import { CheckCircle, Star } from '@phosphor-icons/react';
+
+// Helper component to render star rating visuals matching Community Reviews
+function StarRating({ count }: { count: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((starIndex) => (
+        <Star
+          key={starIndex}
+          size={18}
+          weight="fill"
+          className={starIndex <= count ? 'text-amber-500' : 'text-zinc-600'}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function Offers() {
   const [step, setStep] = useState(0);
@@ -14,8 +30,8 @@ export default function Offers() {
   const nextStep = () => setStep((s) => s + 1);
   const prevStep = () => setStep((s) => s - 1);
 
-  const handleSelect = (optionTitle: string) => {
-    setSelections({ ...selections, [step]: optionTitle });
+  const handleSelect = (optionValue: string) => {
+    setSelections({ ...selections, [step]: optionValue });
   };
 
   const currentSelection = selections[step];
@@ -25,39 +41,39 @@ export default function Offers() {
       title: "What are you drinking?",
       category: "COFFEE TYPE",
       options: [
-        { title: "Pour Over", desc: "Clean, nuanced, filter coffee" },
-        { title: "Espresso", desc: "Strong, concentrated shot" },
-        { title: "Milk Based", desc: "Latte, flat white, cappuccino" },
-        { title: "Not Coffee", desc: "Matcha, tea, hot chocolate" }
+        { title: "Pour Over", value: "Pour Over", desc: "Clean, nuanced, filter coffee" },
+        { title: "Espresso", value: "Espresso", desc: "Strong, concentrated shot" },
+        { title: "Milk Based", value: "Milk Based", desc: "Latte, flat white, cappuccino" },
+        { title: "Not Coffee", value: "Not Coffee", desc: "Matcha, tea, hot chocolate" }
       ]
     },
     {
       title: "What do you need there?",
       category: "NEEDS",
       options: [
-        { title: "Deep Work", desc: "Quiet, fast wifi, outlets" },
-        { title: "Social Catch-up", desc: "Lively, good acoustics, spacious" },
-        { title: "Quick Grab", desc: "Fast service, standing room" },
-        { title: "Reading/Chill", desc: "Cozy seating, natural light" }
+        { title: "Deep Work", value: "Deep Work", desc: "Quiet, fast wifi, outlets" },
+        { title: "Social Catch-up", value: "Social Catch-up", desc: "Lively, good acoustics, spacious" },
+        { title: "Quick Grab", value: "Quick Grab", desc: "Fast service, standing room" },
+        { title: "Reading/Chill", value: "Reading/Chill", desc: "Cozy seating, natural light" }
       ]
     },
     {
       title: "Which price fits you?",
       category: "PRICE RANGE",
       options: [
-        { title: "₱ (Affordable)", desc: "Daily driver coffee" },
-        { title: "₱₱ (Moderate)", desc: "Specialty beans, standard price" },
-        { title: "₱₱₱ (Premium)", desc: "Geisha beans, high-end experience" }
+        { title: "₱ (Affordable)", value: "budget", desc: "Daily driver coffee" },
+        { title: "₱₱ (Moderate)", value: "moderate", desc: "Specialty beans, standard price" },
+        { title: "₱₱₱ (Premium)", value: "premium", desc: "Geisha beans, high-end experience" }
       ]
     },
     {
       title: "What rating standard do you prefer?",
       category: "RATING PREFERENCE",
       options: [
-        { title: "5.0 Rated", desc: "Flawless ratings from coffee lovers" },
-        { title: "4.0 & Above", desc: "Consistently highly recommended spaces" },
-        { title: "3.0 & Above", desc: "Decent neighborhood spots" },
-        { title: "Any Rating", desc: "Show all shops including new hidden gems" }
+        { title: "5.0 Rated", value: "5", stars: 5, desc: "Flawless ratings from coffee lovers" },
+        { title: "4.0 & Above", value: "4", stars: 4, desc: "Consistently highly recommended spaces" },
+        { title: "3.0 & Above", value: "3", stars: 3, desc: "Decent neighborhood spots" },
+        { title: "Any Rating", value: "all", stars: 0, desc: "Show all shops including new hidden gems" }
       ]
     }
   ];
@@ -68,7 +84,6 @@ export default function Offers() {
         <Image src="/images/home-bg.jpg" alt="Coffee shop" fill className="object-cover opacity-40 mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
         
-        {/* Back to Home - Only on Landing Screen */}
         <div className="absolute top-6 left-6 z-20">
           <Link
             href="/"
@@ -115,7 +130,6 @@ export default function Offers() {
     return (
       <main className="flex-1 flex flex-col bg-stone-50 min-h-screen">
         <div className="max-w-4xl mx-auto w-full px-6 py-12 flex-1 flex flex-col">
-          {/* Progress Bar */}
           <div className="mb-12">
             <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-4">
               <button onClick={prevStep} className="hover:text-zinc-900 transition-colors cursor-pointer">&larr; Back</button>
@@ -147,11 +161,11 @@ export default function Offers() {
 
               <div className={`grid gap-4 ${isGrid3 ? 'md:grid-cols-3' : 'sm:grid-cols-2'} mb-12`}>
                 {data.options.map((opt) => {
-                  const isSelected = currentSelection === opt.title;
+                  const isSelected = currentSelection === opt.value;
                   return (
                     <button
-                      key={opt.title}
-                      onClick={() => handleSelect(opt.title)}
+                      key={opt.value}
+                      onClick={() => handleSelect(opt.value)}
                       className={`text-left p-6 rounded-2xl border-2 transition-all cursor-pointer ${
                         isSelected 
                           ? 'border-zinc-900 bg-zinc-900 shadow-lg' 
@@ -159,10 +173,15 @@ export default function Offers() {
                       }`}
                     >
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className={`font-semibold text-lg ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
-                          {opt.title}
-                        </h3>
-                        {isSelected && <CheckCircle size={24} weight="fill" className="text-amber-500" />}
+                        <div className="flex flex-col gap-1.5">
+                          <h3 className={`font-semibold text-lg ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
+                            {opt.title}
+                          </h3>
+                          {'stars' in opt && opt.stars !== undefined && opt.stars > 0 && (
+                            <StarRating count={opt.stars} />
+                          )}
+                        </div>
+                        {isSelected && <CheckCircle size={24} weight="fill" className="text-amber-500 shrink-0" />}
                       </div>
                       <p className={`text-sm leading-relaxed ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         {opt.desc}
@@ -188,7 +207,7 @@ export default function Offers() {
     );
   }
 
-  // Results Page
+  // Results View
   if (step === quizData.length + 1) {
     return <ResultsView selections={selections} />;
   }
@@ -201,18 +220,27 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const vibe = selections[2] || '';
+    const coffeeType = selections[1] || '';
+    const needs = selections[2] || '';
     const price = selections[3] || '';
     const rating = selections[4] || '';
-    
-    fetch(`/api/cafes?vibe=${encodeURIComponent(vibe)}&price=${encodeURIComponent(price)}&rating=${encodeURIComponent(rating)}`)
-      .then(res => res.json())
-      .then(data => {
-        setCafes(data);
+
+    const queryParams = new URLSearchParams({
+      type: coffeeType,
+      needs: needs,
+      price: price,
+      rating: rating,
+    }).toString();
+
+    fetch(`/api/cafes?${queryParams}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setCafes(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(e => {
+      .catch((e) => {
         console.error(e);
+        setCafes([]);
         setLoading(false);
       });
   }, [selections]);
@@ -240,14 +268,14 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
           <div className="grid md:grid-cols-3 gap-6">
             {cafes.map((cafe, i) => (
               <motion.div
-                key={cafe.id}
+                key={cafe.id || i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.15 }}
                 className="group relative bg-zinc-900 rounded-3xl overflow-hidden"
               >
                 <div className="relative aspect-[4/5] w-full">
-                  <Image src={cafe.image_url || '/images/home-bg.jpg'} alt={cafe.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <Image src={cafe.image_url || '/images/home-bg.jpg'} alt={cafe.name || 'Coffee Shop'} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
                   
                   <div className="absolute bottom-0 left-0 w-full p-6">
