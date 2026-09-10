@@ -6,6 +6,7 @@ import ManageCafes from './components/ManageCafes';
 export default function AdminPage() {
   const [pendingSuggestions, setPendingSuggestions] = useState<any[]>([]);
   const [discoveredCafes, setDiscoveredCafes] = useState<any[]>([]);
+  const [isScanning, setIsScanning] = useState(false);
 
   // Fetch pending menu suggestions
   const fetchSuggestions = async () => {
@@ -45,6 +46,22 @@ export default function AdminPage() {
     fetchSuggestions();
     fetchDiscovered();
   }, []);
+
+  // Trigger OpenStreetMap sync
+  const handleScanOSM = async () => {
+    setIsScanning(true);
+    try {
+      const res = await fetch('/api/admin/discover-osm', { method: 'POST' });
+      const data = await res.json();
+      alert(data.message || data.error);
+      fetchDiscovered();
+    } catch (err) {
+      console.error('Failed to scan OpenStreetMap:', err);
+      alert('Failed to connect to OpenStreetMap sync service');
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   // Handle menu item approvals/rejections
   const handleAction = async (productId: number, action: 'approve' | 'reject') => {
@@ -92,9 +109,19 @@ export default function AdminPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto animate-in fade-in duration-500">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Manage Cafes</h1>
-        <p className="text-zinc-400 mt-2">Add, edit, or remove cafes and their menus.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Manage Cafes</h1>
+          <p className="text-zinc-400 mt-2">Add, edit, or remove cafes and their menus.</p>
+        </div>
+
+        <button
+          onClick={handleScanOSM}
+          disabled={isScanning}
+          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-4 py-2.5 rounded-xl transition cursor-pointer disabled:opacity-50 border-none flex items-center justify-center gap-2 self-start sm:self-auto"
+        >
+          {isScanning ? 'Scanning OpenStreetMap...' : '🔄 Scan OpenStreetMap Now'}
+        </button>
       </div>
 
       {/* Discovered Cafes Queue Section */}
@@ -113,7 +140,7 @@ export default function AdminPage() {
               >
                 <div>
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-lg">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-lg shrink-0">
                       ☕
                     </div>
                     <div>
@@ -125,14 +152,14 @@ export default function AdminPage() {
                   </div>
 
                   <p className="text-neutral-400 text-xs italic mb-4">
-                    Source: {item.source}
+                    Source: {item.source || 'OpenStreetMap'}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <button
                     onClick={() => handleDiscoveredAction(item.id, 'APPROVE')}
-                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer"
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
                   >
                     Approve
                   </button>
@@ -169,10 +196,10 @@ export default function AdminPage() {
                       <img
                         src={item.image_url}
                         alt={item.name}
-                        className="w-12 h-12 rounded-xl object-cover border border-neutral-800"
+                        className="w-12 h-12 rounded-xl object-cover border border-neutral-800 shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-neutral-800 flex items-center justify-center text-xs text-neutral-500">
+                      <div className="w-12 h-12 rounded-xl bg-neutral-800 flex items-center justify-center text-xs text-neutral-500 shrink-0">
                         No image
                       </div>
                     )}
@@ -200,7 +227,7 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <button
                     onClick={() => handleAction(item.id, 'approve')}
-                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer"
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
                   >
                     Approve
                   </button>
