@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Extends execution limit on Vercel
+export const maxDuration = 60;
 
 export async function POST() {
   try {
     // Calamba Bounding Box [south, west, north, east]
     const overpassQuery = `
-      [out:json][timeout:15];
+      [out:json][timeout:25];
       (
         node["amenity"="cafe"](14.15,121.05,14.25,121.20);
         way["amenity"="cafe"](14.15,121.05,14.25,121.20);
@@ -16,10 +16,17 @@ export async function POST() {
       out center;
     `;
 
+    // Send query using URLSearchParams and custom User-Agent
+    const params = new URLSearchParams();
+    params.append('data', overpassQuery);
+
     const response = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(overpassQuery)}`,
+      headers: {
+        'User-Agent': 'CafeNavApp/1.0 (contact@cafenav.com)',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
     });
 
     if (!response.ok) {
@@ -40,7 +47,6 @@ export async function POST() {
       ...existingDiscovered.map((c: { name: string }) => c.name.toLowerCase().trim()),
     ]);
 
-    // Build payload in memory
     const toInsert: Array<{
       name: string;
       location: string;
@@ -72,7 +78,6 @@ export async function POST() {
       existingNames.add(cleanName.toLowerCase());
     }
 
-    // Single batch database insert
     if (toInsert.length > 0) {
       await prisma.discoveredCafe.createMany({
         data: toInsert,
