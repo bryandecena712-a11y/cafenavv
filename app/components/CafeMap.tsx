@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
+// @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css'; 
 import Link from 'next/link';
 
@@ -105,12 +106,10 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         const baseDurationMin = route.duration / 60;
         const distanceKm = route.distance / 1000;
 
-        // Determine current local time traffic multiplier
         const currentHour = new Date().getHours();
-        let trafficMultiplier = 1.35; // Default urban baseline (accounting for signals & intersections)
+        let trafficMultiplier = 1.35; 
         let trafficText = 'Moderate Traffic';
 
-        // Peak Rush Hours (7 AM - 9 AM & 4 PM - 8 PM)
         if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
           trafficMultiplier = 1.75;
           trafficText = 'Heavy Traffic';
@@ -151,7 +150,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
       
-      {/* Route Details Floating Badge with Real-Time Traffic Adjustment */}
       {routeInfo && (
         <div className="absolute top-4 left-4 z-30 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
@@ -178,7 +176,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         </div>
       )}
 
-      {/* SVG Canvas Overlay */}
       {svgPath && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
           <path
@@ -202,7 +199,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         </svg>
       )}
 
-      {/* Map Canvas */}
       <div className="w-full h-full">
         <Map
           ref={mapRef}
@@ -219,7 +215,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         >
           <NavigationControl position="top-right" />
 
-          {/* User Location Marker */}
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
               <div className="relative flex items-center justify-center">
@@ -229,7 +224,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             </Marker>
           )}
 
-          {/* Cafe Markers */}
           {cafes?.map((cafe) => {
             let lat: number | null = null;
             let lng: number | null = null;
@@ -272,7 +266,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             );
           })}
 
-          {/* Selected Cafe Popup */}
           {selectedCafe && (
             <Popup
               longitude={selectedCafe.coords.lng}
