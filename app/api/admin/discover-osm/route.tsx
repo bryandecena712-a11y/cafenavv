@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Extends execution limit on Vercel
 
 export async function POST() {
   try {
     // Calamba Bounding Box [south, west, north, east]
     const overpassQuery = `
-      [out:json][timeout:25];
+      [out:json][timeout:15];
       (
         node["amenity"="cafe"](14.15,121.05,14.25,121.20);
         way["amenity"="cafe"](14.15,121.05,14.25,121.20);
@@ -21,20 +22,32 @@ export async function POST() {
       body: `data=${encodeURIComponent(overpassQuery)}`,
     });
 
+    if (!response.ok) {
+      throw new Error(`Overpass API error: ${response.statusText}`);
+    }
+
     const data = await response.json();
     const elements = data.elements || [];
 
-    // Fetch existing cafe names to prevent duplicates
-    const existingApproved = await prisma.cafes.findMany({ select: { name: true } });
-    const existingDiscovered = await prisma.discoveredCafe.findMany({ select: { name: true } });
+    // Fetch existing names to prevent duplicates
+    const [existingApproved, existingDiscovered] = await Promise.all([
+      prisma.cafes.findMany({ select: { name: true } }),
+      prisma.discoveredCafe.findMany({ select: { name: true } }),
+    ]);
 
-    // Explicitly type 'c' to fix TypeScript TS7006 error
     const existingNames = new Set([
       ...existingApproved.map((c: { name: string }) => c.name.toLowerCase().trim()),
       ...existingDiscovered.map((c: { name: string }) => c.name.toLowerCase().trim()),
     ]);
 
-    let newCount = 0;
+    // Build payload in memory
+    const toInsert: Array<{
+      name: string;
+      location: string;
+      source: string;
+      latitude: number;
+      longitude: number;
+    }> = [];
 
     for (const element of elements) {
       const name = element.tags?.name;
@@ -48,26 +61,34 @@ export async function POST() {
 
       if (!lat || !lon) continue;
 
-      await prisma.discoveredCafe.create({
-        data: {
-          name: cleanName,
-          location: `${lat}, ${lon}`,
-          source: 'OpenStreetMap',
-          latitude: lat,
-          longitude: lon,
-        },
+      toInsert.push({
+        name: cleanName,
+        location: `${lat}, ${lon}`,
+        source: 'OpenStreetMap',
+        latitude: lat,
+        longitude: lon,
       });
 
       existingNames.add(cleanName.toLowerCase());
-      newCount++;
+    }
+
+    // Single batch database insert
+    if (toInsert.length > 0) {
+      await prisma.discoveredCafe.createMany({
+        data: toInsert,
+        skipDuplicates: true,
+      });
     }
 
     return NextResponse.json({
-      message: `Sync complete. ${newCount} new cafes added to pending discovery.`,
-      newCount,
+      message: `Sync complete. ${toInsert.length} new cafes added to pending discovery.`,
+      newCount: toInsert.length,
     });
   } catch (error: any) {
     console.error('OSM Fetch Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch cafes from OpenStreetMap' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to fetch cafes from OpenStreetMap' },
+      { status: 500 }
+    );
   }
 }
