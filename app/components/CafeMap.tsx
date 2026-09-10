@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
+import { useEffect, useState, useRef } from 'react';
+import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
-// Add this critical CSS import to enable absolute marker positioning:
 import 'maplibre-gl/dist/maplibre-gl.css'; 
 import Link from 'next/link';
 
@@ -13,7 +12,6 @@ interface CafeMapProps {
   cafes: any[];
 }
 
-// OpenStreetMap public tiles (100% keyless & open access)
 const openStreetMapStyle = {
   version: 8 as const,
   sources: {
@@ -38,8 +36,13 @@ const openStreetMapStyle = {
 };
 
 export default function CafeMap({ cafes }: CafeMapProps) {
+  const mapRef = useRef<any>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
+  
+  // State for OSRM GeoJSON Route
+  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
+  const [loadingRoute, setLoadingRoute] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -58,11 +61,54 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const center = userLocation || defaultCenter;
 
+  // Function to fetch shortest driving pathway via OSRM API
+  const handleGetDirections = async (destLat: number, destLng: number) => {
+    if (!userLocation) {
+      alert('Please enable location services on your browser to view directions.');
+      return;
+    }
+
+    setLoadingRoute(true);
+
+    try {
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`
+      );
+      const data = await response.json();
+
+      if (data.routes && data.routes.length > 0) {
+        const routeGeometry = data.routes[0].geometry;
+        
+        setRouteGeoJSON({
+          type: 'Feature',
+          properties: {},
+          geometry: routeGeometry,
+        });
+
+        // Auto-fit map camera bounds to display both user and target cafe
+        if (mapRef.current) {
+          const map = mapRef.current.getMap();
+          const bounds = new maplibregl.LngLatBounds();
+          bounds.extend([userLocation.lng, userLocation.lat]);
+          bounds.extend([destLng, destLat]);
+          map.fitBounds(bounds, { padding: 80 });
+        }
+      } else {
+        alert('Could not calculate a route to this destination.');
+      }
+    } catch (err) {
+      console.error('Routing error:', err);
+      alert('Failed to fetch directions from routing service.');
+    } finally {
+      setLoadingRoute(false);
+    }
+  };
+
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-black">
-      {/* CSS Dark Mode Filter applied directly to the map canvas */}
       <div className="w-full h-full [&_.maplibregl-canvas]:invert-[92%] [&_.maplibregl-canvas]:hue-rotate-[180deg] [&_.maplibregl-canvas]:brightness-[85%] [&_.maplibregl-canvas]:contrast-[120%]">
         <Map
+          ref={mapRef}
           mapLib={maplibregl as any}
           initialViewState={{
             longitude: center.lng,
@@ -86,27 +132,21 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             let lat: number | null = null;
             let lng: number | null = null;
 
-            // Parse explicit numerical properties
             if (cafe.latitude !== undefined && cafe.longitude !== undefined && cafe.latitude !== null) {
               lat = parseFloat(cafe.latitude);
               lng = parseFloat(cafe.longitude);
             } else if (cafe.lat !== undefined && cafe.lng !== undefined && cafe.lat !== null) {
               lat = parseFloat(cafe.lat);
               lng = parseFloat(cafe.lng);
-            } 
-            // Parse comma-separated "lat,lng" string from database or admin pin
-            else if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
+            } else if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
               const parts = cafe.location.split(',');
               lat = parseFloat(parts[0].trim());
               lng = parseFloat(parts[1].trim());
-            } 
-            // Fallback to static coordinate dictionary
-            else if (cafeCoordinates[cafe.name]) {
+            } else if (cafeCoordinates[cafe.name]) {
               lat = cafeCoordinates[cafe.name].lat;
               lng = cafeCoordinates[cafe.name].lng;
             }
 
-            // Skip rendering if coordinates could not be parsed
             if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
               return null;
             }
@@ -129,6 +169,25 @@ export default function CafeMap({ cafes }: CafeMapProps) {
               </Marker>
             );
           })}
+
+          {/* Route Layer rendered using MapLibre Source/Layer */}
+          {routeGeoJSON && (
+            <Source id="route-source" type="geojson" data={routeGeoJSON}>
+              <Layer
+                id="route-layer"
+                type="line"
+                layout={{
+                  'line-join': 'round',
+                  'line-cap': 'round',
+                }}
+                paint={{
+                  'line-color': '#f59e0b',
+                  'line-width': 5,
+                  'line-opacity': 0.9,
+                }}
+              />
+            </Source>
+          )}
 
           {/* Selected Cafe Popup */}
           {selectedCafe && (
@@ -160,18 +219,17 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 <div className="flex gap-2 mt-1">
                   <Link
                     href={`/cafe/${selectedCafe.cafe.id}`}
-                    className="flex-1 bg-zinc-900 text-white text-xs py-1.5 px-2 rounded-lg text-center no-underline hover:bg-zinc-800 transition-colors font-medium"
+                    className="flex-1 bg-zinc-900 text-white text-xs py-1.5 px-2 rounded-lg text-center no-underline hover:bg-zinc-800 transition-colors font-medium flex items-center justify-center"
                   >
                     View Details
                   </Link>
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCafe.coords.lat},${selectedCafe.coords.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 bg-amber-500 text-zinc-950 text-xs py-1.5 px-2 rounded-lg text-center no-underline font-semibold hover:bg-amber-400 transition-colors"
+                  <button
+                    onClick={() => handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng)}
+                    disabled={loadingRoute}
+                    className="flex-1 bg-amber-500 text-zinc-950 text-xs py-1.5 px-2 rounded-lg text-center font-semibold hover:bg-amber-400 transition-colors border-none cursor-pointer flex items-center justify-center"
                   >
-                    Directions ↗
-                  </a>
+                    {loadingRoute ? 'Loading...' : 'Directions ↗'}
+                  </button>
                 </div>
               </div>
             </Popup>
