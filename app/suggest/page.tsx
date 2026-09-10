@@ -82,24 +82,36 @@ export default function SuggestPage() {
       let payload = {};
 
       if (suggestionType === 'cafe') {
+        if (!cafeFormData.name.trim() || !cafeFormData.location.trim()) {
+          alert('Please fill in both Cafe Name and Location.');
+          setIsSubmitting(false);
+          return;
+        }
+
         endpoint = '/api/cafes';
         payload = {
-          name: cafeFormData.name,
-          location: cafeFormData.location,
-          description: cafeFormData.description,
-          price_level: cafeFormData.price_level,
-          vibe: cafeFormData.vibe,
-          image_url: cafeFormData.image_url,
+          name: cafeFormData.name.trim(),
+          location: cafeFormData.location.trim(),
+          description: cafeFormData.description.trim() || 'No description provided',
+          price_level: cafeFormData.price_level || '₱₱',
+          vibe: cafeFormData.vibe || 'chill',
+          image_url: cafeFormData.image_url.trim() || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
           status: 'PENDING'
         };
       } else {
+        if (!productFormData.cafeId || !productFormData.name.trim() || !productFormData.price) {
+          alert('Please select a cafe and fill in the item name and price.');
+          setIsSubmitting(false);
+          return;
+        }
+
         endpoint = '/api/admin/products';
         payload = {
           cafeId: productFormData.cafeId,
-          name: productFormData.name,
-          price: productFormData.price,
-          description: productFormData.description,
-          image_url: productFormData.image_url,
+          name: productFormData.name.trim(),
+          price: parseFloat(productFormData.price) || 0,
+          description: productFormData.description.trim() || 'No description provided',
+          image_url: productFormData.image_url.trim() || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           status: 'PENDING'
         };
       }
@@ -116,7 +128,7 @@ export default function SuggestPage() {
         setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(errorData.error || 'Failed to submit suggestion. Check if all required fields are filled.');
+        alert(errorData.error || errorData.message || 'Failed to submit suggestion. Please check required fields.');
       }
     } catch (err) {
       console.error('Submission error:', err);
