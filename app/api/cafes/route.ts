@@ -22,6 +22,35 @@ export async function GET() {
   }
 }
 
+// POST: Add a new cafe suggestion
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { name, location, description, price_level, vibe, image_url, status } = body;
+
+    if (!name || !location) {
+      return NextResponse.json({ error: 'Name and location are required fields' }, { status: 400 });
+    }
+
+    const newCafe = await prisma.cafes.create({
+      data: {
+        name,
+        location,
+        description: description || 'No description provided',
+        price_level: price_level || '₱₱',
+        vibe: vibe || 'chill',
+        image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+        status: status || 'PENDING',
+      },
+    });
+
+    return NextResponse.json(newCafe, { status: 201 });
+  } catch (error) {
+    console.error('Failed to create cafe suggestion:', error);
+    return NextResponse.json({ error: 'Failed to submit cafe suggestion' }, { status: 500 });
+  }
+}
+
 // DELETE: Remove a cafe and its associated records
 export async function DELETE(request: Request) {
   try {
