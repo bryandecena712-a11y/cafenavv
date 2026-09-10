@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-// GET: Fetch all discovered pending cafes
+export const dynamic = 'force-dynamic';
+
+// GET: Fetch all pending discovered cafes
 export async function GET() {
   try {
     const discovered = await prisma.discoveredCafe.findMany({
@@ -28,21 +30,23 @@ export async function POST(request: Request) {
     }
 
     if (action === 'APPROVE') {
-      // Transfer to main cafes table
+      // Transfer to main cafes table including precise coordinates from OSM
       await prisma.cafes.create({
         data: {
           name: item.name,
           location: item.location,
+          latitude: item.latitude,
+          longitude: item.longitude,
           description: `Discovered automatically via ${item.source}.`,
           price_level: '₱₱',
-          vibe: 'chill',
+          vibe: 'Chill',
           image_url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
           status: 'APPROVED',
         },
       });
     }
 
-    // Remove from discovered queue regardless of APPROVE or DISMISS
+    // Delete item from queue after processing
     await prisma.discoveredCafe.delete({ where: { id: Number(id) } });
 
     return NextResponse.json({ message: `Cafe ${action.toLowerCase()}d successfully.` });
