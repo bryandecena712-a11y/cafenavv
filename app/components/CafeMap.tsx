@@ -12,28 +12,8 @@ interface CafeMapProps {
   cafes: any[];
 }
 
-const openStreetMapStyle = {
-  version: 8 as const,
-  sources: {
-    'osm-free-tiles': {
-      type: 'raster' as const,
-      tiles: [
-        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    },
-  },
-  layers: [
-    {
-      id: 'osm-free-layer',
-      type: 'raster' as const,
-      source: 'osm-free-tiles',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
-};
+// Native dark vector style (no CSS filters required)
+const darkMapStyle = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 export default function CafeMap({ cafes }: CafeMapProps) {
   const mapRef = useRef<any>(null);
@@ -63,14 +43,13 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const handleGetDirections = async (destLat: number, destLng: number, cafeName: string) => {
     if (!userLocation) {
-      alert('Please enable location services in your browser to view directions.');
+      alert('Please enable location access in your browser to view driving directions.');
       return;
     }
 
     setLoadingRoute(true);
 
     try {
-      // Use OSRM public routing engine with full details
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`
       );
@@ -80,7 +59,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
         
-        // Calculate minutes and kilometers
         const durationMin = Math.round(route.duration / 60);
         const distanceKm = (route.distance / 1000).toFixed(1);
 
@@ -96,7 +74,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           geometry: route.geometry,
         });
 
-        // Fit map view to route bounds
         if (mapRef.current) {
           const map = mapRef.current.getMap();
           const bounds = new maplibregl.LngLatBounds();
@@ -105,7 +82,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
         }
       } else {
-        alert('Could not calculate a driving route.');
+        alert('Could not calculate a driving route to this destination.');
       }
     } catch (err) {
       console.error('Error fetching route:', err);
@@ -118,7 +95,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-black">
       
-      {/* Route Info Overlay Card */}
+      {/* Route Info Badge Overlay */}
       {routeInfo && (
         <div className="absolute top-4 left-4 z-20 bg-zinc-900/95 backdrop-blur-md border border-amber-500/30 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-lg">
@@ -142,8 +119,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         </div>
       )}
 
-      {/* Map Container - Canvas filter adjustments */}
-      <div className="w-full h-full [&_.maplibregl-canvas]:invert-[90%] [&_.maplibregl-canvas]:hue-rotate-[180deg] [&_.maplibregl-canvas]:brightness-[85%]">
+      {/* Map Container without CSS Filters */}
+      <div className="w-full h-full">
         <Map
           ref={mapRef}
           mapLib={maplibregl as any}
@@ -152,7 +129,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             latitude: center.lat,
             zoom: 14,
           }}
-          mapStyle={openStreetMapStyle}
+          mapStyle={darkMapStyle}
           style={{ width: '100%', height: '100%' }}
         >
           <NavigationControl position="top-right" />
@@ -161,8 +138,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
               <div className="relative flex items-center justify-center">
-                <div className="w-5 h-5 bg-cyan-400 rounded-full border-2 border-white shadow-[0_0_15px_rgba(34,211,238,1)] animate-pulse z-10" />
-                <div className="absolute w-8 h-8 bg-cyan-500/40 rounded-full animate-ping" />
+                <div className="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,1)] animate-pulse z-10" />
+                <div className="absolute w-8 h-8 bg-blue-500/40 rounded-full animate-ping" />
               </div>
             </Marker>
           )}
@@ -210,27 +187,27 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             );
           })}
 
-          {/* High-Visibility Driving Route Polyline */}
+          {/* High-Visibility Blue Route Line */}
           {routeGeoJSON && (
             <Source id="route-source" type="geojson" data={routeGeoJSON}>
-              {/* Outer Glow / Dark Border */}
+              {/* Black Outer Casing */}
               <Layer
-                id="route-glow"
+                id="route-casing"
                 type="line"
                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                 paint={{
                   'line-color': '#000000',
-                  'line-width': 9,
-                  'line-opacity': 0.8,
+                  'line-width': 10,
+                  'line-opacity': 0.9,
                 }}
               />
-              {/* Ultra-Bright Neon Blue Route Line */}
+              {/* Bright Google-Maps Style Blue Line */}
               <Layer
-                id="route-path"
+                id="route-line"
                 type="line"
                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                 paint={{
-                  'line-color': '#ff0055', // High Contrast Hot Magenta/Neon Pink through CSS inversion turns to High-Visibility Cyan/Blue
+                  'line-color': '#3b82f6',
                   'line-width': 6,
                   'line-opacity': 1,
                 }}
