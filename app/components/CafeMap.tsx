@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/maplibre';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'; 
 import Link from 'next/link';
@@ -12,7 +12,6 @@ interface CafeMapProps {
   cafes: any[];
 }
 
-// Clean light OpenStreetMap basemap style
 const openStreetMapStyle = {
   version: 8 as const,
   sources: {
@@ -41,7 +40,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
   
-  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
+  const [svgPath, setSvgPath] = useState<string>('');
   const [routeInfo, setRouteInfo] = useState<{ duration: string; distance: string; destinationName: string } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
@@ -62,6 +62,29 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const center = userLocation || defaultCenter;
 
+  // Project map geographical coordinates to screen pixel points for the overlay SVG
+  const updateSvgOverlay = useCallback(() => {
+    if (!routeCoordinates || !mapRef.current) {
+      setSvgPath('');
+      return;
+    }
+
+    const map = mapRef.current.getMap();
+    if (!map) return;
+
+    const points = routeCoordinates.map((coord) => {
+      const pixel = map.project([coord[0], coord[1]]);
+      return `${pixel.x.toFixed(1)},${pixel.y.toFixed(1)}`;
+    });
+
+    setSvgPath(`M ${points.join(' L ')}`);
+  }, [routeCoordinates]);
+
+  // Re-calculate SVG line on map zoom/pan movements
+  useEffect(() => {
+    updateSvgOverlay();
+  }, [routeCoordinates, updateSvgOverlay]);
+
   const handleGetDirections = async (destLat: number, destLng: number, cafeName: string) => {
     if (!userLocation) {
       alert('Please enable location access in your browser to view driving directions.');
@@ -79,7 +102,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
       if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
-        
+        const coords: [number, number][] = route.geometry.coordinates;
+
         const durationMin = Math.round(route.duration / 60);
         const distanceKm = (route.distance / 1000).toFixed(1);
 
@@ -89,11 +113,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           destinationName: cafeName
         });
 
-        setRouteGeoJSON({
-          type: 'Feature',
-          properties: {},
-          geometry: route.geometry,
-        });
+        setRouteCoordinates(coords);
 
         if (mapRef.current) {
           const map = mapRef.current.getMap();
@@ -116,9 +136,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
       
-      {/* Travel Time & Distance Overlay Badge */}
+      {/* Route Details Floating Badge */}
       {routeInfo && (
-        <div className="absolute top-4 left-4 z-20 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+        <div className="absolute top-4 left-4 z-30 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
             🚗
           </div>
@@ -131,7 +151,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             </div>
           </div>
           <button 
-            onClick={() => { setRouteGeoJSON(null); setRouteInfo(null); }}
+            onClick={() => { setRouteCoordinates(null); setSvgPath(''); setRouteInfo(null); }}
             className="ml-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
             title="Clear Route"
           >
@@ -140,7 +160,33 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         </div>
       )}
 
-      {/* Map Element (No CSS inversion filters) */}
+      {/* SVG Canvas Overlay for Guaranteed Route Line Visibility */}
+      {svgPath && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+          {/* Black Outer Border/Shadow Line */}
+          <path
+            d={svgPath}
+            fill="none"
+            stroke="#0f172a"
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.9"
+          />
+          {/* Google Maps Style Vibrant Blue Route Line */}
+          <path
+            d={svgPath}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="1"
+          />
+        </svg>
+      )}
+
+      {/* Map Canvas */}
       <div className="w-full h-full">
         <Map
           ref={mapRef}
@@ -152,36 +198,10 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           }}
           mapStyle={openStreetMapStyle}
           style={{ width: '100%', height: '100%' }}
+          onMove={updateSvgOverlay}
+          onZoom={updateSvgOverlay}
         >
           <NavigationControl position="top-right" />
-
-          {/* Direct Vector Polyline Overlay for Google-Maps Blue Route */}
-          {routeGeoJSON && (
-            <Source id="route-source" type="geojson" data={routeGeoJSON}>
-              {/* Route Outer Border / Shadow */}
-              <Layer
-                id="route-casing"
-                type="line"
-                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-                paint={{
-                  'line-color': '#1e3a8a',
-                  'line-width': 10,
-                  'line-opacity': 0.8,
-                }}
-              />
-              {/* Main Solid Blue Driving Pathway Line */}
-              <Layer
-                id="route-line"
-                type="line"
-                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-                paint={{
-                  'line-color': '#2563eb',
-                  'line-width': 6,
-                  'line-opacity': 1,
-                }}
-              />
-            </Source>
-          )}
 
           {/* User Location Marker */}
           {userLocation && (
@@ -244,7 +264,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
               anchor="bottom"
               onClose={() => setSelectedCafe(null)}
               closeOnClick={false}
-              className="text-zinc-950"
+              className="text-zinc-950 z-30"
             >
               <div className="flex flex-col gap-2 min-w-[200px] max-w-[240px] p-1">
                 {selectedCafe.cafe.image_url && (
