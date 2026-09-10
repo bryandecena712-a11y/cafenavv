@@ -3,7 +3,6 @@ import { prisma } from '@/app/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Fetch all pending discovered cafes
 export async function GET() {
   try {
     const discovered = await prisma.discoveredCafe.findMany({
@@ -15,7 +14,6 @@ export async function GET() {
   }
 }
 
-// Helper function to geocode location strings if exact lat/lng are missing
 async function fetchCoordinates(locationName: string) {
   try {
     const query = encodeURIComponent(`${locationName}, Calamba, Laguna, Philippines`);
@@ -32,11 +30,9 @@ async function fetchCoordinates(locationName: string) {
   } catch (err) {
     console.error('Geocoding fallback failed:', err);
   }
-  // Default Calamba center coordinates fallback
   return { lat: 14.2100, lng: 121.1622 };
 }
 
-// POST: Approve or Dismiss a discovered cafe
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -55,14 +51,13 @@ export async function POST(request: Request) {
       let finalLat = item.latitude;
       let finalLng = item.longitude;
 
-      // If coordinates are missing from the OSM item, auto-geocode using the location name
       if (!finalLat || !finalLng) {
         const geo = await fetchCoordinates(item.name || item.location);
         finalLat = geo.lat;
         finalLng = geo.lng;
       }
 
-      // Payload prepared for Prisma
+      // Construct base payload matching Prisma model
       const cafePayload: any = {
         name: item.name,
         location: item.location || 'Calamba, Laguna',
@@ -71,19 +66,19 @@ export async function POST(request: Request) {
         vibe: 'chill',
         image_url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
         status: 'APPROVED',
-        latitude: finalLat,
-        longitude: finalLng,
+        // Primary coordinate naming convention for schema
+        lat: finalLat,
+        lng: finalLng,
       };
 
       await prisma.cafes.create({ data: cafePayload });
     }
 
-    // Delete item from discovery queue after processing
     await prisma.discoveredCafe.delete({ where: { id: Number(id) } });
 
     return NextResponse.json({ message: `Cafe ${action.toLowerCase()}d successfully.` });
   } catch (error: any) {
-    console.error('Action error details:', error);
+    console.error('Prisma Approval Error:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to process request' },
       { status: 500 }
