@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
 // @ts-ignore
-import 'maplibre-gl/dist/maplibre-gl.css'; 
+import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';
@@ -18,9 +18,7 @@ const openStreetMapStyle = {
   sources: {
     'osm-tiles': {
       type: 'raster' as const,
-      tiles: [
-        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       tileSize: 256,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     },
@@ -40,7 +38,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const mapRef = useRef<any>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
-  
+
+  const [geocodedCafes, setGeocodedCafes] = useState<{ [key: string]: { lat: number; lng: number } }>({});
+
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
   const [svgPath, setSvgPath] = useState<string>('');
   const [routeInfo, setRouteInfo] = useState<{ duration: string; distance: string; destinationName: string; trafficLevel: string } | null>(null);
@@ -60,6 +60,51 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       );
     }
   }, []);
+
+  // Automatic client-side geocoding fallback for cafes missing pre-stored coordinates
+  useEffect(() => {
+    if (!cafes || cafes.length === 0) return;
+
+    cafes.forEach(async (cafe) => {
+      const identifier = cafe.id || cafe.name;
+      
+      // Skip if already coordinate-resolved
+      if (
+        (cafe.latitude && cafe.longitude) ||
+        (cafe.lat && cafe.lng) ||
+        cafeCoordinates[cafe.name] ||
+        geocodedCafes[identifier]
+      ) {
+        return;
+      }
+
+      // Check for comma-separated coordinate strings inside 'location'
+      if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
+        const parts = cafe.location.split(',');
+        const pLat = parseFloat(parts[0].trim());
+        const pLng = parseFloat(parts[1].trim());
+        if (!isNaN(pLat) && !isNaN(pLng)) {
+          setGeocodedCafes((prev) => ({ ...prev, [identifier]: { lat: pLat, lng: pLng } }));
+          return;
+        }
+      }
+
+      // Query OpenStreetMap Nominatim for exact address lat/lng
+      try {
+        const searchQuery = encodeURIComponent(`${cafe.name}, ${cafe.location || 'Calamba, Laguna'}`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchQuery}`);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          setGeocodedCafes((prev) => ({ ...prev, [identifier]: { lat, lng } }));
+        }
+      } catch (e) {
+        console.error('Map Geocoding Fallback Error for:', cafe.name, e);
+      }
+    });
+  }, [cafes, geocodedCafes]);
 
   const center = userLocation || defaultCenter;
 
@@ -96,7 +141,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`
       );
-      
+
       const data = await response.json();
 
       if (data.routes && data.routes.length > 0) {
@@ -107,7 +152,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         const distanceKm = route.distance / 1000;
 
         const currentHour = new Date().getHours();
-        let trafficMultiplier = 1.35; 
+        let trafficMultiplier = 1.35;
         let trafficText = 'Moderate Traffic';
 
         if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
@@ -124,7 +169,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           duration: `${adjustedDuration} min`,
           distance: `${distanceKm.toFixed(1)} km`,
           destinationName: cafeName,
-          trafficLevel: trafficText
+          trafficLevel: trafficText,
         });
 
         setRouteCoordinates(coords);
@@ -149,14 +194,15 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
-      
       {routeInfo && (
         <div className="absolute top-4 left-4 z-30 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
             🚗
           </div>
           <div>
-            <div className="text-xs text-zinc-400 font-medium">Route to <span className="text-zinc-200">{routeInfo.destinationName}</span></div>
+            <div className="text-xs text-zinc-400 font-medium">
+              Route to <span className="text-zinc-200">{routeInfo.destinationName}</span>
+            </div>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-blue-400 font-extrabold text-base">{routeInfo.duration}</span>
               <span className="text-zinc-500 text-xs">•</span>
@@ -166,8 +212,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
               ⚡ {routeInfo.trafficLevel}
             </div>
           </div>
-          <button 
-            onClick={() => { setRouteCoordinates(null); setSvgPath(''); setRouteInfo(null); }}
+          <button
+            onClick={() => {
+              setRouteCoordinates(null);
+              setSvgPath('');
+              setRouteInfo(null);
+            }}
             className="ml-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
             title="Clear Route"
           >
@@ -225,6 +275,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           )}
 
           {cafes?.map((cafe) => {
+            const identifier = cafe.id || cafe.name;
             let lat: number | null = null;
             let lng: number | null = null;
 
@@ -234,13 +285,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             } else if (cafe.lat !== undefined && cafe.lng !== undefined && cafe.lat !== null) {
               lat = parseFloat(cafe.lat);
               lng = parseFloat(cafe.lng);
-            } else if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
-              const parts = cafe.location.split(',');
-              lat = parseFloat(parts[0].trim());
-              lng = parseFloat(parts[1].trim());
             } else if (cafeCoordinates[cafe.name]) {
               lat = cafeCoordinates[cafe.name].lat;
               lng = cafeCoordinates[cafe.name].lng;
+            } else if (geocodedCafes[identifier]) {
+              lat = geocodedCafes[identifier].lat;
+              lng = geocodedCafes[identifier].lng;
             }
 
             if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
@@ -251,7 +301,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
             return (
               <Marker
-                key={cafe.id || cafe.name}
+                key={identifier}
                 longitude={coords.lng}
                 latitude={coords.lat}
                 onClick={(e) => {
@@ -300,7 +350,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                     View Details
                   </Link>
                   <button
-                    onClick={() => handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name)}
+                    onClick={() =>
+                      handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name)
+                    }
                     disabled={loadingRoute}
                     className="flex-1 bg-amber-500 text-zinc-950 text-xs py-1.5 px-2 rounded-lg text-center font-semibold hover:bg-amber-400 transition-colors border-none cursor-pointer flex items-center justify-center"
                   >
