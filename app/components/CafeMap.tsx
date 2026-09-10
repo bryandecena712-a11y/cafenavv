@@ -41,6 +41,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
   
   const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
+  const [routeInfo, setRouteInfo] = useState<{ duration: string; distance: string; destinationName: string } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
   useEffect(() => {
@@ -60,46 +61,55 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const center = userLocation || defaultCenter;
 
-  const handleGetDirections = async (destLat: number, destLng: number) => {
+  const handleGetDirections = async (destLat: number, destLng: number, cafeName: string) => {
     if (!userLocation) {
-      alert('Please allow location access in your browser to view driving directions.');
+      alert('Please enable location services in your browser to view directions.');
       return;
     }
 
     setLoadingRoute(true);
 
     try {
-      // Query OSRM routing engine
-      const res = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng.toFixed(6)},${userLocation.lat.toFixed(6)};${destLng.toFixed(6)},${destLat.toFixed(6)}?overview=full&geometries=geojson`
+      // Use OSRM public routing engine with full details
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`
       );
       
-      const data = await res.json();
+      const data = await response.json();
 
       if (data.routes && data.routes.length > 0) {
-        const routeGeometry = data.routes[0].geometry;
+        const route = data.routes[0];
+        
+        // Calculate minutes and kilometers
+        const durationMin = Math.round(route.duration / 60);
+        const distanceKm = (route.distance / 1000).toFixed(1);
 
-        // Set GeoJSON payload for rendering line
+        setRouteInfo({
+          duration: `${durationMin} min`,
+          distance: `${distanceKm} km`,
+          destinationName: cafeName
+        });
+
         setRouteGeoJSON({
           type: 'Feature',
           properties: {},
-          geometry: routeGeometry,
+          geometry: route.geometry,
         });
 
-        // Zoom map bounds to frame both user and destination
+        // Fit map view to route bounds
         if (mapRef.current) {
           const map = mapRef.current.getMap();
           const bounds = new maplibregl.LngLatBounds();
           bounds.extend([userLocation.lng, userLocation.lat]);
           bounds.extend([destLng, destLat]);
-          map.fitBounds(bounds, { padding: 90, maxZoom: 16, duration: 1000 });
+          map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
         }
       } else {
-        alert('No available street pathway found for this route.');
+        alert('Could not calculate a driving route.');
       }
     } catch (err) {
-      console.error('Error fetching OSRM route:', err);
-      alert('Could not calculate route. Please try again.');
+      console.error('Error fetching route:', err);
+      alert('Failed to connect to directions service.');
     } finally {
       setLoadingRoute(false);
     }
@@ -107,7 +117,33 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-black">
-      <div className="w-full h-full [&_.maplibregl-canvas]:invert-[92%] [&_.maplibregl-canvas]:hue-rotate-[180deg] [&_.maplibregl-canvas]:brightness-[85%] [&_.maplibregl-canvas]:contrast-[120%]">
+      
+      {/* Route Info Overlay Card */}
+      {routeInfo && (
+        <div className="absolute top-4 left-4 z-20 bg-zinc-900/95 backdrop-blur-md border border-amber-500/30 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-lg">
+            🚗
+          </div>
+          <div>
+            <div className="text-xs text-zinc-400 font-medium">Fastest Route to <span className="text-zinc-200">{routeInfo.destinationName}</span></div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-amber-400 font-extrabold text-base">{routeInfo.duration}</span>
+              <span className="text-zinc-500 text-xs">•</span>
+              <span className="text-zinc-300 font-semibold text-sm">{routeInfo.distance}</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => { setRouteGeoJSON(null); setRouteInfo(null); }}
+            className="ml-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
+            title="Clear Route"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Map Container - Canvas filter adjustments */}
+      <div className="w-full h-full [&_.maplibregl-canvas]:invert-[90%] [&_.maplibregl-canvas]:hue-rotate-[180deg] [&_.maplibregl-canvas]:brightness-[85%]">
         <Map
           ref={mapRef}
           mapLib={maplibregl as any}
@@ -124,7 +160,10 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           {/* User Location Marker */}
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
-              <div className="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_12px_rgba(59,130,246,1)] animate-pulse" />
+              <div className="relative flex items-center justify-center">
+                <div className="w-5 h-5 bg-cyan-400 rounded-full border-2 border-white shadow-[0_0_15px_rgba(34,211,238,1)] animate-pulse z-10" />
+                <div className="absolute w-8 h-8 bg-cyan-500/40 rounded-full animate-ping" />
+              </div>
             </Marker>
           )}
 
@@ -171,27 +210,29 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             );
           })}
 
-          {/* Route Layer: Draws driving path line directly on MapLibre */}
+          {/* High-Visibility Driving Route Polyline */}
           {routeGeoJSON && (
-            <Source id="route-data" type="geojson" data={routeGeoJSON}>
-              {/* Outer Border Line */}
+            <Source id="route-source" type="geojson" data={routeGeoJSON}>
+              {/* Outer Glow / Dark Border */}
               <Layer
-                id="route-casing"
+                id="route-glow"
                 type="line"
                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                 paint={{
                   'line-color': '#000000',
-                  'line-width': 8,
+                  'line-width': 9,
+                  'line-opacity': 0.8,
                 }}
               />
-              {/* Vibrant Blue Driving Line (Matches Google Maps style) */}
+              {/* Ultra-Bright Neon Blue Route Line */}
               <Layer
-                id="route-line"
+                id="route-path"
                 type="line"
                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                 paint={{
-                  'line-color': '#2563eb',
+                  'line-color': '#ff0055', // High Contrast Hot Magenta/Neon Pink through CSS inversion turns to High-Visibility Cyan/Blue
                   'line-width': 6,
+                  'line-opacity': 1,
                 }}
               />
             </Source>
@@ -232,7 +273,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                     View Details
                   </Link>
                   <button
-                    onClick={() => handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng)}
+                    onClick={() => handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name)}
                     disabled={loadingRoute}
                     className="flex-1 bg-amber-500 text-zinc-950 text-xs py-1.5 px-2 rounded-lg text-center font-semibold hover:bg-amber-400 transition-colors border-none cursor-pointer flex items-center justify-center"
                   >
