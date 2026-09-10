@@ -81,22 +81,29 @@ export default function SuggestPage() {
     
     try {
       if (suggestionType === 'cafe') {
-        // Triggers OpenStreetMap search & adds directly to Admin Queue
         const res = await fetch('/api/suggestions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ searchQuery: `${cafeFormData.name} ${cafeFormData.location}` })
+          body: JSON.stringify({
+            searchQuery: `${cafeFormData.name} ${cafeFormData.location}`,
+            name: cafeFormData.name,
+            location: cafeFormData.location,
+            description: cafeFormData.description,
+            price_level: cafeFormData.price_level,
+            vibe: cafeFormData.vibe,
+            image_url: cafeFormData.image_url
+          })
         });
+
+        const data = await res.json();
 
         if (res.ok) {
           setSuccess(true);
           setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
         } else {
-          const errorData = await res.json();
-          alert(errorData.error || 'Failed to locate or submit coffee shop.');
+          alert(data.error || 'Failed to submit cafe suggestion.');
         }
       } else {
-        // Submitting menu product suggestion
         const res = await fetch('/api/admin/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
