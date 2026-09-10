@@ -29,14 +29,18 @@ export async function POST(request: Request) {
     }
 
     if (action === 'APPROVE') {
-      const locationText = item.location && !item.location.toLowerCase().includes('calamba')
-        ? `${item.location}, Calamba, Laguna`
-        : item.location || 'Calamba, Laguna';
+      // Store accurate coordinates inside location if db schema lacks lat/lng columns
+      const rawLat = item.latitude;
+      const rawLng = item.longitude;
+      
+      let formattedLocation = item.location || 'Calamba, Laguna';
+      if (rawLat && rawLng) {
+        formattedLocation = `${rawLat}, ${rawLng}`;
+      }
 
-      // Base payload using guaranteed standard fields
       const basePayload: any = {
         name: item.name,
-        location: locationText,
+        location: formattedLocation,
         description: `Discovered automatically via ${item.source || 'OpenStreetMap'}.`,
         price_level: '₱₱',
         vibe: 'chill',
@@ -44,13 +48,13 @@ export async function POST(request: Request) {
         status: 'APPROVED',
       };
 
-      // Safe creation attempt with schema field fallback
+      // Try schema fields in order, falling back cleanly to coordinate location string
       try {
         await prisma.cafes.create({
           data: {
             ...basePayload,
-            latitude: item.latitude ?? undefined,
-            longitude: item.longitude ?? undefined,
+            latitude: rawLat ?? undefined,
+            longitude: rawLng ?? undefined,
           },
         });
       } catch (e1) {
@@ -58,12 +62,11 @@ export async function POST(request: Request) {
           await prisma.cafes.create({
             data: {
               ...basePayload,
-              lat: item.latitude ?? undefined,
-              lng: item.longitude ?? undefined,
+              lat: rawLat ?? undefined,
+              lng: rawLng ?? undefined,
             },
           });
         } catch (e2) {
-          // If neither coordinate field exists in schema, create standard record
           await prisma.cafes.create({
             data: basePayload,
           });

@@ -61,35 +61,51 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     }
   }, []);
 
-  // Automatic client-side geocoding fallback for cafes missing pre-stored coordinates
+  // Helper to extract coordinates safely from any cafe object
+  const getCafeCoords = (cafe: any): { lat: number; lng: number } | null => {
+    if (cafe.latitude != null && cafe.longitude != null) {
+      const lat = parseFloat(cafe.latitude);
+      const lng = parseFloat(cafe.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+    }
+
+    if (cafe.lat != null && cafe.lng != null) {
+      const lat = parseFloat(cafe.lat);
+      const lng = parseFloat(cafe.lng);
+      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+    }
+
+    if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
+      const parts = cafe.location.split(',');
+      if (parts.length === 2) {
+        const pLat = parseFloat(parts[0].trim());
+        const pLng = parseFloat(parts[1].trim());
+        if (!isNaN(pLat) && !isNaN(pLng)) return { lat: pLat, lng: pLng };
+      }
+    }
+
+    if (cafeCoordinates[cafe.name]) {
+      return cafeCoordinates[cafe.name];
+    }
+
+    const identifier = cafe.id || cafe.name;
+    if (geocodedCafes[identifier]) {
+      return geocodedCafes[identifier];
+    }
+
+    return null;
+  };
+
+  // Client-side Nominatim Geocoding ONLY when no pre-stored coordinates exist
   useEffect(() => {
     if (!cafes || cafes.length === 0) return;
 
     cafes.forEach(async (cafe) => {
+      const existing = getCafeCoords(cafe);
+      if (existing) return;
+
       const identifier = cafe.id || cafe.name;
-      
-      // Skip if already coordinate-resolved
-      if (
-        (cafe.latitude && cafe.longitude) ||
-        (cafe.lat && cafe.lng) ||
-        cafeCoordinates[cafe.name] ||
-        geocodedCafes[identifier]
-      ) {
-        return;
-      }
 
-      // Check for comma-separated coordinate strings inside 'location'
-      if (cafe.location && typeof cafe.location === 'string' && cafe.location.includes(',')) {
-        const parts = cafe.location.split(',');
-        const pLat = parseFloat(parts[0].trim());
-        const pLng = parseFloat(parts[1].trim());
-        if (!isNaN(pLat) && !isNaN(pLng)) {
-          setGeocodedCafes((prev) => ({ ...prev, [identifier]: { lat: pLat, lng: pLng } }));
-          return;
-        }
-      }
-
-      // Query OpenStreetMap Nominatim for exact address lat/lng
       try {
         const searchQuery = encodeURIComponent(`${cafe.name}, ${cafe.location || 'Calamba, Laguna'}`);
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchQuery}`);
@@ -101,10 +117,10 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           setGeocodedCafes((prev) => ({ ...prev, [identifier]: { lat, lng } }));
         }
       } catch (e) {
-        console.error('Map Geocoding Fallback Error for:', cafe.name, e);
+        console.error('Geocoding fallback failed for:', cafe.name);
       }
     });
-  }, [cafes, geocodedCafes]);
+  }, [cafes]);
 
   const center = userLocation || defaultCenter;
 
@@ -275,33 +291,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           )}
 
           {cafes?.map((cafe) => {
-            const identifier = cafe.id || cafe.name;
-            let lat: number | null = null;
-            let lng: number | null = null;
-
-            if (cafe.latitude !== undefined && cafe.longitude !== undefined && cafe.latitude !== null) {
-              lat = parseFloat(cafe.latitude);
-              lng = parseFloat(cafe.longitude);
-            } else if (cafe.lat !== undefined && cafe.lng !== undefined && cafe.lat !== null) {
-              lat = parseFloat(cafe.lat);
-              lng = parseFloat(cafe.lng);
-            } else if (cafeCoordinates[cafe.name]) {
-              lat = cafeCoordinates[cafe.name].lat;
-              lng = cafeCoordinates[cafe.name].lng;
-            } else if (geocodedCafes[identifier]) {
-              lat = geocodedCafes[identifier].lat;
-              lng = geocodedCafes[identifier].lng;
-            }
-
-            if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
-              return null;
-            }
-
-            const coords = { lat, lng };
+            const coords = getCafeCoords(cafe);
+            if (!coords) return null;
 
             return (
               <Marker
-                key={identifier}
+                key={cafe.id || cafe.name}
                 longitude={coords.lng}
                 latitude={coords.lat}
                 onClick={(e) => {
