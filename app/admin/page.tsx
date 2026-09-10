@@ -78,10 +78,12 @@ export default function AdminPage() {
         body: JSON.stringify({ id, action }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         setDiscoveredCafes((prev) => prev.filter((item) => item.id !== id));
       } else {
-        alert('Failed to process action');
+        alert(`Error: ${data.error || 'Failed to process action'}`);
       }
     } catch (err) {
       console.error('Failed to update discovered cafe:', err);

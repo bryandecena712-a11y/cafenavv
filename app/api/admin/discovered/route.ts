@@ -29,30 +29,38 @@ export async function POST(request: Request) {
     }
 
     if (action === 'APPROVE') {
-      // Create cafe entry while safely providing fallbacks for coordinates and optional fields
-      await prisma.cafes.create({
-        data: {
-          name: item.name,
-          location: item.location || 'Calamba, Laguna',
-          latitude: item.latitude ?? 14.2100,
-          longitude: item.longitude ?? 121.1622,
-          description: `Discovered automatically via ${item.source || 'OpenStreetMap'}.`,
-          price_level: '₱₱',
-          vibe: 'Chill',
-          image_url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
-          status: 'APPROVED',
-        },
-      });
+      // Build safe fallback object matching Prisma Cafe fields flexible for lat/lng or latitude/longitude
+      const cafeData: any = {
+        name: item.name,
+        location: item.location || 'Calamba, Laguna',
+        description: `Discovered automatically via ${item.source || 'OpenStreetMap'}.`,
+        price_level: '₱₱',
+        vibe: 'Chill',
+        image_url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+        status: 'APPROVED',
+      };
+
+      // Handle both possible coordinate column naming conventions
+      if ('latitude' in (prisma.cafes as any).fields) {
+        cafeData.latitude = item.latitude ?? 14.2100;
+        cafeData.longitude = item.longitude ?? 121.1622;
+      } else if ('lat' in (prisma.cafes as any).fields) {
+        cafeData.lat = item.latitude ?? 14.2100;
+        cafeData.lng = item.longitude ?? 121.1622;
+      }
+
+      await prisma.cafes.create({ data: cafeData });
     }
 
-    // Always delete from queue after processing
+    // Remove from queue after processing
     await prisma.discoveredCafe.delete({ where: { id: Number(id) } });
 
     return NextResponse.json({ message: `Cafe ${action.toLowerCase()}d successfully.` });
   } catch (error: any) {
-    console.error('Action error details:', error);
+    console.error('Prisma Approval Error:', error);
+    // Return explicit error details to pinpoint schema mismatch
     return NextResponse.json(
-      { error: error?.message || 'Failed to process request' },
+      { error: error?.message || 'Failed to insert cafe into database' },
       { status: 500 }
     );
   }
