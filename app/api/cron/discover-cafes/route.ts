@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// Force Next.js to skip static generation at build time
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
-    // Fast area-based query targeting Calamba specifically via Kumi Systems Overpass Mirror
-    const query = `[out:json][timeout:15];
+    const query = `[out:json][timeout:10];
       area["name"="Calamba"]->.searchArea;
       (
         node["amenity"="cafe"](area.searchArea);
@@ -19,10 +21,11 @@ export async function GET() {
         'User-Agent': 'CafeNavApp/1.0 (Student Project)',
         'Accept': 'application/json' 
       },
+      cache: 'no-store',
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: `Overpass mirror returned status ${res.status}` }, { status: 502 });
+      return NextResponse.json({ error: `Overpass mirror status: ${res.status}` }, { status: 502 });
     }
 
     const data = await res.json();
@@ -40,7 +43,6 @@ export async function GET() {
         node.tags['addr:street'] ||
         'Calamba, Laguna';
 
-      // Ensure no duplicates exist in either table
       const existingDiscovered = await prisma.discoveredCafe.findUnique({ where: { osm_id: osmId } });
       const existingCafe = await prisma.cafes.findFirst({ where: { name: name } });
 
