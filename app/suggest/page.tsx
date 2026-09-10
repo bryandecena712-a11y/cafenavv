@@ -80,12 +80,14 @@ export default function SuggestPage() {
     
     try {
       if (suggestionType === 'cafe') {
-        // Direct creation/scraping endpoint
+        const queryText = `${cafeFormData.name} ${cafeFormData.location}`.trim();
+        
         const res = await fetch('/api/admin/cafes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            searchQuery: `${cafeFormData.name} ${cafeFormData.location}`,
+            query: queryText,
+            searchQuery: queryText,
             name: cafeFormData.name,
             location: cafeFormData.location,
             description: cafeFormData.description,
