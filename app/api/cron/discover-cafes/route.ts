@@ -3,22 +3,26 @@ import { prisma } from '@/app/lib/prisma';
 
 export async function GET() {
   try {
-    // Smaller bounding box focused on Laguna/Calamba area with a 5-second timeout tag
-    const overpassUrl =
-      'https://overpass-api.de/api/interpreter?data=[out:json][timeout:5];node[amenity=cafe](14.15,121.10,14.25,121.25);out;';
+    // Fast area-based query targeting Calamba specifically via Kumi Systems Overpass Mirror
+    const query = `[out:json][timeout:15];
+      area["name"="Calamba"]->.searchArea;
+      (
+        node["amenity"="cafe"](area.searchArea);
+        node["shop"="coffee"](area.searchArea);
+      );
+      out body;`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const overpassUrl = `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`;
 
     const res = await fetch(overpassUrl, {
-      headers: { 'User-Agent': 'CafeNavApp/1.0' },
-      signal: controller.signal,
+      headers: { 
+        'User-Agent': 'CafeNavApp/1.0 (Student Project)',
+        'Accept': 'application/json' 
+      },
     });
 
-    clearTimeout(timeoutId);
-
     if (!res.ok) {
-      return NextResponse.json({ error: 'Overpass API request timed out or failed' }, { status: 504 });
+      return NextResponse.json({ error: `Overpass mirror returned status ${res.status}` }, { status: 502 });
     }
 
     const data = await res.json();
@@ -33,9 +37,10 @@ export async function GET() {
       const city =
         node.tags['addr:city'] ||
         node.tags['addr:suburb'] ||
-        node.tags['addr:municipality'] ||
-        'Calamba Area';
+        node.tags['addr:street'] ||
+        'Calamba, Laguna';
 
+      // Ensure no duplicates exist in either table
       const existingDiscovered = await prisma.discoveredCafe.findUnique({ where: { osm_id: osmId } });
       const existingCafe = await prisma.cafes.findFirst({ where: { name: name } });
 
@@ -57,6 +62,6 @@ export async function GET() {
     return NextResponse.json({ message: `Scraped successfully. ${count} new cafes discovered!` });
   } catch (error) {
     console.error('Discovery Error:', error);
-    return NextResponse.json({ error: 'Failed to discover cafes due to network or timeout limits' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to complete discovery search' }, { status: 500 });
   }
 }
