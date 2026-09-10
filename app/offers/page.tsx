@@ -209,7 +209,7 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
   return (
     <main className="flex-1 flex flex-col bg-zinc-950 text-stone-50 min-h-screen">
       <div className="max-w-6xl mx-auto px-6 py-20 w-full">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-16 max-w-2xl"
@@ -217,7 +217,9 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Your personalized matches</h1>
           <div className="flex items-center gap-3 text-amber-500 font-medium">
             <CheckCircle size={20} weight="fill" />
-            <span>Algorithm found {cafes.length} perfect matches based on your preferences.</span>
+            <span>
+              {cafes.length} coffee {cafes.length === 1 ? 'shop' : 'shops'} that perfect matches your preferences.
+            </span>
           </div>
         </motion.div>
 
