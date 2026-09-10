@@ -40,7 +40,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
   
-  // State for OSRM GeoJSON Route
   const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
@@ -61,44 +60,46 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const center = userLocation || defaultCenter;
 
-  // Function to fetch shortest driving pathway via OSRM API
   const handleGetDirections = async (destLat: number, destLng: number) => {
     if (!userLocation) {
-      alert('Please enable location services on your browser to view directions.');
+      alert('Please allow location access in your browser to view driving directions.');
       return;
     }
 
     setLoadingRoute(true);
 
     try {
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`
+      // Query OSRM routing engine
+      const res = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng.toFixed(6)},${userLocation.lat.toFixed(6)};${destLng.toFixed(6)},${destLat.toFixed(6)}?overview=full&geometries=geojson`
       );
-      const data = await response.json();
+      
+      const data = await res.json();
 
       if (data.routes && data.routes.length > 0) {
         const routeGeometry = data.routes[0].geometry;
-        
+
+        // Set GeoJSON payload for rendering line
         setRouteGeoJSON({
           type: 'Feature',
           properties: {},
           geometry: routeGeometry,
         });
 
-        // Auto-fit map camera bounds to display both user and target cafe
+        // Zoom map bounds to frame both user and destination
         if (mapRef.current) {
           const map = mapRef.current.getMap();
           const bounds = new maplibregl.LngLatBounds();
           bounds.extend([userLocation.lng, userLocation.lat]);
           bounds.extend([destLng, destLat]);
-          map.fitBounds(bounds, { padding: 80 });
+          map.fitBounds(bounds, { padding: 90, maxZoom: 16, duration: 1000 });
         }
       } else {
-        alert('Could not calculate a route to this destination.');
+        alert('No available street pathway found for this route.');
       }
     } catch (err) {
-      console.error('Routing error:', err);
-      alert('Failed to fetch directions from routing service.');
+      console.error('Error fetching OSRM route:', err);
+      alert('Could not calculate route. Please try again.');
     } finally {
       setLoadingRoute(false);
     }
@@ -123,7 +124,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           {/* User Location Marker */}
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
-              <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_10px_rgba(59,130,246,0.8)] animate-pulse" />
+              <div className="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_12px_rgba(59,130,246,1)] animate-pulse" />
             </Marker>
           )}
 
@@ -170,20 +171,27 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             );
           })}
 
-          {/* Route Layer rendered using MapLibre Source/Layer */}
+          {/* Route Layer: Draws driving path line directly on MapLibre */}
           {routeGeoJSON && (
-            <Source id="route-source" type="geojson" data={routeGeoJSON}>
+            <Source id="route-data" type="geojson" data={routeGeoJSON}>
+              {/* Outer Border Line */}
               <Layer
-                id="route-layer"
+                id="route-casing"
                 type="line"
-                layout={{
-                  'line-join': 'round',
-                  'line-cap': 'round',
-                }}
+                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                 paint={{
-                  'line-color': '#f59e0b',
-                  'line-width': 5,
-                  'line-opacity': 0.9,
+                  'line-color': '#000000',
+                  'line-width': 8,
+                }}
+              />
+              {/* Vibrant Blue Driving Line (Matches Google Maps style) */}
+              <Layer
+                id="route-line"
+                type="line"
+                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                paint={{
+                  'line-color': '#2563eb',
+                  'line-width': 6,
                 }}
               />
             </Source>
