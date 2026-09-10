@@ -12,6 +12,9 @@ export default function SuggestPage() {
   const [suggestionType, setSuggestionType] = useState<'cafe' | 'product'>('cafe');
   const [cafes, setCafes] = useState<any[]>([]);
 
+  const [scrapeUrl, setScrapeUrl] = useState('');
+  const [isScraping, setIsScraping] = useState(false);
+
   const [cafeFormData, setCafeFormData] = useState({
     name: '',
     location: '',
@@ -50,6 +53,50 @@ export default function SuggestPage() {
 
     fetchCafes();
   }, []);
+
+  const handleAutoFill = async () => {
+    if (!scrapeUrl) {
+      alert('Please enter a valid link first.');
+      return;
+    }
+
+    setIsScraping(true);
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: scrapeUrl }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        if (suggestionType === 'cafe') {
+          setCafeFormData((prev) => ({
+            ...prev,
+            name: data.title ? data.title.split('|')[0].split('-')[0].trim() : prev.name,
+            description: data.description || prev.description,
+            image_url: data.image_url || prev.image_url,
+          }));
+        } else {
+          setProductFormData((prev) => ({
+            ...prev,
+            name: data.title ? data.title.split('|')[0].split('-')[0].trim() : prev.name,
+            description: data.description || prev.description,
+            image_url: data.image_url || prev.image_url,
+          }));
+        }
+        alert('Details auto-filled successfully!');
+      } else {
+        alert(data.error || 'Failed to auto-fill details from this link.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting to scraper service.');
+    } finally {
+      setIsScraping(false);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -126,9 +173,10 @@ export default function SuggestPage() {
         setSuccess(true);
         setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
         setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
+        setScrapeUrl('');
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(errorData.error || errorData.message || 'Failed to submit suggestion. Please check required fields.');
+        alert(errorData.error || errorData.message || 'Failed to submit suggestion.');
       }
     } catch (err) {
       console.error('Submission error:', err);
@@ -181,6 +229,30 @@ export default function SuggestPage() {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold mb-2">Suggest a Cafe or Menu Item</h1>
         <p className="text-zinc-400 mb-6">Help us update CafeNav by suggesting a new item for review.</p>
+
+        {/* Auto-fill web scraping widget */}
+        <div className="bg-zinc-900 border border-amber-500/20 rounded-2xl p-6 mb-6">
+          <label className="block text-sm font-semibold text-amber-400 mb-2">
+            ✨ Auto-Fill details from web link
+          </label>
+          <div className="flex gap-2">
+            <input 
+              type="url"
+              placeholder="Paste a website or social URL..."
+              value={scrapeUrl}
+              onChange={(e) => setScrapeUrl(e.target.value)}
+              className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+            />
+            <button
+              type="button"
+              onClick={handleAutoFill}
+              disabled={isScraping}
+              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isScraping ? 'Scraping...' : 'Auto-Fill'}
+            </button>
+          </div>
+        </div>
 
         <div className="flex bg-zinc-900 border border-white/5 rounded-xl p-1 mb-8">
           <button
