@@ -77,6 +77,7 @@ export default function SuggestPage() {
             name: data.title ? data.title.split('|')[0].split('-')[0].trim() : prev.name,
             description: data.description || prev.description,
             image_url: data.image_url || prev.image_url,
+            location: data.location || prev.location,
           }));
         } else {
           setProductFormData((prev) => ({
