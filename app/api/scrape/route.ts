@@ -9,41 +9,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid URL is required' }, { status: 400 });
     }
 
+    // Fetch with realistic browser headers to prevent 403 Forbidden blocks
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
       },
     });
 
     if (!response.ok) {
-      return NextResponse.json({ error: 'Failed to access the provided link' }, { status: 400 });
+      return NextResponse.json({ error: `Website blocked access (Status: ${response.status}). Try a different cafe link.` }, { status: 400 });
     }
 
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // 1. Extract Title
+    // Extract Title
     const title =
       $('meta[property="og:title"]').attr('content') ||
       $('meta[name="twitter:title"]').attr('content') ||
       $('title').text() ||
       '';
 
-    // 2. Extract Description (Checking all common meta formats)
+    // Extract Description
     const description =
       $('meta[property="og:description"]').attr('content') ||
       $('meta[name="twitter:description"]').attr('content') ||
       $('meta[name="description"]').attr('content') ||
-      $('meta[aria-label="description"]').attr('content') ||
       '';
 
-    // 3. Extract Image URL
+    // Extract Image URL
     const image =
       $('meta[property="og:image"]').attr('content') ||
       $('meta[name="twitter:image"]').attr('content') ||
       '';
 
-    // 4. Extract Location / Address (Check microdata schema or tags)
+    // Extract Location
     let location =
       $('meta[property="business:contact_data:locality"]').attr('content') ||
       $('meta[property="place:location:locality"]').attr('content') ||
@@ -51,7 +54,6 @@ export async function POST(request: Request) {
       $('[itemprop="streetAddress"]').text() ||
       '';
 
-    // Fallback: If no dedicated address tag exists, check title/description for location cues
     if (!location) {
       const combinedText = `${title} ${description}`;
       const commonCities = ['Manila', 'Quezon City', 'Makati', 'BGC', 'Taguig', 'Cebu', 'Davao', 'Pasig', 'Mandaluyong', 'Alabang'];
