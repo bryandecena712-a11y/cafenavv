@@ -4,11 +4,18 @@ import { prisma } from '@/app/lib/prisma';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+// List of Overpass API mirrors to handle rate limits and timeouts
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+
 export async function POST() {
   try {
     // Calamba Bounding Box [south, west, north, east]
     const overpassQuery = `
-      [out:json][timeout:25];
+      [out:json][timeout:15];
       (
         node["amenity"="cafe"](14.15,121.05,14.25,121.20);
         way["amenity"="cafe"](14.15,121.05,14.25,121.20);
@@ -16,27 +23,45 @@ export async function POST() {
       out center;
     `;
 
-    // Send query using URLSearchParams and custom User-Agent
-    const params = new URLSearchParams();
-    params.append('data', overpassQuery);
+    let responseData: any = null;
+    let fetchError: string | null = null;
 
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: {
-        'User-Agent': 'CafeNavApp/1.0 (contact@cafenav.com)',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
+    // Try fetching from available Overpass API endpoints until one succeeds
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+      try {
+        const params = new URLSearchParams();
+        params.append('data', overpassQuery);
 
-    if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.statusText}`);
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'User-Agent': 'CafeNavApp/1.0 (contact@cafenav.com)',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params.toString(),
+          signal: AbortSignal.timeout(12000), // 12-second timeout per server
+        });
+
+        if (res.ok) {
+          responseData = await res.json();
+          break; // Success! Break out of loop
+        }
+      } catch (err: any) {
+        fetchError = err.message;
+        console.warn(`Failed to fetch from ${endpoint}, trying next endpoint...`);
+      }
     }
 
-    const data = await response.json();
-    const elements = data.elements || [];
+    if (!responseData || !responseData.elements) {
+      return NextResponse.json(
+        { error: 'OpenStreetMap servers are currently busy. Please wait a minute and try again.' },
+        { status: 503 }
+      );
+    }
 
-    // Fetch existing names to prevent duplicates
+    const elements = responseData.elements || [];
+
+    // Fetch existing names to avoid duplicates
     const [existingApproved, existingDiscovered] = await Promise.all([
       prisma.cafes.findMany({ select: { name: true } }),
       prisma.discoveredCafe.findMany({ select: { name: true } }),
@@ -47,14 +72,9 @@ export async function POST() {
       ...existingDiscovered.map((c: { name: string }) => c.name.toLowerCase().trim()),
     ]);
 
-    const toInsert: Array<{
-      name: string;
-      location: string;
-      source: string;
-      latitude: number;
-      longitude: number;
-    }> = [];
+    let newCount = 0;
 
+    // Safely insert items into the database one by one
     for (const element of elements) {
       const name = element.tags?.name;
       if (!name) continue;
@@ -67,32 +87,32 @@ export async function POST() {
 
       if (!lat || !lon) continue;
 
-      toInsert.push({
-        name: cleanName,
-        location: `${lat}, ${lon}`,
-        source: 'OpenStreetMap',
-        latitude: lat,
-        longitude: lon,
-      });
+      try {
+        await prisma.discoveredCafe.create({
+          data: {
+            name: cleanName,
+            location: `${lat}, ${lon}`,
+            source: 'OpenStreetMap',
+            latitude: Number(lat),
+            longitude: Number(lon),
+          },
+        });
 
-      existingNames.add(cleanName.toLowerCase());
-    }
-
-    if (toInsert.length > 0) {
-      await prisma.discoveredCafe.createMany({
-        data: toInsert,
-        skipDuplicates: true,
-      });
+        existingNames.add(cleanName.toLowerCase());
+        newCount++;
+      } catch (dbErr) {
+        console.error(`Skipping insert for ${cleanName}:`, dbErr);
+      }
     }
 
     return NextResponse.json({
-      message: `Sync complete. ${toInsert.length} new cafes added to pending discovery.`,
-      newCount: toInsert.length,
+      message: `Sync complete. ${newCount} new cafes added to pending discovery.`,
+      newCount,
     });
   } catch (error: any) {
     console.error('OSM Fetch Error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to fetch cafes from OpenStreetMap' },
+      { error: error?.message || 'Failed to process OpenStreetMap data' },
       { status: 500 }
     );
   }
