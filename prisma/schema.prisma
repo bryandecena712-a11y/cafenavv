@@ -90,3 +90,14 @@ model bookmarks {
   
   @@unique([user_id, cafe_id])
 }
+
+model DiscoveredCafe {
+  id          Int      @id @default(autoincrement())
+  osm_id      String   @unique
+  name        String
+  location    String
+  latitude    Float?
+  longitude   Float?
+  source      String   @default("OpenStreetMap")
+  createdAt   DateTime @default(now())
+}

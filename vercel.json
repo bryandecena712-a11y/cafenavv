@@ -1,0 +1,6 @@
+{
+    "crons": [{
+        "path": "/api/cron/discover-cafes",
+        "schedule": "0 0 * * *"
+    }]
+}
