@@ -49,6 +49,16 @@ export default function Offers() {
         { title: "₱₱ (Moderate)", desc: "Specialty beans, standard price" },
         { title: "₱₱₱ (Premium)", desc: "Geisha beans, high-end experience" }
       ]
+    },
+    {
+      title: "What rating standard do you prefer?",
+      category: "RATING PREFERENCE",
+      options: [
+        { title: "5.0 Rated", desc: "Flawless ratings from coffee lovers" },
+        { title: "4.0 & Above", desc: "Consistently highly recommended spaces" },
+        { title: "3.0 & Above", desc: "Decent neighborhood spots" },
+        { title: "Any Rating", desc: "Show all shops including new hidden gems" }
+      ]
     }
   ];
 
@@ -82,14 +92,14 @@ export default function Offers() {
             transition={{ delay: 0.1 }}
             className="text-lg text-zinc-300 mb-10 max-w-lg leading-relaxed"
           >
-            Answer three quick questions about what you look for in a coffee shop — we'll match you to spaces that suit how you like to spend your time.
+            Answer four quick questions about what you look for in a coffee shop — we'll match you to spaces that suit how you like to spend your time.
           </motion.p>
           <motion.button 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
             onClick={startQuiz} 
-            className="bg-amber-600 text-white px-10 py-4 rounded-full font-medium tracking-wide hover:bg-amber-500 active:scale-95 transition-all"
+            className="bg-amber-600 text-white px-10 py-4 rounded-full font-medium tracking-wide hover:bg-amber-500 active:scale-95 transition-all cursor-pointer"
           >
             Start Matchmaker
           </motion.button>
@@ -98,7 +108,7 @@ export default function Offers() {
     );
   }
 
-  if (step >= 1 && step <= 3) {
+  if (step >= 1 && step <= quizData.length) {
     const data = quizData[step - 1];
     const isGrid3 = data.options.length === 3;
 
@@ -108,7 +118,7 @@ export default function Offers() {
           {/* Progress Bar */}
           <div className="mb-12">
             <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-4">
-              <button onClick={prevStep} className="hover:text-zinc-900 transition-colors">&larr; Back</button>
+              <button onClick={prevStep} className="hover:text-zinc-900 transition-colors cursor-pointer">&larr; Back</button>
               <span>{step} of {quizData.length}</span>
             </div>
             <div className="w-full h-1 bg-zinc-200 rounded-full overflow-hidden">
@@ -142,7 +152,7 @@ export default function Offers() {
                     <button
                       key={opt.title}
                       onClick={() => handleSelect(opt.title)}
-                      className={`text-left p-6 rounded-2xl border-2 transition-all ${
+                      className={`text-left p-6 rounded-2xl border-2 transition-all cursor-pointer ${
                         isSelected 
                           ? 'border-zinc-900 bg-zinc-900 shadow-lg' 
                           : 'border-zinc-200 bg-white hover:border-zinc-300'
@@ -166,7 +176,7 @@ export default function Offers() {
                 <button 
                   onClick={nextStep} 
                   disabled={!currentSelection}
-                  className="w-full md:w-auto md:min-w-[200px] bg-zinc-950 disabled:bg-zinc-300 disabled:text-zinc-500 text-white font-medium py-4 px-8 rounded-full transition-all hover:bg-zinc-800 disabled:hover:bg-zinc-300 active:scale-95"
+                  className="w-full md:w-auto md:min-w-[200px] bg-zinc-950 disabled:bg-zinc-300 disabled:text-zinc-500 text-white font-medium py-4 px-8 rounded-full transition-all hover:bg-zinc-800 disabled:hover:bg-zinc-300 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {step === quizData.length ? "Find My Coffee Shop" : "Continue"}
                 </button>
@@ -179,7 +189,7 @@ export default function Offers() {
   }
 
   // Results Page
-  if (step === 4) {
+  if (step === quizData.length + 1) {
     return <ResultsView selections={selections} />;
   }
 
@@ -193,8 +203,9 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
   useEffect(() => {
     const vibe = selections[2] || '';
     const price = selections[3] || '';
+    const rating = selections[4] || '';
     
-    fetch(`/api/cafes?vibe=${encodeURIComponent(vibe)}&price=${encodeURIComponent(price)}`)
+    fetch(`/api/cafes?vibe=${encodeURIComponent(vibe)}&price=${encodeURIComponent(price)}&rating=${encodeURIComponent(rating)}`)
       .then(res => res.json())
       .then(data => {
         setCafes(data);
@@ -224,7 +235,7 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
         </motion.div>
 
         {loading ? (
-           <div className="text-zinc-500 animate-pulse">Analyzing matches...</div>
+          <div className="text-zinc-500 animate-pulse">Analyzing matches...</div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
             {cafes.map((cafe, i) => (
