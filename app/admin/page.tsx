@@ -4,9 +4,6 @@ import { useState, useEffect } from 'react';
 import ManageCafes from './components/ManageCafes';
 
 export default function AdminPage() {
-  // ==========================================
-  // UPDATED: Fetches directly from /api/admin/products
-  // ==========================================
   const [pendingSuggestions, setPendingSuggestions] = useState<any[]>([]);
 
   const fetchSuggestions = async () => {
@@ -14,7 +11,11 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/products');
       if (res.ok) {
         const data = await res.json();
-        setPendingSuggestions(data);
+        // Filters items to display those pending review
+        const pending = Array.isArray(data)
+          ? data.filter((item: any) => item.status === 'PENDING' || item.status === 'pending' || !item.status)
+          : [];
+        setPendingSuggestions(pending);
       }
     } catch (err) {
       console.error('Failed to fetch menu suggestions:', err);
@@ -25,7 +26,6 @@ export default function AdminPage() {
     fetchSuggestions();
   }, []);
 
-  // UPDATED: Uses PUT (for approve) and DELETE (for reject) to match products API
   const handleAction = async (productId: number, action: 'approve' | 'reject') => {
     try {
       if (action === 'approve') {
@@ -47,7 +47,6 @@ export default function AdminPage() {
       console.error('Failed to update menu suggestion:', err);
     }
   };
-  // ==========================================
 
   return (
     <div className="p-8 max-w-6xl mx-auto animate-in fade-in duration-500">
@@ -56,9 +55,6 @@ export default function AdminPage() {
         <p className="text-zinc-400 mt-2">Add, edit, or remove cafes and their menus.</p>
       </div>
 
-      {/* ========================================== */}
-      {/* Pending Approvals Section                   */}
-      {/* ========================================== */}
       {pendingSuggestions.length > 0 && (
         <div className="mb-10">
           <h2 className="text-amber-500 font-bold text-lg mb-4 flex items-center gap-2">
@@ -95,7 +91,7 @@ export default function AdminPage() {
 
                   <div className="flex gap-2 mb-3">
                     <span className="bg-[#241e19] text-amber-500 font-bold text-xs px-2.5 py-1 rounded-md border border-[#362a20]">
-                      ₱{item.price}
+                      ₱{item.price || 0}
                     </span>
                   </div>
 
@@ -109,13 +105,13 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <button
                     onClick={() => handleAction(item.id, 'approve')}
-                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition"
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleAction(item.id, 'reject')}
-                    className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition"
+                    className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
                   >
                     Reject
                   </button>
@@ -125,7 +121,6 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-      {/* ========================================== */}
 
       <ManageCafes />
     </div>

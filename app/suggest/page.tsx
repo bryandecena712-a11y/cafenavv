@@ -12,7 +12,6 @@ export default function SuggestPage() {
   const [suggestionType, setSuggestionType] = useState<'cafe' | 'product'>('cafe');
   const [cafes, setCafes] = useState<any[]>([]);
 
-  // Form states
   const [cafeFormData, setCafeFormData] = useState({
     name: '',
     location: '',
@@ -79,48 +78,46 @@ export default function SuggestPage() {
     setIsSubmitting(true);
     
     try {
+      let payload;
+      let endpoint = '/api/admin/products';
+
       if (suggestionType === 'cafe') {
-        const queryText = `${cafeFormData.name} ${cafeFormData.location}`.trim();
-        
-        const res = await fetch('/api/admin/cafes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: queryText,
-            searchQuery: queryText,
-            name: cafeFormData.name,
-            location: cafeFormData.location,
-            description: cafeFormData.description,
-            price_level: cafeFormData.price_level,
-            vibe: cafeFormData.vibe,
-            image_url: cafeFormData.image_url
-          })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          setSuccess(true);
-          setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
-        } else {
-          alert(data.error || 'Failed to submit cafe.');
-        }
+        payload = {
+          name: cafeFormData.name,
+          location: cafeFormData.location,
+          description: cafeFormData.description,
+          price_level: cafeFormData.price_level,
+          vibe: cafeFormData.vibe,
+          image_url: cafeFormData.image_url,
+          status: 'PENDING'
+        };
       } else {
-        const res = await fetch('/api/admin/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(productFormData)
-        });
+        payload = {
+          cafeId: productFormData.cafeId,
+          name: productFormData.name,
+          price: productFormData.price,
+          description: productFormData.description,
+          image_url: productFormData.image_url,
+          status: 'PENDING'
+        };
+      }
 
-        if (res.ok) {
-          setSuccess(true);
-          setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
-        } else {
-          alert('Failed to submit menu item. Please try again.');
-        }
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setSuccess(true);
+        setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
+        setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.error || 'Failed to submit suggestion. Please try again.');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Submission error:', err);
       alert('An error occurred during submission.');
     } finally {
       setIsSubmitting(false);
@@ -142,12 +139,15 @@ export default function SuggestPage() {
         <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center text-4xl mb-6">
           ✓
         </div>
-        <h1 className="text-3xl font-bold mb-4">Submission Successful!</h1>
+        <h1 className="text-3xl font-bold mb-4">Thanks for the suggestion!</h1>
         <p className="text-zinc-400 max-w-md mb-8">
-          Your cafe/menu item has been submitted directly into the database system.
+          Your submission has been received and routed to our admin queue for real-time review!
         </p>
-        <button onClick={() => setSuccess(false)} className="bg-amber-500 text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-amber-400 transition-colors cursor-pointer">
-          Add Another Item
+        <button 
+          onClick={() => setSuccess(false)} 
+          className="bg-amber-500 text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
+        >
+          Suggest Another Item
         </button>
       </div>
     );
@@ -165,8 +165,8 @@ export default function SuggestPage() {
       </div>
 
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold mb-2">Submit a Cafe</h1>
-        <p className="text-zinc-400 mb-6">Add a new cafe or a missing menu item to the platform.</p>
+        <h1 className="text-4xl font-bold mb-2">Suggest a Cafe or Menu Item</h1>
+        <p className="text-zinc-400 mb-6">Help us update CafeNav by suggesting a new item for review.</p>
 
         <div className="flex bg-zinc-900 border border-white/5 rounded-xl p-1 mb-8">
           <button
@@ -176,7 +176,7 @@ export default function SuggestPage() {
               suggestionType === 'cafe' ? 'bg-amber-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Add Cafe
+            Suggest Cafe
           </button>
           <button
             type="button"
@@ -185,7 +185,7 @@ export default function SuggestPage() {
               suggestionType === 'product' ? 'bg-amber-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Add Menu Item
+            Suggest Menu Item
           </button>
         </div>
 
@@ -334,7 +334,7 @@ export default function SuggestPage() {
             type="submit" 
             className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-4 cursor-pointer"
           >
-            {isSubmitting ? 'Searching & Processing...' : `Submit ${suggestionType === 'cafe' ? 'Cafe' : 'Menu Item'}`}
+            {isSubmitting ? 'Submitting...' : `Submit ${suggestionType === 'cafe' ? 'Cafe' : 'Menu Item'} Suggestion`}
           </button>
         </form>
       </div>
