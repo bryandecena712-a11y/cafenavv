@@ -3,16 +3,22 @@ import { prisma } from '@/app/lib/prisma';
 
 export async function GET() {
   try {
-    // Geofenced Overpass API query targeting Metro Manila & Calabarzon region
+    // Smaller bounding box focused on Laguna/Calamba area with a 5-second timeout tag
     const overpassUrl =
-      'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=cafe](14.0,120.8,14.8,121.3);out;';
+      'https://overpass-api.de/api/interpreter?data=[out:json][timeout:5];node[amenity=cafe](14.15,121.10,14.25,121.25);out;';
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const res = await fetch(overpassUrl, {
       headers: { 'User-Agent': 'CafeNavApp/1.0' },
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!res.ok) {
-      return NextResponse.json({ error: 'Overpass API request failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Overpass API request timed out or failed' }, { status: 504 });
     }
 
     const data = await res.json();
@@ -28,9 +34,8 @@ export async function GET() {
         node.tags['addr:city'] ||
         node.tags['addr:suburb'] ||
         node.tags['addr:municipality'] ||
-        'Local Area';
+        'Calamba Area';
 
-      // Store in DB if not already present in either DiscoveredCafe or Cafes
       const existingDiscovered = await prisma.discoveredCafe.findUnique({ where: { osm_id: osmId } });
       const existingCafe = await prisma.cafes.findFirst({ where: { name: name } });
 
@@ -52,6 +57,6 @@ export async function GET() {
     return NextResponse.json({ message: `Scraped successfully. ${count} new cafes discovered!` });
   } catch (error) {
     console.error('Discovery Error:', error);
-    return NextResponse.json({ error: 'Failed to discover cafes' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to discover cafes due to network or timeout limits' }, { status: 500 });
   }
 }
