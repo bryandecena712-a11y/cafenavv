@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// Force dynamic execution & prevent Vercel static build evaluation crashes
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Fetch all cafes and their products
 export async function GET() {
   try {
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
         vibe: vibe,
         location: `${pinnedLocation.lat},${pinnedLocation.lng}`,
         products: {
-          create: products.map((p: any) => ({
+          create: (products || []).map((p: any) => ({
             name: p.name,
             price: p.price,
             description: p.description,
