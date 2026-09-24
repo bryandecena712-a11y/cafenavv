@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// Forces Next.js to skip static prerendering during build time
+export const dynamic = 'force-dynamic';
+
 // GET: Fetch a single cafe with only APPROVED products
 export async function GET(
   request: Request,
