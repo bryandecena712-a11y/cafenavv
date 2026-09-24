@@ -36,25 +36,40 @@ export default function SignUpPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: name, email, password }),
+        body: JSON.stringify({ name, username: name, email, password }),
       });
 
       const data = await response.json();
 
-      if (response.status === 202 && data.queued) {
-        localStorage.setItem('cafenav_pending_signup', JSON.stringify({ name, email, password, createdAt: Date.now() }));
+      if (response.ok) {
+        setSuccess('Account created successfully! Redirecting...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 1200);
+      } else if (response.status === 202 && data.queued) {
+        localStorage.setItem(
+          'cafenav_pending_signup',
+          JSON.stringify({ name, email, password, createdAt: Date.now() })
+        );
         setSuccess('Signup queued. Will complete when online.');
-      } else if (response.ok) {
-        router.push('/login');
       } else {
-        const message = String(data.error || '').toLowerCase();
-        setError(message.includes('already') || message.includes('registered') ? 'Email already exists.' : data.error || 'Signup failed.');
+        // Display exact backend error message directly
+        setError(data.error || 'Failed to create account. Please try again.');
       }
-    } catch (err) {
-      try {
-        localStorage.setItem('cafenav_pending_signup', JSON.stringify({ name, email, password, createdAt: Date.now() }));
-      } catch {}
-      setSuccess('Signup queued. Will complete when online.');
+    } catch (err: any) {
+      console.error('Signup connection error:', err);
+      // Only treat network disconnection as offline queueing
+      if (!navigator.onLine) {
+        try {
+          localStorage.setItem(
+            'cafenav_pending_signup',
+            JSON.stringify({ name, email, password, createdAt: Date.now() })
+          );
+        } catch {}
+        setSuccess('Signup queued. Will complete when online.');
+      } else {
+        setError(err.message || 'Unable to connect to authentication server.');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +77,7 @@ export default function SignUpPage() {
 
   return (
     <main className="flex-1 flex items-center justify-center bg-zinc-950 p-6 relative overflow-hidden min-h-screen">
-      {/* Back to Home Button - Upper Left Corner */}
+      {/* Back to Home Button */}
       <div className="absolute top-6 left-6 z-20">
         <Link
           href="/"
@@ -146,7 +161,7 @@ export default function SignUpPage() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-500 text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-amber-400 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full bg-amber-500 text-zinc-950 font-bold py-4 rounded-2xl mt-4 hover:bg-amber-400 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
