@@ -37,10 +37,13 @@ const openStreetMapStyle = {
 
 function getStraightLineDistanceKm(startLat: number, startLng: number, endLat: number, endLng: number) {
   const earthRadius = 6371;
-  const latitudeDelta = (endLat - startLat) * Math.PI / 180;
-  const longitudeDelta = (endLng - startLng) * Math.PI / 180;
-  const value = Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * Math.sin(longitudeDelta / 2) ** 2;
+  const latitudeDelta = ((endLat - startLat) * Math.PI) / 180;
+  const longitudeDelta = ((endLng - startLng) * Math.PI) / 180;
+  const value =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos((startLat * Math.PI) / 180) *
+      Math.cos((endLat * Math.PI) / 180) *
+      Math.sin(longitudeDelta / 2) ** 2;
   return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
@@ -53,7 +56,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
   const [svgPath, setSvgPath] = useState<string>('');
-  const [routeInfo, setRouteInfo] = useState<{ duration: string; distance: string; destinationName: string; trafficLevel: string } | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{
+    duration: string;
+    distance: string;
+    destinationName: string;
+    trafficLevel: string;
+  } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
   useEffect(() => {
@@ -65,9 +73,14 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             lng: position.coords.longitude,
           });
         },
-        (error) => console.warn('Geolocation warning:', error),
-        { timeout: 8000 }
+        (error) => {
+          console.warn('Geolocation warning, falling back to default center:', error);
+          setUserLocation(defaultCenter);
+        },
+        { timeout: 5000, enableHighAccuracy: false }
       );
+    } else {
+      setUserLocation(defaultCenter);
     }
   }, []);
 
@@ -108,7 +121,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   // Client-side Nominatim Geocoding ONLY when no pre-stored coordinates exist
   useEffect(() => {
-    if (!cafes || cafes.length === 0) return;
+    if (!cafes || cafes.length === 0 || !navigator.onLine) return;
 
     cafes.forEach(async (cafe) => {
       const existing = getCafeCoords(cafe);
@@ -156,53 +169,51 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   }, [routeCoordinates, updateSvgOverlay]);
 
   const handleGetDirections = async (destLat: number, destLng: number, cafeName: string) => {
-    if (!userLocation) {
-      alert('Please enable location access in your browser to view driving directions.');
-      return;
-    }
+    // Fall back to defaultCenter if user location is unavailable or denied
+    const startPoint = userLocation || defaultCenter;
 
     setLoadingRoute(true);
 
-    const start: [number, number] = [userLocation.lng, userLocation.lat];
+    const start: [number, number] = [startPoint.lng, startPoint.lat];
     const end: [number, number] = [destLng, destLat];
 
     try {
       const route = await getDirections(start, end);
       const coords: [number, number][] = route.geometry.coordinates;
 
-        const baseDurationMin = route.duration / 60;
-        const distanceKm = route.distance / 1000;
+      const baseDurationMin = route.duration / 60;
+      const distanceKm = route.distance / 1000;
 
-        const currentHour = new Date().getHours();
-        let trafficMultiplier = 1.35;
-        let trafficText = 'Moderate Traffic';
+      const currentHour = new Date().getHours();
+      let trafficMultiplier = 1.35;
+      let trafficText = 'Moderate Traffic';
 
-        if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
-          trafficMultiplier = 1.75;
-          trafficText = 'Heavy Traffic';
-        } else if (currentHour >= 22 || currentHour <= 5) {
-          trafficMultiplier = 1.1;
-          trafficText = 'Light Traffic';
-        }
+      if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
+        trafficMultiplier = 1.75;
+        trafficText = 'Heavy Traffic';
+      } else if (currentHour >= 22 || currentHour <= 5) {
+        trafficMultiplier = 1.1;
+        trafficText = 'Light Traffic';
+      }
 
-        const adjustedDuration = Math.round(baseDurationMin * trafficMultiplier);
+      const adjustedDuration = Math.round(baseDurationMin * trafficMultiplier);
 
-        setRouteInfo({
-          duration: `${adjustedDuration} min`,
-          distance: `${distanceKm.toFixed(1)} km`,
-          destinationName: cafeName,
-          trafficLevel: trafficText,
-        });
+      setRouteInfo({
+        duration: `${adjustedDuration} min`,
+        distance: `${distanceKm.toFixed(1)} km`,
+        destinationName: cafeName,
+        trafficLevel: trafficText,
+      });
 
-        setRouteCoordinates(coords);
+      setRouteCoordinates(coords);
 
-        if (mapRef.current) {
-          const map = mapRef.current.getMap();
-          const bounds = new maplibregl.LngLatBounds();
-          bounds.extend([userLocation.lng, userLocation.lat]);
-          bounds.extend([destLng, destLat]);
-          map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
-        }
+      if (mapRef.current) {
+        const map = mapRef.current.getMap();
+        const bounds = new maplibregl.LngLatBounds();
+        bounds.extend([startPoint.lng, startPoint.lat]);
+        bounds.extend([destLng, destLat]);
+        map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
+      }
     } catch {
       const cachedRoute = getCachedDirections(start, end);
       if (cachedRoute) {
@@ -214,10 +225,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           trafficLevel: 'Cached route',
         });
         setRouteCoordinates(route.geometry.coordinates);
-        setLoadingRoute(false);
         return;
       }
-      const distanceKm = getStraightLineDistanceKm(userLocation.lat, userLocation.lng, destLat, destLng);
+      const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
       const estimatedMinutes = Math.max(1, Math.round(distanceKm / 0.5));
       setRouteInfo({
         duration: `~${estimatedMinutes} min`,
@@ -225,8 +235,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         destinationName: cafeName,
         trafficLevel: 'Offline estimate',
       });
-      setRouteCoordinates([[userLocation.lng, userLocation.lat], [destLng, destLat]]);
-      console.info('[CafeNav] No cached OSRM route; showing offline estimate.');
+      setRouteCoordinates([[startPoint.lng, startPoint.lat], [destLng, destLat]]);
+      console.info('[CafeNav] Showing offline estimate.');
     } finally {
       setLoadingRoute(false);
     }
