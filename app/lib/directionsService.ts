@@ -19,8 +19,12 @@ function routeKey(start: [number, number], end: [number, number]) {
 }
 
 function isValidCoordinate(coordinate: [number, number]) {
-  return Number.isFinite(coordinate[0]) && Number.isFinite(coordinate[1]) &&
-    Math.abs(coordinate[0]) <= 180 && Math.abs(coordinate[1]) <= 90;
+  return (
+    Number.isFinite(coordinate[0]) &&
+    Number.isFinite(coordinate[1]) &&
+    Math.abs(coordinate[0]) <= 180 &&
+    Math.abs(coordinate[1]) <= 90
+  );
 }
 
 export function getCachedDirections(start: [number, number], end: [number, number]): OsrmRoute | null {
@@ -39,17 +43,28 @@ function cacheDirections(start: [number, number], end: [number, number], route: 
   try {
     localStorage.setItem(routeKey(start, end), JSON.stringify({ ...route, cachedAt: Date.now() }));
   } catch {
-    // Route caching is optional; the online route remains usable if storage is full.
+    // Optional caching fallback
   }
 }
 
 export async function getDirections(
   start: [number, number],
   end: [number, number],
-  timeoutMs = 8000,
+  timeoutMs = 8000
 ): Promise<OsrmRoute> {
   if (!isValidCoordinate(start) || !isValidCoordinate(end)) {
     throw new Error('Invalid map coordinates');
+  }
+
+  // 1. Check local storage cache first
+  const cached = getCachedDirections(start, end);
+  if (cached) {
+    return cached;
+  }
+
+  // 2. If browser is offline, throw error immediately to trigger CafeMap fallback
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    throw new Error('Network offline');
   }
 
   const controller = new AbortController();
@@ -59,14 +74,16 @@ export async function getDirections(
   try {
     const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`OSRM request failed with status ${response.status}`);
+    
     const data = (await response.json()) as OsrmResponse;
     if (data.code !== 'Ok' || !data.routes?.[0]?.geometry?.coordinates?.length) {
       throw new Error(`OSRM returned ${data.code || 'no route'}`);
     }
+
     cacheDirections(start, end, data.routes[0]);
     return data.routes[0];
   } catch (error) {
-    console.error('[CafeNav] OSRM directions error:', error);
+    console.warn('[CafeNav] Directions network fetch failed, using fallback:', error);
     throw error;
   } finally {
     window.clearTimeout(timeout);
