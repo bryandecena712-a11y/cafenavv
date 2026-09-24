@@ -232,15 +232,25 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
       rating: rating,
     }).toString();
 
+    const cachedCafes = () => {
+      try {
+        const stored = localStorage.getItem('cafenav_cached_cafes');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    };
+
     fetch(`/api/cafes?${queryParams}`)
       .then((res) => res.json())
       .then((data) => {
-        setCafes(Array.isArray(data) ? data : []);
+        const freshCafes = Array.isArray(data) ? data : [];
+        setCafes(freshCafes);
+        if (freshCafes.length) localStorage.setItem('cafenav_cached_cafes', JSON.stringify(freshCafes));
         setLoading(false);
       })
-      .catch((e) => {
-        console.error(e);
-        setCafes([]);
+      .catch(() => {
+        setCafes(cachedCafes());
         setLoading(false);
       });
   }, [selections]);

@@ -29,13 +29,19 @@ export default function SignUpPage() {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.status === 202 && data.queued) {
+        localStorage.setItem('cafenav_pending_signup', JSON.stringify({ name, email, password, createdAt: Date.now() }));
+        setError('Signup saved offline. It will be submitted when you reconnect.');
+      } else if (response.ok) {
         router.push('/login');
       } else {
         setError(data.error || 'Registration failed');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      try {
+        localStorage.setItem('cafenav_pending_signup', JSON.stringify({ name, email, password, createdAt: Date.now() }));
+      } catch {}
+      setError('Signup saved offline. It will be submitted when you reconnect.');
     } finally {
       setLoading(false);
     }

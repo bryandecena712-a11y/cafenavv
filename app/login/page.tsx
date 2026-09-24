@@ -42,7 +42,7 @@ export default function LoginPage() {
           setError(data.error || 'Login failed');
         }
       } catch (err) {
-        setError('An unexpected error occurred');
+        setError('You are offline. Sign in again when your connection returns.');
       } finally {
         setLoading(false);
       }

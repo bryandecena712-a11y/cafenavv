@@ -34,6 +34,15 @@ const openStreetMapStyle = {
   ],
 };
 
+function getStraightLineDistanceKm(startLat: number, startLng: number, endLat: number, endLng: number) {
+  const earthRadius = 6371;
+  const latitudeDelta = (endLat - startLat) * Math.PI / 180;
+  const longitudeDelta = (endLng - startLng) * Math.PI / 180;
+  const value = Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
+
 export default function CafeMap({ cafes }: CafeMapProps) {
   const mapRef = useRef<any>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -200,9 +209,16 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       } else {
         alert('Could not calculate a driving route to this destination.');
       }
-    } catch (err) {
-      console.error('Error fetching route:', err);
-      alert('Failed to connect to directions service.');
+    } catch {
+      const distanceKm = getStraightLineDistanceKm(userLocation.lat, userLocation.lng, destLat, destLng);
+      const estimatedMinutes = Math.max(1, Math.round(distanceKm / 0.5));
+      setRouteInfo({
+        duration: `~${estimatedMinutes} min`,
+        distance: `${distanceKm.toFixed(1)} km direct`,
+        destinationName: cafeName,
+        trafficLevel: 'Offline estimate',
+      });
+      setRouteCoordinates([[userLocation.lng, userLocation.lat], [destLng, destLat]]);
     } finally {
       setLoadingRoute(false);
     }
