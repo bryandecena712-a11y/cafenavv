@@ -2,30 +2,24 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import bcrypt from 'bcryptjs';
 
+// Force dynamic execution & prevent static prerender build crashes
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, username, email, password } = body;
+    const { username, name, email, password } = await request.json();
 
-    // Support both 'username' and 'name' sent from front-end form
-    const userDisplayName = (username || name || '').trim();
     const cleanEmail = (email || '').toLowerCase().trim();
+    const displayName = (username || name || '').trim();
 
-    if (!userDisplayName || !cleanEmail || !password) {
+    if (!cleanEmail || !password || !displayName) {
       return NextResponse.json(
-        { error: 'Name/Username, email, and password are required.' },
+        { error: 'Please fill out all required fields.' },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters long.' },
-        { status: 400 }
-      );
-    }
-
-    // Check for existing user
     const existingUser = await prisma.users.findUnique({
       where: { email: cleanEmail },
     });
@@ -37,13 +31,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Securely hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user in Prisma
     const newUser = await prisma.users.create({
       data: {
-        username: userDisplayName,
+        username: displayName,
         email: cleanEmail,
         password: hashedPassword,
         role: 'USER',
@@ -51,23 +43,13 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      {
-        message: 'User registered successfully!',
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          username: newUser.username,
-          isAdmin: newUser.role === 'ADMIN',
-        },
-      },
+      { success: true, userId: newUser.id },
       { status: 201 }
     );
   } catch (error: any) {
     console.error('Signup error:', error);
-
-    // Return exact Prisma database or field errors for easy debugging
     return NextResponse.json(
-      { error: error?.message || 'Failed to create user account.' },
+      { error: error?.message || 'Server error during signup.' },
       { status: 500 }
     );
   }
