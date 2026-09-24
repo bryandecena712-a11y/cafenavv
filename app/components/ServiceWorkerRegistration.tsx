@@ -6,6 +6,7 @@ export default function ServiceWorkerRegistration() {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     setIsOffline(!navigator.onLine);
     const updateConnection = () => setIsOffline(!navigator.onLine);
     window.addEventListener('online', updateConnection);
@@ -16,15 +17,20 @@ export default function ServiceWorkerRegistration() {
     };
     window.addEventListener('online', syncQueue);
 
-    if ('serviceWorker' in navigator) {
+    if (!window.isSecureContext && location.hostname !== 'localhost') {
+      console.error('[CafeNav] Service workers require HTTPS on mobile browsers.');
+    } else if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
+        console.log(`[CafeNav] Service worker registered${isMobile ? ' on mobile' : ''}.`);
         registration.update();
         if (registration.waiting) {
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
       }).catch((error) => {
-        console.error('Service worker registration failed:', error);
+        console.error('[CafeNav] Service worker registration failed:', error);
       });
+    } else {
+      console.error('[CafeNav] Service workers are not supported by this browser.');
     }
 
     return () => {

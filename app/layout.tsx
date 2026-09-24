@@ -12,7 +12,17 @@ const outfit = Outfit({ subsets: ["latin"], display: "swap" });
 export const metadata: Metadata = {
   title: "CafeNav | Find your perfect shop",
   description: "Navigate straight to the brews everyone is talking about.",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: "#09090b",
 };
 
