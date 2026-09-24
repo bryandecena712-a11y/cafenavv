@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+// Force dynamic runtime execution & prevent static prerender build crashes
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } | Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams?.id, 10);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
+    }
+
     const data = await request.json();
     const { status } = data;
 
@@ -13,7 +27,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const cafe = await prisma.cafes.update({
       where: { id },
-      data: { status }
+      data: { status },
     });
 
     return NextResponse.json(cafe);
@@ -23,12 +37,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } | Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams?.id, 10);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
+    }
 
     await prisma.cafes.delete({
-      where: { id }
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
