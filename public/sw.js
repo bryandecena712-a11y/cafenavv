@@ -1,184 +1,145 @@
-const VERSION = 'v3';
+const VERSION = '2026-09-24-1';
 const SHELL_CACHE = `cafenav-shell-${VERSION}`;
-const DATA_CACHE = `cafenav-data-${VERSION}`;
+const RUNTIME_CACHE = `cafenav-runtime-${VERSION}`;
 const DB_NAME = 'cafenav-offline';
-const DB_VERSION = 2;
-const QUEUE_STORE = 'requests';
-const API_STORE = 'responses';
-const APP_SHELL = ['/offline.html', '/images/home-bg.jpg', '/images/250cafe-real.jpg'];
+const DB_VERSION = 1;
+const RESPONSE_STORE = 'responses';
+const QUEUE_STORE = 'queue';
+const PRECACHE = ['/', '/offline.html', '/images/home-bg.jpg', '/images/250cafe-real.jpg'];
 
-function openQueue() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onupgradeneeded = () => {
-            const database = request.result;
-            if (!database.objectStoreNames.contains(QUEUE_STORE)) {
-                database.createObjectStore(QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
-            }
-            if (!database.objectStoreNames.contains(API_STORE)) {
-                database.createObjectStore(API_STORE, { keyPath: 'url' });
-            }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function cacheApiResponse(request, response) {
-    if (!response.ok) return;
-    const database = await openQueue();
-    const record = {
-        url: request.url,
-        status: response.status,
-        headers: [...response.headers.entries()],
-        body: await response.clone().text(),
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(RESPONSE_STORE)) database.createObjectStore(RESPONSE_STORE, { keyPath: 'url' });
+      if (!database.objectStoreNames.contains(QUEUE_STORE)) database.createObjectStore(QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
     };
-    await new Promise((resolve, reject) => {
-        const transaction = database.transaction(API_STORE, 'readwrite');
-        transaction.objectStore(API_STORE).put(record);
-        transaction.oncomplete = resolve;
-        transaction.onerror = () => reject(transaction.error);
-    });
-    database.close();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-async function getCachedApiResponse(url) {
-    const database = await openQueue();
-    const record = await new Promise((resolve, reject) => {
-        const transaction = database.transaction(API_STORE, 'readonly');
-        const request = transaction.objectStore(API_STORE).get(url);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-    database.close();
-    return record ? new Response(record.body, { status: record.status, headers: record.headers }) : null;
+async function saveResponse(request, response) {
+  if (!response || !response.ok) return;
+  const database = await openDatabase();
+  const record = { url: request.url, status: response.status, headers: [...response.headers.entries()], body: await response.clone().text(), savedAt: Date.now() };
+  await new Promise((resolve, reject) => {
+    const transaction = database.transaction(RESPONSE_STORE, 'readwrite');
+    transaction.objectStore(RESPONSE_STORE).put(record);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
 }
 
-async function enqueue(request) {
-    const database = await openQueue();
-    const body = await request.clone().text();
-    await new Promise((resolve, reject) => {
+async function readResponse(url) {
+  const database = await openDatabase();
+  const record = await new Promise((resolve, reject) => {
+    const request = database.transaction(RESPONSE_STORE, 'readonly').objectStore(RESPONSE_STORE).get(url);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  database.close();
+  return record ? new Response(record.body, { status: record.status, headers: record.headers }) : null;
+}
+
+async function queueRequest(request) {
+  const database = await openDatabase();
+  const body = await request.clone().text();
+  await new Promise((resolve, reject) => {
+    const transaction = database.transaction(QUEUE_STORE, 'readwrite');
+    transaction.objectStore(QUEUE_STORE).add({ url: request.url, method: request.method, headers: [...request.headers.entries()], body, createdAt: Date.now() });
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+}
+
+async function syncQueue() {
+  const database = await openDatabase();
+  const requests = await new Promise((resolve, reject) => {
+    const request = database.transaction(QUEUE_STORE, 'readonly').objectStore(QUEUE_STORE).getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  for (const queued of requests) {
+    try {
+      const response = await fetch(queued.url, { method: queued.method, headers: Object.fromEntries(queued.headers), body: queued.body });
+      if (!response.ok) break;
+      await new Promise((resolve, reject) => {
         const transaction = database.transaction(QUEUE_STORE, 'readwrite');
-        transaction.objectStore(QUEUE_STORE).add({
-            url: request.url,
-            method: request.method,
-            headers: [...request.headers.entries()],
-            body,
-            createdAt: Date.now(),
-        });
+        transaction.objectStore(QUEUE_STORE).delete(queued.id);
         transaction.oncomplete = resolve;
         transaction.onerror = () => reject(transaction.error);
-    });
-    database.close();
+      });
+    } catch { break; }
+  }
+  database.close();
 }
 
-async function replayQueue() {
-    const database = await openQueue();
-    const queuedRequests = await new Promise((resolve, reject) => {
-        const transaction = database.transaction(QUEUE_STORE, 'readonly');
-        const request = transaction.objectStore(QUEUE_STORE).getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-
-    for (const queued of queuedRequests) {
-        try {
-            const response = await fetch(queued.url, {
-                method: queued.method,
-                headers: Object.fromEntries(queued.headers),
-                body: queued.body,
-            });
-            if (!response.ok) continue;
-            await new Promise((resolve, reject) => {
-                const transaction = database.transaction(QUEUE_STORE, 'readwrite');
-                transaction.objectStore(QUEUE_STORE).delete(queued.id);
-                transaction.oncomplete = resolve;
-                transaction.onerror = () => reject(transaction.error);
-            });
-        } catch {
-            break;
-        }
-    }
-    database.close();
+async function cacheShell() {
+  const cache = await caches.open(SHELL_CACHE);
+  await Promise.all(PRECACHE.map(async (url) => {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) await cache.put(url, response);
+    } catch {}
+  }));
 }
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(caches.open(SHELL_CACHE).then(async(cache) => {
-        await Promise.all(APP_SHELL.map(async(asset) => {
-            try {
-                const response = await fetch(asset);
-                if (response.ok) await cache.put(asset, response);
-            } catch {}
-        }));
-    }));
-    self.skipWaiting();
+  event.waitUntil(cacheShell());
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keys) => Promise.all(
-            keys.filter((key) => ![SHELL_CACHE, DATA_CACHE].includes(key)).map((key) => caches.delete(key))
-        ))
-    );
-    self.clients.claim();
-});
-
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'cafenav-sync') event.waitUntil(replayQueue());
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => ![SHELL_CACHE, RUNTIME_CACHE].includes(key)).map((key) => caches.delete(key)))));
+  self.clients.claim();
 });
 
 self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SYNC_OFFLINE_QUEUE') event.waitUntil(replayQueue());
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data && event.data.type === 'SYNC_OFFLINE_QUEUE') event.waitUntil(syncQueue());
+});
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'cafenav-sync') event.waitUntil(syncQueue());
 });
 
 self.addEventListener('fetch', (event) => {
-    const requestUrl = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
+  const isWrite = request.method !== 'GET';
+  const isMutation = isWrite && (url.origin === self.location.origin || url.hostname.includes('supabase'));
 
-    if (event.request.method !== 'GET') {
-        if (requestUrl.origin === self.location.origin && /^\/api\/(bookmarks|reviews)/.test(requestUrl.pathname)) {
-            event.respondWith(
-                fetch(event.request).catch(async() => {
-                    await enqueue(event.request);
-                    try { await self.registration.sync.register('cafenav-sync'); } catch {}
-                    return new Response(JSON.stringify({ queued: true }), {
-                        status: 202,
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                })
-            );
-        }
-        return;
+  if (isMutation) {
+    event.respondWith(fetch(request).catch(async () => {
+      await queueRequest(request);
+      try { await self.registration.sync.register('cafenav-sync'); } catch {}
+      return new Response(JSON.stringify({ queued: true }), { status: 202, headers: { 'Content-Type': 'application/json' } });
+    }));
+    return;
+  }
+
+  if (request.method !== 'GET') return;
+  const isNavigation = request.mode === 'navigate';
+  const isApi = url.pathname.startsWith('/api/') || url.hostname.includes('supabase');
+
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        await saveResponse(request, response.clone());
+        await caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, response.clone()));
+      }
+      return response;
+    } catch {
+      const cached = await caches.match(request) || await readResponse(request.url);
+      if (cached) return cached;
+      if (isNavigation) return await caches.match('/') || await caches.match('/offline.html');
+      if (isApi) return new Response(JSON.stringify({ offline: true, data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return await caches.match('/offline.html');
     }
-
-    if (requestUrl.origin !== self.location.origin) return;
-
-    const isApiRequest = requestUrl.pathname.startsWith('/api/');
-    const isNavigation = event.request.mode === 'navigate' || requestUrl.pathname === '/';
-    const isStaticAsset = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(requestUrl.pathname);
-
-    if (isStaticAsset) {
-        event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-            if (response.ok) caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, response.clone()));
-            return response;
-        })));
-        return;
-    }
-
-    event.respondWith(
-        fetch(event.request).then(async(response) => {
-            if (response.ok) {
-                const copy = response.clone();
-                if (isApiRequest) {
-                    await cacheApiResponse(event.request, copy);
-                    await caches.open(DATA_CACHE).then((cache) => cache.put(event.request, response.clone()));
-                } else if (isNavigation) {
-                    await caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, response.clone()));
-                }
-            }
-            return response;
-        }).catch(async() => {
-            if (isApiRequest) return (await getCachedApiResponse(event.request.url)) || caches.match(event.request);
-            return (await caches.match(event.request)) || (await caches.match('/')) || caches.match('/offline.html');
-        })
-    );
+  })());
 });

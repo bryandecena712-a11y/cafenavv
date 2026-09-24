@@ -17,7 +17,12 @@ export default function ServiceWorkerRegistration() {
     window.addEventListener('online', syncQueue);
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((error) => {
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
+        registration.update();
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      }).catch((error) => {
         console.error('Service worker registration failed:', error);
       });
     }
