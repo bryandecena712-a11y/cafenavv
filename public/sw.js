@@ -5,7 +5,7 @@ const DB_NAME = 'cafenav-offline';
 const DB_VERSION = 1;
 const RESPONSE_STORE = 'responses';
 const QUEUE_STORE = 'queue';
-const PRECACHE = ['/', '/offline.html', '/images/home-bg.jpg', '/images/250cafe-real.jpg'];
+const PRECACHE = ['/', '/offers', '/login', '/signup', '/suggest', '/offline.html', '/manifest.json', '/images/home-bg.jpg', '/images/250cafe-real.jpg'];
 
 function openDatabase() {
     return new Promise((resolve, reject) => {
@@ -57,6 +57,12 @@ function fetchWithTimeout(request, timeout = 5000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
     return fetch(request, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+function cacheResponse(request, response) {
+    if (!response || !response.ok) return;
+    caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, response.clone())).catch(() => {});
+    saveResponse(request, response.clone()).catch(() => {});
 }
 
 async function queueRequest(request) {
@@ -130,7 +136,7 @@ self.addEventListener('fetch', (event) => {
 
     if (isMutation) {
         event.respondWith(fetch(request).catch(async() => {
-            await queueRequest(request);
+            try { await queueRequest(request); } catch (error) { console.warn('[CafeNav] Offline queue unavailable:', error); }
             try { await self.registration.sync.register('cafenav-sync'); } catch {}
             return new Response(JSON.stringify({ queued: true }), { status: 202, headers: { 'Content-Type': 'application/json' } });
         }));
@@ -140,14 +146,37 @@ self.addEventListener('fetch', (event) => {
     if (request.method !== 'GET') return;
     const isNavigation = request.mode === 'navigate';
     const isApi = url.pathname.startsWith('/api/') || url.hostname.includes('supabase');
+    const isStaticAsset = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|woff2?|json)$/i.test(url.pathname);
+
+    if (isStaticAsset) {
+        event.respondWith((async() => {
+            const cached = await caches.match(request);
+            if (cached) {
+                fetchWithTimeout(request, 5000).then((response) => cacheResponse(request, response)).catch(() => {});
+                return cached;
+            }
+            try {
+                const response = await fetchWithTimeout(request, 5000);
+                cacheResponse(request, response);
+                return response;
+            } catch {
+                return (await caches.match('/offline.html')) || new Response('', { status: 503 });
+            }
+        })());
+        return;
+    }
 
     event.respondWith((async() => {
+        if (isNavigation) {
+            const cached = await caches.match(request) || await caches.match('/');
+            if (cached) {
+                fetchWithTimeout(request, 5000).then((response) => cacheResponse(request, response)).catch(() => {});
+                return cached;
+            }
+        }
         try {
             const response = await fetchWithTimeout(request, isApi ? 5000 : 10000);
-            if (response.ok) {
-                await saveResponse(request, response.clone());
-                await caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, response.clone()));
-            }
+            cacheResponse(request, response);
             return response;
         } catch {
             const cached = await caches.match(request) || await readResponse(request.url);

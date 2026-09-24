@@ -6,6 +6,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import EmptyState from './EmptyState';
 import { cafeCoordinates } from '@/app/lib/coordinates';
+import { loadCachedCafes, loadDirectoryPreferences, saveCachedCafes, saveDirectoryPreferences } from '@/app/lib/offlineStorage';
 
 // Dynamically import Leaflet map component with SSR disabled
 const CafeMap = dynamic(() => import('./CafeMap'), {
@@ -35,14 +36,28 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
 }
 
 export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [priceFilter, setPriceFilter] = useState('');
-  const [vibeFilter, setVibeFilter] = useState('');
+  const preferences = loadDirectoryPreferences();
+  const [cafes, setCafes] = useState<any[]>(initialCafes);
+  const [searchQuery, setSearchQuery] = useState(preferences?.searchQuery || '');
+  const [priceFilter, setPriceFilter] = useState(preferences?.priceFilter || '');
+  const [vibeFilter, setVibeFilter] = useState(preferences?.vibeFilter || '');
 
   const [sortByNearest, setSortByNearest] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+
+  useEffect(() => {
+    saveCachedCafes(initialCafes);
+    setCafes(initialCafes);
+    loadCachedCafes<any>().then((cached) => {
+      if (cached?.length && !navigator.onLine) setCafes(cached);
+    });
+  }, [initialCafes]);
+
+  useEffect(() => {
+    saveDirectoryPreferences({ searchQuery, priceFilter, vibeFilter });
+  }, [searchQuery, priceFilter, vibeFilter]);
 
   const toggleNearest = () => {
     if (!sortByNearest) {
@@ -75,10 +90,10 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
 
   const filteredAndSortedCafes = useMemo(() => {
     // 1. Filter
-    let result = initialCafes.filter((cafe) => {
-      const matchesSearch =
-        cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        cafe.location?.toLowerCase().includes(searchQuery.toLowerCase());
+    let result = cafes.filter((cafe) => {
+      const name = cafe.name?.toLowerCase() || '';
+      const location = cafe.location?.toLowerCase() || '';
+      const matchesSearch = name.includes(searchQuery.toLowerCase()) || location.includes(searchQuery.toLowerCase());
       const matchesPrice = priceFilter ? cafe.price_level === priceFilter : true;
       const matchesVibe = vibeFilter ? cafe.vibe === vibeFilter : true;
 
@@ -107,7 +122,7 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
     }
 
     return result;
-  }, [initialCafes, searchQuery, priceFilter, vibeFilter, sortByNearest, userLocation]);
+  }, [cafes, searchQuery, priceFilter, vibeFilter, sortByNearest, userLocation]);
 
   return (
     <>
