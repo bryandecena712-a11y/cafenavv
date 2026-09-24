@@ -59,6 +59,10 @@ export default function ReviewForm({ cafeId }: ReviewFormProps) {
         throw new Error(data.error || 'Failed to submit review');
       }
 
+      if (res.status === 202) {
+        setError('Review saved offline. It will sync when you reconnect.');
+      }
+
       // Success, refresh the page to show the new review
       setRating(0);
       setContent('');

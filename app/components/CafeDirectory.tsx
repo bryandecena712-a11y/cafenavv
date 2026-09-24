@@ -111,16 +111,16 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
 
   return (
     <>
-      <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
+      <div className="mb-12 sm:mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
         <div className="max-w-xl">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-zinc-50 mb-4">Popular Spots</h2>
-          <p className="text-zinc-400 text-lg leading-relaxed text-balance">
+          <h2 className="text-3xl sm:text-5xl font-semibold tracking-tight text-zinc-50 mb-4">Popular Spots</h2>
+          <p className="text-zinc-400 text-base sm:text-lg leading-relaxed text-balance">
             Navigate straight to the brews everyone is talking about. Hand-picked spots for studying, catching up, or just zoning out.
           </p>
         </div>
 
         {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+        <div className="flex flex-col gap-3 w-full md:max-w-xl md:w-auto">
           <input
             type="text"
             placeholder="Search cafes or locations..."
@@ -128,7 +128,7 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-zinc-900 border border-zinc-800 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors flex-1 sm:w-64"
           />
-          <div className="flex gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <select
               value={priceFilter}
               onChange={(e) => setPriceFilter(e.target.value)}
@@ -141,7 +141,7 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
             </select>
             <button
               onClick={toggleNearest}
-              className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 border transition-all font-medium whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3 rounded-xl flex items-center justify-center gap-2 border transition-all font-medium whitespace-nowrap ${
                 sortByNearest
                   ? 'bg-amber-500 border-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-amber-500/50'
@@ -151,7 +151,7 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
                 <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin inline-block"></span>
               ) : (
                 <>
-                  <span>📍</span> {sortByNearest ? 'Nearest First' : 'Find Nearest'}
+                  <span>📍</span> <span className="truncate">{sortByNearest ? 'Nearest First' : 'Find Nearest'}</span>
                 </>
               )}
             </button>
@@ -171,7 +171,7 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
         {filteredAndSortedCafes.map((cafe) => (
           <div
             key={cafe.id}
-            className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500"
+            className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-2xl sm:rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500"
           >
             <div className="relative w-full aspect-[4/3] bg-zinc-950 overflow-hidden">
               <Image
@@ -194,9 +194,9 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
               </div>
             </div>
 
-            <div className="p-8 flex flex-col flex-1 relative z-10 -mt-10">
-              <h3 className="text-2xl font-semibold text-zinc-100 mb-2">{cafe.name}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed mb-8 flex-1 line-clamp-3">
+            <div className="p-5 sm:p-8 flex flex-col flex-1 relative z-10 -mt-10">
+              <h3 className="text-xl sm:text-2xl font-semibold text-zinc-100 mb-2">{cafe.name}</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-6 sm:mb-8 flex-1 line-clamp-3">
                 {cafe.description}
               </p>
 

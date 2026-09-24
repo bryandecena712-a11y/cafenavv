@@ -9,20 +9,21 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-zinc-950/80 backdrop-blur-md border-b border-white/5 h-16 flex items-center justify-center">
-      <div className="w-full max-w-7xl mx-auto px-6 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold tracking-tight text-zinc-50">
+    <nav className="sticky top-0 z-50 w-full bg-zinc-950/90 backdrop-blur-md border-b border-white/5 min-h-16 flex items-center">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <Link href="/" className="text-xl font-bold tracking-tight text-zinc-50 shrink-0">
           CafeNav
         </Link>
         
-        <div className="flex items-center space-x-6 text-sm font-medium">
-          <Link href="/offers" className="text-zinc-300 hover:text-white transition-colors">
+        <div className="flex items-center gap-2 sm:gap-6 text-sm font-medium">
+          <Link href="/offers" className="text-zinc-300 hover:text-white transition-colors px-2 py-2 sm:px-0">
             Match Quiz
           </Link>
           
           {isAuthenticated ? (
             <div className="relative">
-              <button 
+              <button
+                aria-label="Open account menu"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-white hover:border-amber-500 transition-colors"
               >
@@ -71,11 +72,11 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <div className="flex items-center space-x-3">
-              <Link href="/login" className="text-zinc-300 hover:text-white transition-colors px-3 py-2">
+            <div className="flex items-center gap-1 sm:gap-3">
+              <Link href="/login" className="text-zinc-300 hover:text-white transition-colors px-2 sm:px-3 py-2">
                 Log In
               </Link>
-              <Link href="/signup" className="bg-amber-500 text-zinc-950 px-5 py-2.5 rounded-full hover:bg-amber-400 hover:scale-[0.98] transition-all font-semibold shadow-lg shadow-amber-500/20">
+              <Link href="/signup" className="bg-amber-500 text-zinc-950 px-3 sm:px-5 py-2.5 rounded-full hover:bg-amber-400 hover:scale-[0.98] transition-all font-semibold shadow-lg shadow-amber-500/20">
                 Sign Up
               </Link>
             </div>

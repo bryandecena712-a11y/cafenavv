@@ -15,6 +15,7 @@ export default function BookmarkButton({ cafeId }: BookmarkButtonProps) {
   
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [queued, setQueued] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -44,19 +45,21 @@ export default function BookmarkButton({ cafeId }: BookmarkButtonProps) {
     setLoading(true);
     try {
       if (isBookmarked) {
-        await fetch('/api/bookmarks', {
+        const res = await fetch('/api/bookmarks', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cafeId, userId: user.id })
         });
         setIsBookmarked(false);
+        setQueued(res.status === 202);
       } else {
-        await fetch('/api/bookmarks', {
+        const res = await fetch('/api/bookmarks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cafeId, userId: user.id })
         });
         setIsBookmarked(true);
+        setQueued(res.status === 202);
       }
     } catch (err) {
       console.error('Failed to toggle bookmark:', err);
@@ -82,8 +85,10 @@ export default function BookmarkButton({ cafeId }: BookmarkButtonProps) {
           : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-amber-500 hover:border-amber-500/50'
       }`}
       title={isBookmarked ? "Remove from Saved" : "Save Cafe"}
+      aria-label={isBookmarked ? "Remove from Saved" : "Save Cafe"}
     >
       <BookmarkSimple size={24} weight={isBookmarked ? "fill" : "regular"} />
+      {queued && <span className="sr-only">Saved offline and will sync when online</span>}
     </button>
   );
 }

@@ -14,33 +14,33 @@ export default async function Home() {
   return (
     <main className="flex-1 flex flex-col bg-zinc-950 text-zinc-50 overflow-hidden relative">
       {/* Hero Section */}
-      <section className="relative w-full pt-32 pb-24 lg:pt-48 lg:pb-32">
+      <section className="relative w-full pt-16 sm:pt-24 lg:pt-40 pb-16 sm:pb-24 lg:pb-32">
         {/* Subtle background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
         
-        <div className="w-full max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center relative z-10">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
           <div className="flex flex-col items-start lg:col-span-6 xl:col-span-5">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-medium tracking-wide text-zinc-400 mb-8">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               Find your next favorite spot
             </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tighter leading-[1.05] text-zinc-50 mb-6 text-balance">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tighter leading-[1.05] text-zinc-50 mb-6 text-balance">
               Lost in the <br />
               <span className="text-zinc-500 italic">daily grind?</span>
             </h1>
             <p className="text-lg text-zinc-400 mb-10 max-w-md text-balance leading-relaxed">
               Let us guide you to great coffee. Discover, rate, and match with the perfect local coffee shops designed around how you like to spend your time.
             </p>
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
               <Link 
                 href="/offers" 
-                className="bg-amber-500 text-zinc-950 font-medium px-8 py-3.5 rounded-full hover:bg-amber-400 hover:-translate-y-[1px] active:scale-[0.98] transition-all"
+                className="bg-amber-500 text-zinc-950 font-medium px-8 py-3.5 rounded-full text-center hover:bg-amber-400 hover:-translate-y-[1px] active:scale-[0.98] transition-all"
               >
                 Take the Quiz
               </Link>
               <Link
                 href="/suggest"
-                className="bg-zinc-800 text-zinc-50 font-medium px-8 py-3.5 rounded-full hover:bg-zinc-700 hover:-translate-y-[1px] active:scale-[0.98] transition-all border border-zinc-700"
+                className="bg-zinc-800 text-zinc-50 font-medium px-8 py-3.5 rounded-full text-center hover:bg-zinc-700 hover:-translate-y-[1px] active:scale-[0.98] transition-all border border-zinc-700"
               >
                 Suggest a Cafe
               </Link>
@@ -48,7 +48,7 @@ export default async function Home() {
           </div>
           
           {/* Right Asset - Asymmetric Image Layout */}
-          <div className="lg:col-span-6 xl:col-span-7 relative h-[500px] lg:h-[600px] w-full mt-12 lg:mt-0">
+          <div className="lg:col-span-6 xl:col-span-7 relative h-[360px] sm:h-[500px] lg:h-[600px] w-full mt-4 lg:mt-0">
             <div className="absolute inset-0 rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800 transform lg:rotate-2 hover:rotate-0 transition-transform duration-700 ease-out shadow-2xl">
               <Image
                 src="/images/home-bg.jpg"
@@ -84,7 +84,7 @@ export default async function Home() {
 
       {/* Popular Cafes & Map Section */}
       <section className="w-full relative z-10 py-24 border-t border-zinc-900/50 bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <CafeDirectory initialCafes={cafes} />
         </div>
       </section>

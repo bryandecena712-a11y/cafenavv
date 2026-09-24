@@ -57,10 +57,10 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 safe-bottom">
       {/* Chat Window */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-80 sm:w-96 h-[500px] bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="absolute bottom-16 right-0 w-[calc(100vw-2rem)] max-w-96 h-[min(500px,calc(100dvh-7rem))] bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
           
           {/* Header */}
           <div className="bg-amber-500 p-4 flex justify-between items-center text-zinc-950">
@@ -68,7 +68,7 @@ export default function AIAssistant() {
               <Robot size={24} weight="duotone" />
               <span>AI Barista</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-amber-600 p-1 rounded-lg transition-colors">
+            <button aria-label="Close AI Barista" onClick={() => setIsOpen(false)} className="hover:bg-amber-600 p-2 -mr-2 rounded-lg transition-colors">
               <X size={20} weight="bold" />
             </button>
           </div>
@@ -106,7 +106,8 @@ export default function AIAssistant() {
             <button 
               type="submit" 
               disabled={isLoading || !input.trim()}
-              className="w-10 h-10 bg-amber-500 text-zinc-950 rounded-full flex items-center justify-center disabled:opacity-50 hover:bg-amber-400 transition-colors"
+              aria-label="Send message"
+              className="w-10 h-10 shrink-0 bg-amber-500 text-zinc-950 rounded-full flex items-center justify-center disabled:opacity-50 hover:bg-amber-400 transition-colors"
             >
               <PaperPlaneRight size={20} weight="fill" />
             </button>
@@ -117,6 +118,7 @@ export default function AIAssistant() {
       {/* Floating Toggle Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? 'Close AI Barista' : 'Open AI Barista'}
         className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95 ${isOpen ? 'bg-zinc-800 text-white border border-white/10' : 'bg-amber-500 text-zinc-950'}`}
       >
         {isOpen ? <X size={28} weight="bold" /> : <ChatTeardropText size={32} weight="duotone" />}
