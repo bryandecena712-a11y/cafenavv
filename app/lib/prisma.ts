@@ -1,26 +1,20 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Lazy initialization function to prevent Prisma instantiation during build-time module evaluation
-function getPrismaClient(): PrismaClient {
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    });
-  }
-  return globalForPrisma.prisma;
-}
-
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop: keyof PrismaClient) {
-    const client = getPrismaClient();
-    const value = client[prop];
-    return typeof value === 'function' ? value.bind(client) : value;
-  },
+// Initialize the PostgreSQL driver adapter required by Prisma 7
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
 });
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+  });
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
