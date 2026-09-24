@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import Map, { Marker, Popup, NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
 // @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -63,7 +63,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
-  // Active watchPosition for live position tracking
+  // Active watchPosition for real-time location updates
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
@@ -78,7 +78,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         });
       },
       (error) => {
-        console.warn('Geolocation watch failed, using default center:', error);
+        console.warn('Geolocation watch failed, falling back to default center:', error);
         if (!userLocation) {
           setUserLocation(defaultCenter);
         }
@@ -95,7 +95,34 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     };
   }, []);
 
-  // Safe route caching
+  // Function to re-center map on real-time location
+  const handleLocateUser = () => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUserLocation(loc);
+          if (mapRef.current) {
+            const map = mapRef.current.getMap();
+            if (map) {
+              map.flyTo({ center: [loc.lng, loc.lat], zoom: 16, essential: true });
+            }
+          }
+        },
+        () => {
+          if (userLocation && mapRef.current) {
+            const map = mapRef.current.getMap();
+            if (map) {
+              map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 16, essential: true });
+            }
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  };
+
+  // Pre-cache routes in background
   useEffect(() => {
     if (userLocation && cafes && Array.isArray(cafes) && cafes.length > 0 && typeof window !== 'undefined' && navigator.onLine) {
       prefetchRoutes([userLocation.lng, userLocation.lat], cafes).catch((err) => {
@@ -261,9 +288,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
-      {/* Route Info Card */}
+      {/* Route Info Overlay */}
       {routeInfo && (
-        <div className="absolute top-4 left-4 z-40 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+        <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
             🚗
           </div>
@@ -293,6 +320,16 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           </button>
         </div>
       )}
+
+      {/* Prominent High Z-Index "My Location" Button */}
+      <button
+        onClick={handleLocateUser}
+        type="button"
+        title="Show My Location"
+        className="absolute bottom-6 right-4 z-50 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 px-3.5 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 transition-all"
+      >
+        <span className="text-sm">📍</span> Center My Location
+      </button>
 
       {svgPath && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
@@ -331,22 +368,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           onMove={updateSvgOverlay}
           onZoom={updateSvgOverlay}
         >
-          {/* Native Map Controls: Zoom buttons + Live Location button */}
           <NavigationControl position="top-right" />
-          <GeolocateControl
-            position="top-right"
-            positionOptions={{ enableHighAccuracy: true }}
-            trackUserLocation={true}
-            showAccuracyCircle={true}
-            showUserLocation={true}
-            onGeolocate={(e) => {
-              if (e.coords) {
-                setUserLocation({ lat: e.coords.latitude, lng: e.coords.longitude });
-              }
-            }}
-          />
 
-          {/* User Marker */}
+          {/* Dynamic Real-Time Location Marker */}
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
               <div className="relative flex items-center justify-center">
