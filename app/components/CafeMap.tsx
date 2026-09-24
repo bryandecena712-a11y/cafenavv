@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import Map, { Marker, Popup, NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
 // @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -51,7 +51,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const mapRef = useRef<any>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
-
   const [geocodedCafes, setGeocodedCafes] = useState<{ [key: string]: { lat: number; lng: number } }>({});
 
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
@@ -64,7 +63,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
-  // Real-time GPS location tracking with watchPosition
+  // Active watchPosition for continuous real-time updates
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
@@ -79,7 +78,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         });
       },
       (error) => {
-        console.warn('Geolocation error, falling back to default center:', error);
+        console.warn('Geolocation watch failed, falling back to default center:', error);
         if (!userLocation) {
           setUserLocation(defaultCenter);
         }
@@ -87,7 +86,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 5000,
+        maximumAge: 3000,
       }
     );
 
@@ -96,20 +95,34 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     };
   }, []);
 
-  // Center map on user location
-  const handleRecenterUser = () => {
-    if (!userLocation || !mapRef.current) return;
-    const map = mapRef.current.getMap();
-    if (map) {
-      map.flyTo({
-        center: [userLocation.lng, userLocation.lat],
-        zoom: 16,
-        essential: true,
-      });
+  // Recenter map & fly to real-time location
+  const handleFlyToUser = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUserLocation(loc);
+          if (mapRef.current) {
+            const map = mapRef.current.getMap();
+            if (map) {
+              map.flyTo({ center: [loc.lng, loc.lat], zoom: 16, essential: true });
+            }
+          }
+        },
+        () => {
+          if (userLocation && mapRef.current) {
+            const map = mapRef.current.getMap();
+            if (map) {
+              map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 16, essential: true });
+            }
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     }
   };
 
-  // Safe background route pre-caching
+  // Safe route caching
   useEffect(() => {
     if (userLocation && cafes && Array.isArray(cafes) && cafes.length > 0 && typeof window !== 'undefined' && navigator.onLine) {
       prefetchRoutes([userLocation.lng, userLocation.lat], cafes).catch((err) => {
@@ -275,9 +288,9 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
-      {/* Route directions info card */}
+      {/* Route Info Overlay */}
       {routeInfo && (
-        <div className="absolute top-4 left-4 z-30 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+        <div className="absolute top-4 left-4 z-40 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
             🚗
           </div>
@@ -308,19 +321,23 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         </div>
       )}
 
-      {/* Floating Recenter / Find My Location Button */}
+      {/* Target/Location Button (Explicit high Z-Index Overlay) */}
       <button
-        onClick={handleRecenterUser}
-        title="Find My Location"
-        className="absolute bottom-6 right-4 z-30 w-11 h-11 bg-zinc-900 hover:bg-zinc-800 text-amber-500 rounded-2xl border border-zinc-700 shadow-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+        onClick={handleFlyToUser}
+        type="button"
+        title="Show My Location"
+        className="absolute top-28 right-2.5 z-40 w-8 h-8 bg-white hover:bg-zinc-100 text-zinc-900 rounded-md border border-zinc-300 shadow-md flex items-center justify-center cursor-pointer transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
+          fill="none"
           viewBox="0 0 24 24"
-          fill="currentColor"
-          className="w-6 h-6"
+          strokeWidth={2}
+          stroke="currentColor"
+          className="w-5 h-5 text-zinc-800"
         >
-          <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 2.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" clipRule="evenodd" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2m10-10h-2M4 12H2" />
         </svg>
       </button>
 
@@ -362,14 +379,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           onZoom={updateSvgOverlay}
         >
           <NavigationControl position="top-right" />
-          <GeolocateControl
-            position="top-right"
-            positionOptions={{ enableHighAccuracy: true }}
-            trackUserLocation={true}
-            showAccuracyCircle={true}
-          />
 
-          {/* Dynamic real-time user location pin */}
+          {/* Real-time pulsing marker for current location */}
           {userLocation && (
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
               <div className="relative flex items-center justify-center">
