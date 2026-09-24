@@ -53,12 +53,10 @@ export default function SignUpPage() {
         );
         setSuccess('Signup queued. Will complete when online.');
       } else {
-        // Display exact backend error message directly
         setError(data.error || 'Failed to create account. Please try again.');
       }
     } catch (err: any) {
       console.error('Signup connection error:', err);
-      // Only treat network disconnection as offline queueing
       if (!navigator.onLine) {
         try {
           localStorage.setItem(
@@ -68,7 +66,7 @@ export default function SignUpPage() {
         } catch {}
         setSuccess('Signup queued. Will complete when online.');
       } else {
-        setError(err.message || 'Unable to connect to authentication server.');
+        setError(err?.message || 'Unable to connect to authentication server.');
       }
     } finally {
       setLoading(false);

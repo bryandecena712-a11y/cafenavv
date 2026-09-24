@@ -8,7 +8,8 @@ export const revalidate = 0;
 
 export async function POST(request: Request) {
   try {
-    const { username, name, email, password } = await request.json();
+    const body = await request.json();
+    const { username, name, email, password } = body;
 
     const cleanEmail = (email || '').toLowerCase().trim();
     const displayName = (username || name || '').trim();
@@ -20,19 +21,32 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUser = await prisma.users.findUnique({
-      where: { email: cleanEmail },
+    // Check if user already exists
+    const existingUser = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { username: displayName }
+        ]
+      },
     });
 
     if (existingUser) {
+      if (existingUser.email === cleanEmail) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists.' },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
-        { error: 'An account with this email already exists.' },
+        { error: 'This username is already taken. Please choose another.' },
         { status: 400 }
       );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user record safely
     const newUser = await prisma.users.create({
       data: {
         username: displayName,
@@ -48,8 +62,17 @@ export async function POST(request: Request) {
     );
   } catch (error: any) {
     console.error('Signup error:', error);
+
+    // Handle duplicate key database constraints
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'An account with this email or username already exists.' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { error: error?.message || 'Server error during signup.' },
+      { error: error?.message || 'Server error during signup. Please try again.' },
       { status: 500 }
     );
   }
