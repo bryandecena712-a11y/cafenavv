@@ -7,6 +7,10 @@ import ShareButton from '@/app/components/ShareButton';
 import SuggestProductForm from './SuggestProductForm';
 import DeleteReviewButton from './DeleteReviewButton';
 
+// Force dynamic execution & prevent static prerender build crashes
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
   
