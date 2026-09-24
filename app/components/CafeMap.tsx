@@ -84,14 +84,15 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     }
   }, []);
 
-  // Pre-cache road routes for all cafes when online and user location is available
+  // Safe background route pre-caching
   useEffect(() => {
-    if (userLocation && cafes && cafes.length > 0 && typeof window !== 'undefined' && navigator.onLine) {
-      prefetchRoutes([userLocation.lng, userLocation.lat], cafes);
+    if (userLocation && cafes && Array.isArray(cafes) && cafes.length > 0 && typeof window !== 'undefined' && navigator.onLine) {
+      prefetchRoutes([userLocation.lng, userLocation.lat], cafes).catch((err) => {
+        console.warn('Background route prefetching skipped:', err);
+      });
     }
   }, [userLocation, cafes]);
 
-  // Helper to extract coordinates safely from any cafe object
   const getCafeCoords = (cafe: any): { lat: number; lng: number } | null => {
     if (cafe.latitude != null && cafe.longitude != null) {
       const lat = parseFloat(cafe.latitude);
@@ -126,7 +127,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     return null;
   };
 
-  // Client-side Nominatim Geocoding ONLY when no pre-stored coordinates exist
   useEffect(() => {
     if (!cafes || cafes.length === 0 || !navigator.onLine) return;
 
@@ -176,7 +176,6 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   }, [routeCoordinates, updateSvgOverlay]);
 
   const handleGetDirections = async (destLat: number, destLng: number, cafeName: string) => {
-    // Fall back to defaultCenter if user location is unavailable or denied
     const startPoint = userLocation || defaultCenter;
 
     setLoadingRoute(true);

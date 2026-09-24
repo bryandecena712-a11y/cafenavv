@@ -20,6 +20,8 @@ function routeKey(start: [number, number], end: [number, number]) {
 
 function isValidCoordinate(coordinate: [number, number]) {
   return (
+    Array.isArray(coordinate) &&
+    coordinate.length === 2 &&
     Number.isFinite(coordinate[0]) &&
     Number.isFinite(coordinate[1]) &&
     Math.abs(coordinate[0]) <= 180 &&
@@ -43,7 +45,7 @@ function cacheDirections(start: [number, number], end: [number, number], route: 
   try {
     localStorage.setItem(routeKey(start, end), JSON.stringify({ ...route, cachedAt: Date.now() }));
   } catch {
-    // Optional caching fallback
+    // Optional local storage fallback
   }
 }
 
@@ -56,13 +58,11 @@ export async function getDirections(
     throw new Error('Invalid map coordinates');
   }
 
-  // 1. Check local storage cache first
   const cached = getCachedDirections(start, end);
   if (cached) {
     return cached;
   }
 
-  // 2. If browser is offline, throw error immediately to trigger CafeMap fallback
   if (typeof window !== 'undefined' && !navigator.onLine) {
     throw new Error('Network offline');
   }
@@ -74,7 +74,7 @@ export async function getDirections(
   try {
     const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`OSRM request failed with status ${response.status}`);
-    
+
     const data = (await response.json()) as OsrmResponse;
     if (data.code !== 'Ok' || !data.routes?.[0]?.geometry?.coordinates?.length) {
       throw new Error(`OSRM returned ${data.code || 'no route'}`);
@@ -83,31 +83,32 @@ export async function getDirections(
     cacheDirections(start, end, data.routes[0]);
     return data.routes[0];
   } catch (error) {
-    console.warn('[CafeNav] Directions network fetch failed, using fallback:', error);
+    console.warn('[CafeNav] Directions request failed:', error);
     throw error;
   } finally {
     window.clearTimeout(timeout);
   }
 }
+
 export async function prefetchRoutes(userCoords: [number, number], cafes: any[]) {
-  if (typeof window === 'undefined' || !navigator.onLine || !cafes || cafes.length === 0) return;
+  if (typeof window === 'undefined' || !navigator.onLine || !cafes || !Array.isArray(cafes)) return;
+  if (!isValidCoordinate(userCoords)) return;
 
-  // Quietly fetch and store real road routes in local storage for each cafe
   for (const cafe of cafes) {
-    const lat = parseFloat(cafe.latitude || cafe.lat);
-    const lng = parseFloat(cafe.longitude || cafe.lng);
+    try {
+      const lat = parseFloat(cafe.latitude ?? cafe.lat);
+      const lng = parseFloat(cafe.longitude ?? cafe.lng);
 
-    if (isNaN(lat) || isNaN(lng)) continue;
+      if (isNaN(lat) || isNaN(lng)) continue;
+      const endCoords: [number, number] = [lng, lat];
 
-    const endCoords: [number, number] = [lng, lat];
+      if (!isValidCoordinate(endCoords)) continue;
 
-    // Check if route is already saved in local storage before fetching
-    if (!getCachedDirections(userCoords, endCoords)) {
-      try {
+      if (!getCachedDirections(userCoords, endCoords)) {
         await getDirections(userCoords, endCoords);
-      } catch (err) {
-        // Silently skip if network fails during prefetch
       }
+    } catch {
+      // Intentionally catch all prefetch errors so background requests never crash the UI
     }
   }
 }
