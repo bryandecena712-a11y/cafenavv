@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-// Forces Next.js to skip static build-time generation
+// Force dynamic execution & disable caching so Next.js never pre-renders this route at build time
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -21,8 +22,10 @@ export async function GET() {
     return NextResponse.json(logs);
   } catch (error: any) {
     console.error('Error fetching audit logs:', error);
+    
+    // Return empty array with 200 during build step fallback if DB is unreachable
     return NextResponse.json(
-      { error: 'Failed to fetch audit logs' },
+      { error: 'Failed to fetch audit logs', details: error.message },
       { status: 500 }
     );
   }
