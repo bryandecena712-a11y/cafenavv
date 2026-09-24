@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Increase build timeout for page data collection and serverless compilation
+    staticPageGenerationTimeout: 300,
+
+    // Externalize database drivers and native server libraries
+    serverExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai', 'prisma'],
+
     experimental: {
         serverComponentsExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai']
     },
