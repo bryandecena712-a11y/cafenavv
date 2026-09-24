@@ -43,6 +43,10 @@ function getStraightLineDistanceKm(startLat: number, startLng: number, endLat: n
   return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
+function routeCacheKey(startLat: number, startLng: number, endLat: number, endLng: number) {
+  return `cafenav_route_${startLat.toFixed(4)}_${startLng.toFixed(4)}_${endLat.toFixed(4)}_${endLng.toFixed(4)}`;
+}
+
 export default function CafeMap({ cafes }: CafeMapProps) {
   const mapRef = useRef<any>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -163,15 +167,16 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     setLoadingRoute(true);
 
     try {
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`
-      );
+        const routeUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`;
+        const response = await fetch(routeUrl);
+        if (!response.ok) throw new Error('OSRM route request failed');
 
       const data = await response.json();
 
       if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
         const coords: [number, number][] = route.geometry.coordinates;
+          localStorage.setItem(routeCacheKey(userLocation.lat, userLocation.lng, destLat, destLng), JSON.stringify(route));
 
         const baseDurationMin = route.duration / 60;
         const distanceKm = route.distance / 1000;
@@ -210,6 +215,19 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         alert('Could not calculate a driving route to this destination.');
       }
     } catch {
+      const cachedRoute = localStorage.getItem(routeCacheKey(userLocation.lat, userLocation.lng, destLat, destLng));
+      if (cachedRoute) {
+        const route = JSON.parse(cachedRoute);
+        setRouteInfo({
+          duration: `${Math.round(route.duration / 60)} min`,
+          distance: `${(route.distance / 1000).toFixed(1)} km`,
+          destinationName: cafeName,
+          trafficLevel: 'Cached route',
+        });
+        setRouteCoordinates(route.geometry.coordinates);
+        setLoadingRoute(false);
+        return;
+      }
       const distanceKm = getStraightLineDistanceKm(userLocation.lat, userLocation.lng, destLat, destLng);
       const estimatedMinutes = Math.max(1, Math.round(distanceKm / 0.5));
       setRouteInfo({

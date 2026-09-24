@@ -13,35 +13,48 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError('Check your email format.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be 6+ characters.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ username: name, email, password }),
       });
 
       const data = await response.json();
 
       if (response.status === 202 && data.queued) {
         localStorage.setItem('cafenav_pending_signup', JSON.stringify({ name, email, password, createdAt: Date.now() }));
-        setError('Signup saved offline. It will be submitted when you reconnect.');
+        setSuccess('Signup queued. Will complete when online.');
       } else if (response.ok) {
         router.push('/login');
       } else {
-        setError(data.error || 'Registration failed');
+        const message = String(data.error || '').toLowerCase();
+        setError(message.includes('already') || message.includes('registered') ? 'Email already exists.' : data.error || 'Signup failed.');
       }
     } catch (err) {
       try {
         localStorage.setItem('cafenav_pending_signup', JSON.stringify({ name, email, password, createdAt: Date.now() }));
       } catch {}
-      setError('Signup saved offline. It will be submitted when you reconnect.');
+      setSuccess('Signup queued. Will complete when online.');
     } finally {
       setLoading(false);
     }
@@ -72,6 +85,11 @@ export default function SignUpPage() {
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl text-center">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm p-3 rounded-xl text-center">
+              {success}
             </div>
           )}
 
