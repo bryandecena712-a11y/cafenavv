@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// Forza l'esecuzione dinamica a runtime per evitare errori durante la build su Vercel
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Fetch Pending Menu Suggestions for Admin
 export async function GET() {
   try {
