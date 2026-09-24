@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { prisma } from '@/app/lib/prisma';
 
+// Force dynamic execution & prevent static prerender build crashes
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Initialize the SDK. It automatically picks up GEMINI_API_KEY from the environment.
 const ai = new GoogleGenAI({});
 
@@ -39,11 +43,7 @@ export async function POST(request: Request) {
       Keep your answers friendly, concise, and helpful. DO NOT use markdown formatting (no asterisks for bolding, no hashes) because the chat interface only supports plain text. Use normal spacing and plain text instead.
     `;
 
-    // Construct the conversation history for the model
-    // The Gemini SDK expects a specific format or we can just pass the string.
-    // We will use the generateContent API with systemInstruction.
-    
-    // Convert messages to Gemini format. We assume messages is an array of { role: 'user' | 'model', content: string }
+    // Convert messages to Gemini format. We assume messages is an array of { role: 'user' | 'assistant', content: string }
     const formattedMessages = messages.map((m: any) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
