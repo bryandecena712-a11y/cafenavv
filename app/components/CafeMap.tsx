@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';
+import { getCachedDirections, getDirections } from '@/app/lib/directionsService';
 
 interface CafeMapProps {
   cafes: any[];
@@ -41,10 +42,6 @@ function getStraightLineDistanceKm(startLat: number, startLng: number, endLat: n
   const value = Math.sin(latitudeDelta / 2) ** 2 +
     Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * Math.sin(longitudeDelta / 2) ** 2;
   return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-}
-
-function routeCacheKey(startLat: number, startLng: number, endLat: number, endLng: number) {
-  return `cafenav_route_${startLat.toFixed(4)}_${startLng.toFixed(4)}_${endLat.toFixed(4)}_${endLng.toFixed(4)}`;
 }
 
 export default function CafeMap({ cafes }: CafeMapProps) {
@@ -166,17 +163,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
     setLoadingRoute(true);
 
+    const start: [number, number] = [userLocation.lng, userLocation.lat];
+    const end: [number, number] = [destLng, destLat];
+
     try {
-        const routeUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destLng},${destLat}?overview=full&geometries=geojson`;
-        const response = await fetch(routeUrl);
-        if (!response.ok) throw new Error('OSRM route request failed');
-
-      const data = await response.json();
-
-      if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const coords: [number, number][] = route.geometry.coordinates;
-          localStorage.setItem(routeCacheKey(userLocation.lat, userLocation.lng, destLat, destLng), JSON.stringify(route));
+      const route = await getDirections(start, end);
+      const coords: [number, number][] = route.geometry.coordinates;
 
         const baseDurationMin = route.duration / 60;
         const distanceKm = route.distance / 1000;
@@ -211,13 +203,10 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           bounds.extend([destLng, destLat]);
           map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
         }
-      } else {
-        alert('Could not calculate a driving route to this destination.');
-      }
     } catch {
-      const cachedRoute = localStorage.getItem(routeCacheKey(userLocation.lat, userLocation.lng, destLat, destLng));
+      const cachedRoute = getCachedDirections(start, end);
       if (cachedRoute) {
-        const route = JSON.parse(cachedRoute);
+        const route = cachedRoute;
         setRouteInfo({
           duration: `${Math.round(route.duration / 60)} min`,
           distance: `${(route.distance / 1000).toFixed(1)} km`,
@@ -237,6 +226,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         trafficLevel: 'Offline estimate',
       });
       setRouteCoordinates([[userLocation.lng, userLocation.lat], [destLng, destLat]]);
+      console.info('[CafeNav] No cached OSRM route; showing offline estimate.');
     } finally {
       setLoadingRoute(false);
     }
