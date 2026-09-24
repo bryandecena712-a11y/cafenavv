@@ -8,7 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
 
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';
-import { getCachedDirections, getDirections } from '@/app/lib/directionsService';
+import { getCachedDirections, getDirections, prefetchRoutes } from '@/app/lib/directionsService';
 
 interface CafeMapProps {
   cafes: any[];
@@ -83,6 +83,13 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       setUserLocation(defaultCenter);
     }
   }, []);
+
+  // Pre-cache road routes for all cafes when online and user location is available
+  useEffect(() => {
+    if (userLocation && cafes && cafes.length > 0 && typeof window !== 'undefined' && navigator.onLine) {
+      prefetchRoutes([userLocation.lng, userLocation.lat], cafes);
+    }
+  }, [userLocation, cafes]);
 
   // Helper to extract coordinates safely from any cafe object
   const getCafeCoords = (cafe: any): { lat: number; lng: number } | null => {

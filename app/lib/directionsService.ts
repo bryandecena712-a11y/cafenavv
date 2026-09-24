@@ -89,3 +89,25 @@ export async function getDirections(
     window.clearTimeout(timeout);
   }
 }
+export async function prefetchRoutes(userCoords: [number, number], cafes: any[]) {
+  if (typeof window === 'undefined' || !navigator.onLine || !cafes || cafes.length === 0) return;
+
+  // Quietly fetch and store real road routes in local storage for each cafe
+  for (const cafe of cafes) {
+    const lat = parseFloat(cafe.latitude || cafe.lat);
+    const lng = parseFloat(cafe.longitude || cafe.lng);
+
+    if (isNaN(lat) || isNaN(lng)) continue;
+
+    const endCoords: [number, number] = [lng, lat];
+
+    // Check if route is already saved in local storage before fetching
+    if (!getCachedDirections(userCoords, endCoords)) {
+      try {
+        await getDirections(userCoords, endCoords);
+      } catch (err) {
+        // Silently skip if network fails during prefetch
+      }
+    }
+  }
+}
