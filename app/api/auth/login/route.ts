@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// Force dynamic runtime execution to prevent Vercel build prerender crashes
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
@@ -39,4 +43,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Database query failed: ' + error.message }, { status: 500 });
   }
 }
-
