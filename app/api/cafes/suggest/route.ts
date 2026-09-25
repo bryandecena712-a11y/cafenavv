@@ -26,35 +26,51 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse coordinates safely
-    const parsedLat = parseFloat(lat ?? latitude ?? 14.2117);
-    const parsedLng = parseFloat(lng ?? longitude ?? 121.1654);
+    // Safely parse numerical coordinates
+    const rawLat = parseFloat(lat ?? latitude ?? 14.2117);
+    const rawLng = parseFloat(lng ?? longitude ?? 121.1654);
+    const finalLat = isNaN(rawLat) ? 14.2117 : rawLat;
+    const finalLng = isNaN(rawLng) ? 121.1654 : rawLng;
 
-    const finalLat = isNaN(parsedLat) ? 14.2117 : parsedLat;
-    const finalLng = isNaN(parsedLng) ? 121.1654 : parsedLng;
+    // Standard fallback image if image_url is missing or invalid text like "test 5"
+    const validImage = image_url && String(image_url).trim().startsWith('http')
+      ? String(image_url).trim()
+      : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    // Build base payload with proper fallbacks
-    const dataPayload: any = {
+    // Construct clean payload safely without injecting unknown columns
+    const dataPayload: Record<string, any> = {
       name: String(name).trim(),
       location: String(location).trim(),
       description: description ? String(description).trim() : 'No description provided',
       price_level: price_level || '₱₱',
       vibe: vibe || 'chill',
-      image_url: image_url && String(image_url).trim().startsWith('http')
-        ? String(image_url).trim()
-        : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+      image_url: validImage,
       status: 'PENDING',
-      lat: finalLat,
-      lng: finalLng,
-      latitude: finalLat,
-      longitude: finalLng,
+      rating: 0,
     };
 
-    const newSuggestion = await prisma.cafes.create({
-      data: dataPayload,
-    });
+    // Try creating with lat/lng first; fallback to latitude/longitude if model demands it
+    let newCafe;
+    try {
+      newCafe = await prisma.cafes.create({
+        data: {
+          ...dataPayload,
+          lat: finalLat,
+          lng: finalLng,
+        },
+      });
+    } catch (dbErr: any) {
+      // Retry with latitude / longitude schema key naming
+      newCafe = await prisma.cafes.create({
+        data: {
+          ...dataPayload,
+          latitude: finalLat,
+          longitude: finalLng,
+        },
+      });
+    }
 
-    return NextResponse.json(newSuggestion, { status: 201 });
+    return NextResponse.json(newCafe, { status: 201 });
   } catch (error: any) {
     console.error('Failed to submit cafe suggestion:', error);
     return NextResponse.json(
