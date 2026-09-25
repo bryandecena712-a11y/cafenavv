@@ -1,27 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 export default function SuggestPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  
+
   const [suggestionType, setSuggestionType] = useState<'cafe' | 'product'>('cafe');
   const [cafes, setCafes] = useState<any[]>([]);
 
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [isScraping, setIsScraping] = useState(false);
 
+  // Maplibre Map State
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+
+  const [pinnedPosition, setPinnedPosition] = useState<{ lat: number; lng: number }>({
+    lat: 14.2117,
+    lng: 121.1654,
+  });
+
   const [cafeFormData, setCafeFormData] = useState({
     name: '',
-    location: '',
+    location: 'Calamba, Laguna',
     description: '',
     price_level: '₱₱',
     vibe: 'chill',
-    image_url: ''
+    image_url: '',
   });
 
   const [productFormData, setProductFormData] = useState({
@@ -29,12 +41,13 @@ export default function SuggestPage() {
     name: '',
     price: '',
     description: '',
-    image_url: ''
+    image_url: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Fetch cafes list
   useEffect(() => {
     const fetchCafes = async () => {
       try {
@@ -53,6 +66,77 @@ export default function SuggestPage() {
 
     fetchCafes();
   }, []);
+
+  // Initialize MapLibre GL instance
+  useEffect(() => {
+    if (suggestionType !== 'cafe' || !mapContainerRef.current) return;
+
+    if (!mapRef.current) {
+      const map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: {
+          version: 8,
+          sources: {
+            'osm-tiles': {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '&copy; OpenStreetMap contributors',
+            },
+          },
+          layers: [
+            {
+              id: 'osm-tiles-layer',
+              type: 'raster',
+              source: 'osm-tiles',
+            },
+          ],
+        },
+        center: [pinnedPosition.lng, pinnedPosition.lat],
+        zoom: 14,
+      });
+
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+      // Create Custom Orange Marker Element matching Admin Map
+      const el = document.createElement('div');
+      el.className = 'custom-map-pin';
+      el.style.backgroundColor = '#f59e0b';
+      el.style.width = '22px';
+      el.style.height = '22px';
+      el.style.borderRadius = '50%';
+      el.style.border = '3px solid #ffffff';
+      el.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.9)';
+      el.style.cursor = 'pointer';
+
+      // Initial Marker
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([pinnedPosition.lng, pinnedPosition.lat])
+        .addTo(map);
+
+      markerRef.current = marker;
+
+      // Click event to update pin on MapLibre map
+      map.on('click', (e) => {
+        const { lng, lat } = e.lngLat;
+        marker.setLngLat([lng, lat]);
+        setPinnedPosition({ lat, lng });
+        setCafeFormData((prev) => ({
+          ...prev,
+          location: `Pinned: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        }));
+      });
+
+      mapRef.current = map;
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [suggestionType]);
 
   const handleAutoFill = async () => {
     if (!scrapeUrl) {
@@ -114,7 +198,10 @@ export default function SuggestPage() {
         <span className="text-4xl mb-4">🔒</span>
         <h1 className="text-2xl font-bold mb-2">Login Required</h1>
         <p className="text-zinc-400 mb-6">You must be logged in to make suggestions.</p>
-        <button onClick={() => router.push('/login')} className="bg-amber-500 text-zinc-950 font-medium px-6 py-2 rounded-full hover:bg-amber-400 transition-colors cursor-pointer">
+        <button
+          onClick={() => router.push('/login')}
+          className="bg-amber-500 text-zinc-950 font-medium px-6 py-2 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
+        >
           Go to Login
         </button>
       </div>
@@ -124,14 +211,14 @@ export default function SuggestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       let endpoint = '';
       let payload = {};
 
       if (suggestionType === 'cafe') {
-        if (!cafeFormData.name.trim() || !cafeFormData.location.trim()) {
-          alert('Please fill in both Cafe Name and Location.');
+        if (!cafeFormData.name.trim()) {
+          alert('Please fill in the Cafe Name.');
           setIsSubmitting(false);
           return;
         }
@@ -139,12 +226,14 @@ export default function SuggestPage() {
         endpoint = '/api/cafes';
         payload = {
           name: cafeFormData.name.trim(),
-          location: cafeFormData.location.trim(),
+          location: cafeFormData.location.trim() || 'Pinned Location',
+          latitude: pinnedPosition.lat,
+          longitude: pinnedPosition.lng,
           description: cafeFormData.description.trim() || 'No description provided',
           price_level: cafeFormData.price_level || '₱₱',
           vibe: cafeFormData.vibe || 'chill',
           image_url: cafeFormData.image_url.trim() || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
-          status: 'PENDING'
+          status: 'PENDING',
         };
       } else {
         if (!productFormData.cafeId || !productFormData.name.trim() || !productFormData.price) {
@@ -160,19 +249,19 @@ export default function SuggestPage() {
           price: parseFloat(productFormData.price) || 0,
           description: productFormData.description.trim() || 'No description provided',
           image_url: productFormData.image_url.trim() || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-          status: 'PENDING'
+          status: 'PENDING',
         };
       }
 
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
         setSuccess(true);
-        setCafeFormData({ name: '', location: '', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
+        setCafeFormData({ name: '', location: 'Calamba, Laguna', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
         setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
         setScrapeUrl('');
       } else {
@@ -206,8 +295,8 @@ export default function SuggestPage() {
         <p className="text-zinc-400 max-w-md mb-8">
           Your submission has been received and routed to our admin queue for real-time review!
         </p>
-        <button 
-          onClick={() => setSuccess(false)} 
+        <button
+          onClick={() => setSuccess(false)}
           className="bg-amber-500 text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
         >
           Suggest Another Item
@@ -218,6 +307,7 @@ export default function SuggestPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6 relative">
+      {/* Top Left Navigation Button */}
       <div className="absolute top-6 left-6 z-20">
         <Link
           href="/"
@@ -237,7 +327,7 @@ export default function SuggestPage() {
             ✨ Auto-Fill details from web link
           </label>
           <div className="flex gap-2">
-            <input 
+            <input
               type="url"
               placeholder="Paste a website or social URL..."
               value={scrapeUrl}
@@ -281,44 +371,51 @@ export default function SuggestPage() {
             <>
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Cafe Name *</label>
-                <input 
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={cafeFormData.name}
-                  onChange={e => setCafeFormData({...cafeFormData, name: e.target.value})}
+                  onChange={(e) => setCafeFormData({ ...cafeFormData, name: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
                   placeholder="e.g. Starbucks"
                 />
               </div>
-              
+
+              {/* MAPLIBRE GL PIN TO MAP CONTAINER */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Location / City *</label>
-                <input 
-                  required
-                  type="text" 
-                  value={cafeFormData.location}
-                  onChange={e => setCafeFormData({...cafeFormData, location: e.target.value})}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
-                  placeholder="e.g. Manila"
-                />
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-amber-400">
+                    📍 Pin to Map *
+                  </label>
+                  <span className="text-xs text-zinc-400">
+                    Lat: {pinnedPosition.lat.toFixed(4)}, Lng: {pinnedPosition.lng.toFixed(4)}
+                  </span>
+                </div>
+
+                <div className="w-full h-64 rounded-xl overflow-hidden border border-zinc-800 relative bg-zinc-950">
+                  <div ref={mapContainerRef} className="w-full h-full" />
+                  <div className="absolute top-2 left-2 z-10 bg-zinc-900/90 border border-zinc-700 text-xs text-amber-300 px-3 py-1 rounded-md shadow pointer-events-none">
+                    Click anywhere on the map to pin location
+                  </div>
+                </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Description</label>
-                <textarea 
+                <textarea
                   value={cafeFormData.description}
-                  onChange={e => setCafeFormData({...cafeFormData, description: e.target.value})}
+                  onChange={(e) => setCafeFormData({ ...cafeFormData, description: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white h-24 resize-none"
                   placeholder="What makes this place special?"
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-2">Price Level</label>
-                  <select 
+                  <select
                     value={cafeFormData.price_level}
-                    onChange={e => setCafeFormData({...cafeFormData, price_level: e.target.value})}
+                    onChange={(e) => setCafeFormData({ ...cafeFormData, price_level: e.target.value })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none"
                   >
                     <option value="₱">₱ (Affordable)</option>
@@ -328,9 +425,9 @@ export default function SuggestPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-2">Vibe</label>
-                  <select 
+                  <select
                     value={cafeFormData.vibe}
-                    onChange={e => setCafeFormData({...cafeFormData, vibe: e.target.value})}
+                    onChange={(e) => setCafeFormData({ ...cafeFormData, vibe: e.target.value })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none"
                   >
                     <option value="chill">Chill</option>
@@ -339,13 +436,13 @@ export default function SuggestPage() {
                   </select>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Image URL</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={cafeFormData.image_url}
-                  onChange={e => setCafeFormData({...cafeFormData, image_url: e.target.value})}
+                  onChange={(e) => setCafeFormData({ ...cafeFormData, image_url: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
                   placeholder="https://example.com/image.jpg"
                 />
@@ -355,10 +452,10 @@ export default function SuggestPage() {
             <>
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Select Cafe *</label>
-                <select 
+                <select
                   required
                   value={productFormData.cafeId}
-                  onChange={e => setProductFormData({...productFormData, cafeId: e.target.value})}
+                  onChange={(e) => setProductFormData({ ...productFormData, cafeId: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none"
                 >
                   {cafes.map((cafe) => (
@@ -371,11 +468,11 @@ export default function SuggestPage() {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Menu Item Name *</label>
-                <input 
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={productFormData.name}
-                  onChange={e => setProductFormData({...productFormData, name: e.target.value})}
+                  onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
                   placeholder="e.g. Spanish Latte"
                 />
@@ -383,11 +480,11 @@ export default function SuggestPage() {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Price (₱) *</label>
-                <input 
+                <input
                   required
-                  type="number" 
+                  type="number"
                   value={productFormData.price}
-                  onChange={e => setProductFormData({...productFormData, price: e.target.value})}
+                  onChange={(e) => setProductFormData({ ...productFormData, price: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
                   placeholder="150"
                 />
@@ -395,9 +492,9 @@ export default function SuggestPage() {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Description</label>
-                <textarea 
+                <textarea
                   value={productFormData.description}
-                  onChange={e => setProductFormData({...productFormData, description: e.target.value})}
+                  onChange={(e) => setProductFormData({ ...productFormData, description: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white h-24 resize-none"
                   placeholder="Describe ingredients or size"
                 />
@@ -405,10 +502,10 @@ export default function SuggestPage() {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Image URL</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={productFormData.image_url}
-                  onChange={e => setProductFormData({...productFormData, image_url: e.target.value})}
+                  onChange={(e) => setProductFormData({ ...productFormData, image_url: e.target.value })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
                   placeholder="https://example.com/item.jpg"
                 />
@@ -416,9 +513,9 @@ export default function SuggestPage() {
             </>
           )}
 
-          <button 
+          <button
             disabled={isSubmitting}
-            type="submit" 
+            type="submit"
             className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-4 cursor-pointer"
           >
             {isSubmitting ? 'Submitting...' : `Submit ${suggestionType === 'cafe' ? 'Cafe' : 'Menu Item'} Suggestion`}
