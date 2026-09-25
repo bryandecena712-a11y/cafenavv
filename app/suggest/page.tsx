@@ -226,15 +226,21 @@ export default function SuggestPage() {
         }
 
         endpoint = '/api/cafes';
+        
+        // Compatible with both lat/lng and latitude/longitude schema representations
         payload = {
           name: cafeFormData.name.trim(),
-          location: cafeFormData.location.trim() || 'Pinned Location',
-          latitude: pinnedPosition.lat,
-          longitude: pinnedPosition.lng,
+          location: cafeFormData.location.trim() || 'Calamba, Laguna',
+          lat: parseFloat(pinnedPosition.lat.toFixed(6)),
+          lng: parseFloat(pinnedPosition.lng.toFixed(6)),
+          latitude: parseFloat(pinnedPosition.lat.toFixed(6)),
+          longitude: parseFloat(pinnedPosition.lng.toFixed(6)),
           description: cafeFormData.description.trim() || 'No description provided',
           price_level: cafeFormData.price_level || '₱₱',
+          priceLevel: cafeFormData.price_level || '₱₱',
           vibe: cafeFormData.vibe || 'chill',
           image_url: cafeFormData.image_url.trim() || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+          imageUrl: cafeFormData.image_url.trim() || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
           status: 'PENDING',
         };
       } else {
@@ -246,11 +252,12 @@ export default function SuggestPage() {
 
         endpoint = '/api/admin/products';
         payload = {
-          cafeId: productFormData.cafeId,
+          cafeId: parseInt(productFormData.cafeId) || productFormData.cafeId,
           name: productFormData.name.trim(),
           price: parseFloat(productFormData.price) || 0,
           description: productFormData.description.trim() || 'No description provided',
           image_url: productFormData.image_url.trim() || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          imageUrl: productFormData.image_url.trim() || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           status: 'PENDING',
         };
       }
@@ -261,18 +268,20 @@ export default function SuggestPage() {
         body: JSON.stringify(payload),
       });
 
+      const responseData = await res.json().catch(() => ({}));
+
       if (res.ok) {
         setSuccess(true);
         setCafeFormData({ name: '', location: 'Calamba, Laguna', description: '', price_level: '₱₱', vibe: 'chill', image_url: '' });
         setProductFormData({ cafeId: cafes[0]?.id?.toString() || '', name: '', price: '', description: '', image_url: '' });
         setScrapeUrl('');
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        alert(errorData.error || errorData.message || 'Failed to submit suggestion.');
+        const errorMsg = responseData.error || responseData.message || responseData.details || 'Failed to submit cafe suggestion';
+        alert(`Error: ${errorMsg}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Submission error:', err);
-      alert('An error occurred during submission.');
+      alert('An unexpected network error occurred while submitting.');
     } finally {
       setIsSubmitting(false);
     }
