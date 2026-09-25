@@ -25,20 +25,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Status is required' }, { status: 400 });
     }
 
-    const updatedCafe = await prisma.cafes.update({
+    const cafe = await prisma.cafes.update({
       where: { id },
-      data: { 
-        status: String(status).toUpperCase().trim() 
-      },
+      data: { status },
     });
 
-    return NextResponse.json(updatedCafe);
-  } catch (error: any) {
+    return NextResponse.json(cafe);
+  } catch (error) {
     console.error('Error updating cafe status:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to update status' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
   }
 }
 
@@ -54,26 +49,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
 
-    // Safely remove associated reviews and products first to maintain referential integrity
-    await prisma.reviews.deleteMany({
-      where: { cafe_id: id },
-    });
-
-    await prisma.products.deleteMany({
-      where: { cafe_id: id },
-    });
-
-    // Delete the target cafe
     await prisma.cafes.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true, message: 'Cafe and related items deleted successfully' });
-  } catch (error: any) {
+    return NextResponse.json({ success: true });
+  } catch (error) {
     console.error('Error deleting cafe:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to delete cafe' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete cafe' }, { status: 500 });
   }
 }
