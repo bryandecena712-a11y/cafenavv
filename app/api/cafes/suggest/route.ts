@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-// Force dynamic execution & prevent Vercel static build evaluation crashes
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
+    const body = await request.json();
     const { 
       name, 
       location, 
@@ -15,40 +13,53 @@ export async function POST(request: Request) {
       price_level, 
       vibe, 
       image_url, 
-      lat, 
-      lng, 
       latitude, 
-      longitude 
-    } = data;
+      longitude, 
+      lat, 
+      lng 
+    } = body;
 
     if (!name || !location) {
-      return NextResponse.json({ error: 'Name and location are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Name and location are required fields' }, 
+        { status: 400 }
+      );
     }
 
-    // Extract coordinate priority (handles both lat/lng and latitude/longitude parameter names)
-    const rawLat = lat ?? latitude;
-    const rawLng = lng ?? longitude;
+    // Parse coordinates safely
+    const parsedLat = parseFloat(lat ?? latitude ?? 14.2117);
+    const parsedLng = parseFloat(lng ?? longitude ?? 121.1654);
 
-    const parsedLat = rawLat !== undefined && rawLat !== null ? parseFloat(rawLat) : null;
-    const parsedLng = rawLng !== undefined && rawLng !== null ? parseFloat(rawLng) : null;
+    const finalLat = isNaN(parsedLat) ? 14.2117 : parsedLat;
+    const finalLng = isNaN(parsedLng) ? 121.1654 : parsedLng;
 
-    const cafe = await prisma.cafes.create({
-      data: {
-        name,
-        location,
-        description: description || 'No description provided',
-        price_level: price_level || '₱₱',
-        vibe: vibe || 'chill',
-        image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
-        lat: parsedLat,
-        lng: parsedLng,
-        status: 'PENDING',
-      },
+    // Build base payload with proper fallbacks
+    const dataPayload: any = {
+      name: String(name).trim(),
+      location: String(location).trim(),
+      description: description ? String(description).trim() : 'No description provided',
+      price_level: price_level || '₱₱',
+      vibe: vibe || 'chill',
+      image_url: image_url && String(image_url).trim().startsWith('http')
+        ? String(image_url).trim()
+        : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+      status: 'PENDING',
+      lat: finalLat,
+      lng: finalLng,
+      latitude: finalLat,
+      longitude: finalLng,
+    };
+
+    const newSuggestion = await prisma.cafes.create({
+      data: dataPayload,
     });
 
-    return NextResponse.json(cafe, { status: 201 });
-  } catch (error) {
-    console.error('Error suggesting cafe:', error);
-    return NextResponse.json({ error: 'Failed to suggest cafe' }, { status: 500 });
+    return NextResponse.json(newSuggestion, { status: 201 });
+  } catch (error: any) {
+    console.error('Failed to submit cafe suggestion:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to submit cafe suggestion' },
+      { status: 500 }
+    );
   }
 }
