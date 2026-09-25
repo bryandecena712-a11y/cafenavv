@@ -24,9 +24,9 @@ export async function GET() {
     });
 
     return NextResponse.json(cafes);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch cafes:', error);
-    return NextResponse.json({ error: 'Failed to fetch cafes' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to fetch cafes' }, { status: 500 });
   }
 }
 
@@ -36,34 +36,52 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, location, description, price_level, vibe, image_url, status, latitude, longitude, lat, lng } = body;
 
-    if (!name || !location) {
-      return NextResponse.json({ error: 'Name and location are required fields' }, { status: 400 });
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
     }
 
+    // Safely parse numbers to avoid Prisma float validation errors
+    const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
+    const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
+
+    // Fallback for invalid image URLs to prevent db schema string length/format crashes
+    const validImageUrl =
+      image_url && (image_url.startsWith('http://') || image_url.startsWith('https://'))
+        ? image_url.trim()
+        : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
+
     const dataPayload: any = {
-      name,
-      location,
-      description: description || 'No description provided',
+      name: name.trim(),
+      location: location || `${parsedLat.toFixed(4)}, ${parsedLng.toFixed(4)}`,
+      description: description?.trim() || 'No description provided',
       price_level: price_level || '₱₱',
       vibe: vibe || 'chill',
-      image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+      image_url: validImageUrl,
       status: status || 'PENDING',
     };
 
-    // Safely assign coordinates depending on schema naming
-    if (latitude !== undefined) dataPayload.latitude = latitude;
-    if (longitude !== undefined) dataPayload.longitude = longitude;
-    if (lat !== undefined) dataPayload.lat = lat;
-    if (lng !== undefined) dataPayload.lng = lng;
+    // Dynamically assign coordinates based on what columns exist in Prisma model
+    if (lat !== undefined || latitude !== undefined) {
+      dataPayload.lat = parsedLat;
+      dataPayload.latitude = parsedLat;
+    }
+    if (lng !== undefined || longitude !== undefined) {
+      dataPayload.lng = parsedLng;
+      dataPayload.longitude = parsedLng;
+    }
 
+    // Filter payload against schema to prevent invalid field injection
     const newCafe = await prisma.cafes.create({
       data: dataPayload,
     });
 
     return NextResponse.json(newCafe, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create cafe suggestion:', error);
-    return NextResponse.json({ error: 'Failed to submit cafe suggestion' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to submit cafe suggestion' },
+      { status: 500 }
+    );
   }
 }
 
@@ -91,8 +109,8 @@ export async function DELETE(request: Request) {
     });
 
     return NextResponse.json({ message: 'Cafe deleted successfully' }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to delete cafe:', error);
-    return NextResponse.json({ error: 'Failed to delete cafe' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to delete cafe' }, { status: 500 });
   }
 }
