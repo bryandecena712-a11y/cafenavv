@@ -52,6 +52,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
   const [geocodedCafes, setGeocodedCafes] = useState<{ [key: string]: { lat: number; lng: number } }>({});
+  const [isLocating, setIsLocating] = useState(false);
 
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
   const [svgPath, setSvgPath] = useState<string>('');
@@ -63,7 +64,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
-  // Real-time location tracking
+  // Background position watch
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
@@ -85,8 +86,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 3000,
+        timeout: 8000,
+        maximumAge: 5000,
       }
     );
 
@@ -95,31 +96,52 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     };
   }, []);
 
-  // One-click real-time position locate and flyTo
+  // Instant fast-response location centering
   const handleFindMyLocation = () => {
+    setIsLocating(true);
+
+    const panToCoords = (lat: number, lng: number) => {
+      if (mapRef.current) {
+        const map = mapRef.current.getMap();
+        if (map) {
+          map.easeTo({
+            center: [lng, lat],
+            zoom: 16,
+            duration: 500, // Fast 0.5s transition
+            essential: true,
+          });
+        }
+      }
+    };
+
+    // Immediate action: If we already have a recent location state, start panning instantly!
+    if (userLocation) {
+      panToCoords(userLocation.lat, userLocation.lng);
+    }
+
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
           setUserLocation(loc);
-          if (mapRef.current) {
-            const map = mapRef.current.getMap();
-            if (map) {
-              map.flyTo({ center: [loc.lng, loc.lat], zoom: 16, essential: true });
-            }
-          }
+          panToCoords(loc.lat, loc.lng);
+          setIsLocating(false);
         },
         (error) => {
-          console.warn('getCurrentPosition failed:', error);
-          if (userLocation && mapRef.current) {
-            const map = mapRef.current.getMap();
-            if (map) {
-              map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 16, essential: true });
-            }
+          console.warn('getCurrentPosition error:', error);
+          if (userLocation) {
+            panToCoords(userLocation.lat, userLocation.lng);
           }
+          setIsLocating(false);
         },
-        { enableHighAccuracy: true, timeout: 5000 }
+        {
+          enableHighAccuracy: true,
+          timeout: 4000,
+          maximumAge: 5000, // Instant return if location fetched in last 5 secs
+        }
       );
+    } else {
+      setIsLocating(false);
     }
   };
 
@@ -290,7 +312,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   return (
     <div className="w-full relative flex flex-col items-center">
       <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
-        {/* Route Details overlay */}
+        {/* Route Info Overlay */}
         {routeInfo && (
           <div style={{ zIndex: 9999 }} className="absolute top-4 left-4 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
@@ -323,15 +345,17 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           </div>
         )}
 
-        {/* Floating "Find My Location" Button guaranteed on Desktop & Mobile */}
+        {/* High-Performance Instant Response "Find My Location" Button */}
         <button
           onClick={handleFindMyLocation}
           type="button"
+          disabled={isLocating}
           title="Find My Location"
           style={{ zIndex: 9999 }}
-          className="absolute bottom-6 right-6 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold cursor-pointer active:scale-95 transition-all border border-amber-300/50"
+          className="absolute bottom-6 right-6 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold cursor-pointer active:scale-95 transition-all border border-amber-300/50 disabled:opacity-80"
         >
-          <span className="text-sm">📍</span> Find My Location
+          <span className={`text-sm ${isLocating ? 'animate-spin' : ''}`}>📍</span>
+          {isLocating ? 'Locating...' : 'Find My Location'}
         </button>
 
         {svgPath && (
@@ -373,7 +397,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           >
             <NavigationControl position="top-right" />
 
-            {/* Live Location Marker */}
+            {/* User Real-Time Location Marker */}
             {userLocation && (
               <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
                 <div className="relative flex items-center justify-center">
