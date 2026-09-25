@@ -24,9 +24,9 @@ export async function GET() {
     });
 
     return NextResponse.json(cafes);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch cafes:', error);
-    return NextResponse.json({ error: 'Failed to fetch cafes' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to fetch cafes' }, { status: 500 });
   }
 }
 
@@ -40,30 +40,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name and location are required fields' }, { status: 400 });
     }
 
+    // Safely calculate numerical coordinates
+    const finalLat = parseFloat(lat ?? latitude ?? 14.2117);
+    const finalLng = parseFloat(lng ?? longitude ?? 121.1654);
+
     const dataPayload: any = {
-      name,
-      location,
-      description: description || 'No description provided',
+      name: String(name).trim(),
+      location: String(location).trim(),
+      description: description ? String(description).trim() : 'No description provided',
       price_level: price_level || '₱₱',
       vibe: vibe || 'chill',
-      image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+      image_url: image_url ? String(image_url).trim() : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
       status: status || 'PENDING',
     };
 
-    // Safely assign coordinates depending on schema naming
-    if (latitude !== undefined) dataPayload.latitude = latitude;
-    if (longitude !== undefined) dataPayload.longitude = longitude;
-    if (lat !== undefined) dataPayload.lat = lat;
-    if (lng !== undefined) dataPayload.lng = lng;
+    // Assign latitude/longitude fields dynamically without crashing if one style isn't in Prisma
+    if (!isNaN(finalLat) && !isNaN(finalLng)) {
+      if ('latitude' in prisma.cafes.fields) dataPayload.latitude = finalLat;
+      if ('longitude' in prisma.cafes.fields) dataPayload.longitude = finalLng;
+      if ('lat' in prisma.cafes.fields) dataPayload.lat = finalLat;
+      if ('lng' in prisma.cafes.fields) dataPayload.lng = finalLng;
+    }
 
     const newCafe = await prisma.cafes.create({
       data: dataPayload,
     });
 
     return NextResponse.json(newCafe, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create cafe suggestion:', error);
-    return NextResponse.json({ error: 'Failed to submit cafe suggestion' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to submit cafe suggestion' },
+      { status: 500 }
+    );
   }
 }
 
@@ -91,8 +100,8 @@ export async function DELETE(request: Request) {
     });
 
     return NextResponse.json({ message: 'Cafe deleted successfully' }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to delete cafe:', error);
-    return NextResponse.json({ error: 'Failed to delete cafe' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to delete cafe' }, { status: 500 });
   }
 }
