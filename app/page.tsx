@@ -7,9 +7,16 @@ import CafeDirectory from './components/CafeDirectory';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const cafes = await prisma.cafes.findMany({
-    where: { status: 'APPROVED' }
-  });
+  let cafes: any[] = [];
+
+  try {
+    cafes = await prisma.cafes.findMany({
+      where: { status: 'APPROVED' },
+    });
+  } catch (error) {
+    console.error('Failed to fetch cafes from Prisma database:', error);
+    cafes = [];
+  }
 
   return (
     <main className="flex-1 flex flex-col bg-zinc-950 text-zinc-50 overflow-hidden relative">
