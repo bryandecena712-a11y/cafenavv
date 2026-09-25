@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
-import maplibregl from 'maplibre-gl';
+import maplibregl, { Map, Marker, MapLayerMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 export default function SuggestPage() {
@@ -19,8 +19,8 @@ export default function SuggestPage() {
 
   // Maplibre Map State
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
 
   const [pinnedPosition, setPinnedPosition] = useState<{ lat: number; lng: number }>({
     lat: 14.2117,
@@ -98,7 +98,7 @@ export default function SuggestPage() {
 
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-      // Create Custom Orange Marker Element matching Admin Map
+      // Custom Orange Marker Element
       const el = document.createElement('div');
       el.className = 'custom-map-pin';
       el.style.backgroundColor = '#f59e0b';
@@ -116,8 +116,8 @@ export default function SuggestPage() {
 
       markerRef.current = marker;
 
-      // Click event to update pin on MapLibre map
-      map.on('click', (e) => {
+      // Click event to update pin on MapLibre map with explicit TypeScript typing
+      map.on('click', (e: MapLayerMouseEvent) => {
         const { lng, lat } = e.lngLat;
         marker.setLngLat([lng, lat]);
         setPinnedPosition({ lat, lng });
