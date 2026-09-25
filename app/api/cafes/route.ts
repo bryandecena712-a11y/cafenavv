@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, location, description, price_level, vibe, image_url, status, latitude, longitude, lat, lng } = body;
+    const { name, location, description, price_level, vibe, image_url, status, lat, lng, latitude, longitude } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
@@ -46,37 +46,22 @@ export async function POST(request: Request) {
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    // Construct clean payload matching standard schema fields
+    // DO NOT pass latitude/longitude keys directly here because the DB schema lacks those columns
     const dataPayload: any = {
       name: name.trim(),
-      location: location || `${parsedLat.toFixed(4)}, ${parsedLng.toFixed(4)}`,
+      location: location || `${parsedLat}, ${parsedLng}`,
       description: description?.trim() || 'No description provided',
       price_level: price_level || '₱₱',
       vibe: vibe || 'chill',
       image_url: validImageUrl,
       status: status || 'PENDING',
-      lat: parsedLat,
-      lng: parsedLng,
     };
 
-    // Attempt creation with standard lat/lng
-    try {
-      const newCafe = await prisma.cafes.create({
-        data: dataPayload,
-      });
-      return NextResponse.json(newCafe, { status: 201 });
-    } catch (prismaErr: any) {
-      // Fallback if schema uses latitude / longitude instead of lat / lng
-      delete dataPayload.lat;
-      delete dataPayload.lng;
-      dataPayload.latitude = parsedLat;
-      dataPayload.longitude = parsedLng;
+    const newCafe = await prisma.cafes.create({
+      data: dataPayload,
+    });
 
-      const newCafeFallback = await prisma.cafes.create({
-        data: dataPayload,
-      });
-      return NextResponse.json(newCafeFallback, { status: 201 });
-    }
+    return NextResponse.json(newCafe, { status: 201 });
   } catch (error: any) {
     console.error('Failed to create cafe suggestion:', error);
     return NextResponse.json(
