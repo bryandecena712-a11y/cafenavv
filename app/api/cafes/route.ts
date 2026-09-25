@@ -54,12 +54,11 @@ export async function POST(request: Request) {
       status: status || 'PENDING',
     };
 
-    // Assign latitude/longitude fields dynamically without crashing if one style isn't in Prisma
     if (!isNaN(finalLat) && !isNaN(finalLng)) {
-      if ('latitude' in prisma.cafes.fields) dataPayload.latitude = finalLat;
-      if ('longitude' in prisma.cafes.fields) dataPayload.longitude = finalLng;
-      if ('lat' in prisma.cafes.fields) dataPayload.lat = finalLat;
-      if ('lng' in prisma.cafes.fields) dataPayload.lng = finalLng;
+      dataPayload.latitude = finalLat;
+      dataPayload.longitude = finalLng;
+      dataPayload.lat = finalLat;
+      dataPayload.lng = finalLng;
     }
 
     const newCafe = await prisma.cafes.create({

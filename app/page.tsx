@@ -16,8 +16,11 @@ export default async function Home() {
           { status: 'ACTIVE' },
           { status: 'APPROVED' },
           { status: 'active' },
-          { status: 'approved' }
-        ]
+          { status: 'approved' },
+        ],
+      },
+      orderBy: {
+        id: 'desc',
       },
     });
   } catch (error) {
@@ -31,7 +34,7 @@ export default async function Home() {
       <section className="relative w-full pt-16 sm:pt-24 lg:pt-40 pb-16 sm:pb-24 lg:pb-32">
         {/* Subtle background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
-        
+
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
           <div className="flex flex-col items-start lg:col-span-6 xl:col-span-5">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-medium tracking-wide text-zinc-400 mb-8">
@@ -46,8 +49,8 @@ export default async function Home() {
               Let us guide you to great coffee. Discover, rate, and match with the perfect local coffee shops designed around how you like to spend your time.
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-              <Link 
-                href="/offers" 
+              <Link
+                href="/offers"
                 className="bg-amber-500 text-zinc-950 font-medium px-8 py-3.5 rounded-full text-center hover:bg-amber-400 hover:-translate-y-[1px] active:scale-[0.98] transition-all"
               >
                 Take the Survey
@@ -60,7 +63,7 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-          
+
           {/* Right Asset - Asymmetric Image Layout */}
           <div className="lg:col-span-6 xl:col-span-7 relative h-[360px] sm:h-[500px] lg:h-[600px] w-full mt-4 lg:mt-0">
             <div className="absolute inset-0 rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800 transform lg:rotate-2 hover:rotate-0 transition-transform duration-700 ease-out shadow-2xl">
@@ -72,7 +75,7 @@ export default async function Home() {
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-tr from-zinc-950/80 via-zinc-950/20 to-transparent pointer-events-none"></div>
-              
+
               {/* Glassmorphism floating card */}
               <div className="absolute bottom-6 left-6 right-6 md:right-auto md:bottom-10 md:left-10 md:w-80 bg-zinc-950/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-transform hover:-translate-y-2 duration-500">
                 <div className="flex items-center gap-4 mb-5">

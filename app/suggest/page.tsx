@@ -221,8 +221,8 @@ export default function SuggestPage() {
           return;
         }
 
-        endpoint = '/api/cafes';
-        
+        endpoint = '/api/suggest';
+
         // Compatible with both lat/lng and latitude/longitude schema representations
         payload = {
           name: cafeFormData.name.trim(),
