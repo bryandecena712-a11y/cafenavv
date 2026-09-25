@@ -11,7 +11,14 @@ export default async function Home() {
 
   try {
     cafes = await prisma.cafes.findMany({
-      where: { status: 'APPROVED' },
+      where: {
+        OR: [
+          { status: 'ACTIVE' },
+          { status: 'APPROVED' },
+          { status: 'active' },
+          { status: 'approved' }
+        ]
+      },
     });
   } catch (error) {
     console.error('Failed to fetch cafes from Prisma database:', error);
