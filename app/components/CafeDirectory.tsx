@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import EmptyState from './EmptyState';
-import { cafeCoordinates } from '@/app/lib/coordinates';
 import { loadCachedCafes, loadDirectoryPreferences, saveCachedCafes, saveDirectoryPreferences } from '@/app/lib/offlineStorage';
 
 // Dynamically import Leaflet map component with SSR disabled
@@ -22,30 +21,10 @@ interface CafeDirectoryProps {
   initialCafes: any[];
 }
 
-// Haversine formula to calculate distance between two coordinates in kilometers
-function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Radius of the earth in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in km
-}
-
 export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
   const preferences = loadDirectoryPreferences();
   const [cafes, setCafes] = useState<any[]>(initialCafes);
   const [searchQuery, setSearchQuery] = useState(preferences?.searchQuery || '');
-  const [priceFilter, setPriceFilter] = useState(preferences?.priceFilter || '');
-  const [vibeFilter, setVibeFilter] = useState(preferences?.vibeFilter || '');
-
-  const [sortByNearest, setSortByNearest] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState('');
-  const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
     saveCachedCafes(initialCafes);
@@ -56,73 +35,16 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
   }, [initialCafes]);
 
   useEffect(() => {
-    saveDirectoryPreferences({ searchQuery, priceFilter, vibeFilter });
-  }, [searchQuery, priceFilter, vibeFilter]);
+    saveDirectoryPreferences({ searchQuery });
+  }, [searchQuery]);
 
-  const toggleNearest = () => {
-    if (!sortByNearest) {
-      if (!navigator.geolocation) {
-        setLocationError('Geolocation is not supported by your browser');
-        return;
-      }
-
-      setIsLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setIsLocating(false);
-          setSortByNearest(true);
-          setLocationError('');
-        },
-        (error) => {
-          setIsLocating(false);
-          setLocationError('Unable to retrieve your location');
-          console.error(error);
-        }
-      );
-    } else {
-      setSortByNearest(false);
-    }
-  };
-
-  const filteredAndSortedCafes = useMemo(() => {
-    // 1. Filter
-    let result = cafes.filter((cafe) => {
+  const filteredCafes = useMemo(() => {
+    return cafes.filter((cafe) => {
       const name = cafe.name?.toLowerCase() || '';
       const location = cafe.location?.toLowerCase() || '';
-      const matchesSearch = name.includes(searchQuery.toLowerCase()) || location.includes(searchQuery.toLowerCase());
-      const matchesPrice = priceFilter ? cafe.price_level === priceFilter : true;
-      const matchesVibe = vibeFilter ? cafe.vibe === vibeFilter : true;
-
-      return matchesSearch && matchesPrice && matchesVibe;
+      return name.includes(searchQuery.toLowerCase()) || location.includes(searchQuery.toLowerCase());
     });
-
-    // 2. Map coordinates if needed for distance
-    if (sortByNearest && userLocation) {
-      result = result
-        .map((cafe) => {
-          let lat, lng;
-          if (cafe.location && cafe.location.includes(',')) {
-            [lat, lng] = cafe.location.split(',').map(parseFloat);
-          } else if (cafeCoordinates[cafe.name]) {
-            lat = cafeCoordinates[cafe.name].lat;
-            lng = cafeCoordinates[cafe.name].lng;
-          }
-
-          if (lat !== undefined && lng !== undefined) {
-            const distance = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, lat, lng);
-            return { ...cafe, distance };
-          }
-          return { ...cafe, distance: Infinity };
-        })
-        .sort((a, b) => a.distance - b.distance);
-    }
-
-    return result;
-  }, [cafes, searchQuery, priceFilter, vibeFilter, sortByNearest, userLocation]);
+  }, [cafes, searchQuery]);
 
   return (
     <>
@@ -134,56 +56,22 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
           </p>
         </div>
 
-        {/* Search & Filters */}
-        <div className="flex flex-col gap-3 w-full md:max-w-xl md:w-auto">
+        {/* Cleaned Search Field */}
+        <div className="w-full md:w-80">
           <input
             type="text"
             placeholder="Search cafes or locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors flex-1 sm:w-64"
+            className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <select
-              value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors flex-1"
-            >
-              <option value="">Any Price</option>
-              <option value="₱">₱ (Affordable)</option>
-              <option value="₱₱">₱₱ (Moderate)</option>
-              <option value="₱₱₱">₱₱₱ (Premium)</option>
-            </select>
-            <button
-              onClick={toggleNearest}
-              className={`px-3 sm:px-4 py-3 rounded-xl flex items-center justify-center gap-2 border transition-all font-medium whitespace-nowrap ${
-                sortByNearest
-                  ? 'bg-amber-500 border-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-amber-500/50'
-              }`}
-            >
-              {isLocating ? (
-                <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin inline-block"></span>
-              ) : (
-                <>
-                  <span>📍</span> <span className="truncate">{sortByNearest ? 'Nearest First' : 'Find Nearest'}</span>
-                </>
-              )}
-            </button>
-          </div>
         </div>
       </div>
 
-      {locationError && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm">
-          {locationError}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-        {filteredAndSortedCafes.length === 0 && <EmptyState />}
+        {filteredCafes.length === 0 && <EmptyState />}
 
-        {filteredAndSortedCafes.map((cafe) => (
+        {filteredCafes.map((cafe) => (
           <div
             key={cafe.id}
             className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-2xl sm:rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500"
@@ -201,11 +89,6 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
                 <span className="bg-zinc-950/60 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-300 border border-white/5 truncate">
                   {cafe.location}
                 </span>
-                {cafe.distance !== undefined && cafe.distance !== Infinity && (
-                  <span className="bg-amber-500 text-zinc-950 px-3 py-1.5 rounded-full text-xs font-bold tracking-wide shadow-lg">
-                    {cafe.distance.toFixed(1)} km
-                  </span>
-                )}
               </div>
             </div>
 
@@ -227,7 +110,7 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
       </div>
 
       <div className="mb-10 w-full">
-        <CafeMap cafes={filteredAndSortedCafes} />
+        <CafeMap cafes={filteredCafes} />
       </div>
     </>
   );
