@@ -118,15 +118,11 @@ export default function SuggestPage() {
 
       markerRef.current = marker;
 
-      // Click event to update pin on MapLibre map
+      // Click event to update pin on MapLibre map (does NOT touch cafeFormData.location)
       map.on('click', (e: maplibregl.MapLayerMouseEvent) => {
         const { lng, lat } = e.lngLat;
         marker.setLngLat([lng, lat]);
         setPinnedPosition({ lat, lng });
-        setCafeFormData((prev) => ({
-          ...prev,
-          location: `Pinned: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        }));
       });
 
       mapRef.current = map;
@@ -409,6 +405,17 @@ export default function SuggestPage() {
                     Click anywhere on the map to pin location
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Location / City</label>
+                <input
+                  type="text"
+                  value={cafeFormData.location}
+                  onChange={(e) => setCafeFormData({ ...cafeFormData, location: e.target.value })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
+                  placeholder="e.g. Calamba, Laguna"
+                />
               </div>
 
               <div>
