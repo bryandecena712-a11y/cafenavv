@@ -63,7 +63,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
-  // Active watchPosition for real-time location updates
+  // Real-time location tracking
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
@@ -78,7 +78,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         });
       },
       (error) => {
-        console.warn('Geolocation watch failed, falling back to default center:', error);
+        console.warn('Geolocation watch failed, using default center:', error);
         if (!userLocation) {
           setUserLocation(defaultCenter);
         }
@@ -95,8 +95,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     };
   }, []);
 
-  // Function to re-center map on real-time location
-  const handleLocateUser = () => {
+  // One-click real-time position locate and flyTo
+  const handleFindMyLocation = () => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -109,7 +109,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             }
           }
         },
-        () => {
+        (error) => {
+          console.warn('getCurrentPosition failed:', error);
           if (userLocation && mapRef.current) {
             const map = mapRef.current.getMap();
             if (map) {
@@ -287,167 +288,170 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   };
 
   return (
-    <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
-      {/* Route Info Overlay */}
-      {routeInfo && (
-        <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
-            🚗
-          </div>
-          <div>
-            <div className="text-xs text-zinc-400 font-medium">
-              Route to <span className="text-zinc-200">{routeInfo.destinationName}</span>
+    <div className="w-full relative flex flex-col items-center">
+      <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
+        {/* Route Details overlay */}
+        {routeInfo && (
+          <div style={{ zIndex: 9999 }} className="absolute top-4 left-4 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
+              🚗
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-blue-400 font-extrabold text-base">{routeInfo.duration}</span>
-              <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-300 font-semibold text-sm">{routeInfo.distance}</span>
-            </div>
-            <div className="text-[10px] text-amber-400 font-medium mt-0.5">
-              ⚡ {routeInfo.trafficLevel}
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setRouteCoordinates(null);
-              setSvgPath('');
-              setRouteInfo(null);
-            }}
-            className="ml-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
-            title="Clear Route"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Prominent High Z-Index "My Location" Button */}
-      <button
-        onClick={handleLocateUser}
-        type="button"
-        title="Show My Location"
-        className="absolute bottom-6 right-4 z-50 bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/30 px-3.5 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 transition-all"
-      >
-        <span className="text-sm">📍</span> Center My Location
-      </button>
-
-      {svgPath && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
-          <path
-            d={svgPath}
-            fill="none"
-            stroke="#0f172a"
-            strokeWidth="10"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.9"
-          />
-          <path
-            d={svgPath}
-            fill="none"
-            stroke="#2563eb"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="1"
-          />
-        </svg>
-      )}
-
-      <div className="w-full h-full">
-        <Map
-          ref={mapRef}
-          mapLib={maplibregl as any}
-          initialViewState={{
-            longitude: center.lng,
-            latitude: center.lat,
-            zoom: 14,
-          }}
-          mapStyle={openStreetMapStyle}
-          style={{ width: '100%', height: '100%' }}
-          onMove={updateSvgOverlay}
-          onZoom={updateSvgOverlay}
-        >
-          <NavigationControl position="top-right" />
-
-          {/* Dynamic Real-Time Location Marker */}
-          {userLocation && (
-            <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
-              <div className="relative flex items-center justify-center">
-                <div className="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_12px_rgba(37,99,235,0.8)] animate-pulse z-10" />
-                <div className="absolute w-8 h-8 bg-blue-400/40 rounded-full animate-ping" />
+            <div>
+              <div className="text-xs text-zinc-400 font-medium">
+                Route to <span className="text-zinc-200">{routeInfo.destinationName}</span>
               </div>
-            </Marker>
-          )}
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-blue-400 font-extrabold text-base">{routeInfo.duration}</span>
+                <span className="text-zinc-500 text-xs">•</span>
+                <span className="text-zinc-300 font-semibold text-sm">{routeInfo.distance}</span>
+              </div>
+              <div className="text-[10px] text-amber-400 font-medium mt-0.5">
+                ⚡ {routeInfo.trafficLevel}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setRouteCoordinates(null);
+                setSvgPath('');
+                setRouteInfo(null);
+              }}
+              className="ml-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
+              title="Clear Route"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
-          {cafes?.map((cafe) => {
-            const coords = getCafeCoords(cafe);
-            if (!coords) return null;
+        {/* Floating "Find My Location" Button guaranteed on Desktop & Mobile */}
+        <button
+          onClick={handleFindMyLocation}
+          type="button"
+          title="Find My Location"
+          style={{ zIndex: 9999 }}
+          className="absolute bottom-6 right-6 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold cursor-pointer active:scale-95 transition-all border border-amber-300/50"
+        >
+          <span className="text-sm">📍</span> Find My Location
+        </button>
 
-            return (
-              <Marker
-                key={cafe.id || cafe.name}
-                longitude={coords.lng}
-                latitude={coords.lat}
-                onClick={(e) => {
-                  e.originalEvent.stopPropagation();
-                  setSelectedCafe({ cafe, coords });
-                }}
-              >
-                <div className="w-9 h-9 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-sm shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300/40 cursor-pointer hover:scale-110 transition-transform">
-                  ☕
+        {svgPath && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+            <path
+              d={svgPath}
+              fill="none"
+              stroke="#0f172a"
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.9"
+            />
+            <path
+              d={svgPath}
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="1"
+            />
+          </svg>
+        )}
+
+        <div className="w-full h-full">
+          <Map
+            ref={mapRef}
+            mapLib={maplibregl as any}
+            initialViewState={{
+              longitude: center.lng,
+              latitude: center.lat,
+              zoom: 14,
+            }}
+            mapStyle={openStreetMapStyle}
+            style={{ width: '100%', height: '100%' }}
+            onMove={updateSvgOverlay}
+            onZoom={updateSvgOverlay}
+          >
+            <NavigationControl position="top-right" />
+
+            {/* Live Location Marker */}
+            {userLocation && (
+              <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
+                <div className="relative flex items-center justify-center">
+                  <div className="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_12px_rgba(37,99,235,0.8)] animate-pulse z-10" />
+                  <div className="absolute w-8 h-8 bg-blue-400/40 rounded-full animate-ping" />
                 </div>
               </Marker>
-            );
-          })}
+            )}
 
-          {selectedCafe && (
-            <Popup
-              longitude={selectedCafe.coords.lng}
-              latitude={selectedCafe.coords.lat}
-              anchor="bottom"
-              onClose={() => setSelectedCafe(null)}
-              closeOnClick={false}
-              className="text-zinc-950 z-30"
-            >
-              <div className="flex flex-col gap-2 min-w-[200px] max-w-[240px] p-1">
-                {selectedCafe.cafe.image_url && (
-                  <div className="w-full h-24 rounded-lg overflow-hidden bg-zinc-800">
-                    <img
-                      src={selectedCafe.cafe.image_url}
-                      alt={selectedCafe.cafe.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
+            {cafes?.map((cafe) => {
+              const coords = getCafeCoords(cafe);
+              if (!coords) return null;
+
+              return (
+                <Marker
+                  key={cafe.id || cafe.name}
+                  longitude={coords.lng}
+                  latitude={coords.lat}
+                  onClick={(e) => {
+                    e.originalEvent.stopPropagation();
+                    setSelectedCafe({ cafe, coords });
+                  }}
+                >
+                  <div className="w-9 h-9 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-sm shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300/40 cursor-pointer hover:scale-110 transition-transform">
+                    ☕
                   </div>
-                )}
-                <strong className="text-zinc-900 text-sm font-bold">{selectedCafe.cafe.name}</strong>
-                {selectedCafe.cafe.description && (
-                  <p className="text-xs text-zinc-600 line-clamp-2">{selectedCafe.cafe.description}</p>
-                )}
-                <div className="flex gap-2 mt-1">
-                  <Link
-                    href={`/cafe/${selectedCafe.cafe.id}`}
-                    className="flex-1 bg-zinc-900 text-white text-xs py-1.5 px-2 rounded-lg text-center no-underline hover:bg-zinc-800 transition-colors font-medium flex items-center justify-center"
-                  >
-                    View Details
-                  </Link>
-                  <button
-                    onClick={() =>
-                      handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name)
-                    }
-                    disabled={loadingRoute}
-                    className="flex-1 bg-amber-500 text-zinc-950 text-xs py-1.5 px-2 rounded-lg text-center font-semibold hover:bg-amber-400 transition-colors border-none cursor-pointer flex items-center justify-center"
-                  >
-                    {loadingRoute ? 'Loading...' : 'Directions ↗'}
-                  </button>
+                </Marker>
+              );
+            })}
+
+            {selectedCafe && (
+              <Popup
+                longitude={selectedCafe.coords.lng}
+                latitude={selectedCafe.coords.lat}
+                anchor="bottom"
+                onClose={() => setSelectedCafe(null)}
+                closeOnClick={false}
+                className="text-zinc-950 z-30"
+              >
+                <div className="flex flex-col gap-2 min-w-[200px] max-w-[240px] p-1">
+                  {selectedCafe.cafe.image_url && (
+                    <div className="w-full h-24 rounded-lg overflow-hidden bg-zinc-800">
+                      <img
+                        src={selectedCafe.cafe.image_url}
+                        alt={selectedCafe.cafe.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <strong className="text-zinc-900 text-sm font-bold">{selectedCafe.cafe.name}</strong>
+                  {selectedCafe.cafe.description && (
+                    <p className="text-xs text-zinc-600 line-clamp-2">{selectedCafe.cafe.description}</p>
+                  )}
+                  <div className="flex gap-2 mt-1">
+                    <Link
+                      href={`/cafe/${selectedCafe.cafe.id}`}
+                      className="flex-1 bg-zinc-900 text-white text-xs py-1.5 px-2 rounded-lg text-center no-underline hover:bg-zinc-800 transition-colors font-medium flex items-center justify-center"
+                    >
+                      View Details
+                    </Link>
+                    <button
+                      onClick={() =>
+                        handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name)
+                      }
+                      disabled={loadingRoute}
+                      className="flex-1 bg-amber-500 text-zinc-950 text-xs py-1.5 px-2 rounded-lg text-center font-semibold hover:bg-amber-400 transition-colors border-none cursor-pointer flex items-center justify-center"
+                    >
+                      {loadingRoute ? 'Loading...' : 'Directions ↗'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          )}
-        </Map>
+              </Popup>
+            )}
+          </Map>
+        </div>
       </div>
     </div>
   );
