@@ -3,7 +3,6 @@ import { prisma } from '@/app/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Fetch all APPROVED cafes with their approved products and reviews for public view
 export async function GET() {
   try {
     const cafes = await prisma.cafes.findMany({
@@ -30,7 +29,6 @@ export async function GET() {
   }
 }
 
-// POST: Add a new cafe suggestion
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -40,17 +38,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
     }
 
-    // Safely parse numbers to avoid Prisma float validation errors
     const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
     const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
 
-    // Fallback for invalid image URLs to prevent db schema string length/format crashes
     const validImageUrl =
       image_url && (image_url.startsWith('http://') || image_url.startsWith('https://'))
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    const dataPayload: any = {
+    // Strict base payload using standard Prisma schema fields
+    const dataPayload: Record<string, any> = {
       name: name.trim(),
       location: location || `${parsedLat.toFixed(4)}, ${parsedLng.toFixed(4)}`,
       description: description?.trim() || 'No description provided',
@@ -60,19 +57,16 @@ export async function POST(request: Request) {
       status: status || 'PENDING',
     };
 
-    // Dynamically assign coordinates based on what columns exist in Prisma model
+    // Safely attach parsed numerical coordinates
     if (lat !== undefined || latitude !== undefined) {
       dataPayload.lat = parsedLat;
-      dataPayload.latitude = parsedLat;
     }
     if (lng !== undefined || longitude !== undefined) {
       dataPayload.lng = parsedLng;
-      dataPayload.longitude = parsedLng;
     }
 
-    // Filter payload against schema to prevent invalid field injection
     const newCafe = await prisma.cafes.create({
-      data: dataPayload,
+      data: dataPayload as any,
     });
 
     return NextResponse.json(newCafe, { status: 201 });
@@ -85,7 +79,6 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE: Remove a cafe and its associated records
 export async function DELETE(request: Request) {
   try {
     const { cafeId } = await request.json();
@@ -94,7 +87,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Cafe ID is required' }, { status: 400 });
     }
 
-    // Delete related reviews and products first to maintain referential integrity
     await prisma.reviews.deleteMany({
       where: { cafe_id: Number(cafeId) },
     });
@@ -103,7 +95,6 @@ export async function DELETE(request: Request) {
       where: { cafe_id: Number(cafeId) },
     });
 
-    // Delete the cafe
     await prisma.cafes.delete({
       where: { id: Number(cafeId) },
     });
