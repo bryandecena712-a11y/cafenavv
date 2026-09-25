@@ -20,15 +20,45 @@ export default function ServiceWorkerRegistration() {
     if (!window.isSecureContext && location.hostname !== 'localhost') {
       console.error('[CafeNav] Service workers require HTTPS on mobile browsers.');
     } else if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
-        console.log(`[CafeNav] Service worker registered${isMobile ? ' on mobile' : ''}.`);
-        registration.update();
-        if (registration.waiting) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-      }).catch((error) => {
-        console.error('[CafeNav] Service worker registration failed:', error);
-      });
+      navigator.serviceWorker
+        .register('/sw.js', { updateViaCache: 'none' })
+        .then((registration) => {
+          console.log(`[CafeNav] Service worker registered${isMobile ? ' on mobile' : ''}.`);
+          
+          // Force worker update check on every load
+          registration.update();
+
+          // Force waiting worker to activate immediately
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+
+          // Trigger automatic page reload when worker takes over with new assets
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            }
+          });
+        })
+        .catch((error) => {
+          console.error('[CafeNav] Service worker registration failed:', error);
+        });
+
+      // Clear existing CacheStorage if online to prevent stale UI views
+      if (navigator.onLine && 'caches' in window) {
+        caches.keys().then((keys) => {
+          keys.forEach((key) => {
+            if (key.includes('cafenav-static')) {
+              caches.delete(key);
+            }
+          });
+        });
+      }
     } else {
       console.error('[CafeNav] Service workers are not supported by this browser.');
     }

@@ -7,7 +7,7 @@ const nextConfig = {
     serverExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai', 'prisma'],
 
     experimental: {
-        serverComponentsExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai']
+        serverComponentsExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai'],
     },
     eslint: {
         ignoreDuringBuilds: true,
@@ -25,6 +25,15 @@ const nextConfig = {
                 hostname: '**',
             },
         ],
+    },
+    async headers() {
+        return [{
+            source: '/:path*',
+            headers: [{
+                key: 'Cache-Control',
+                value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+            }, ],
+        }, ];
     },
 };
 
