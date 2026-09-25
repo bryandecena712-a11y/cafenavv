@@ -21,6 +21,12 @@ interface CafeDirectoryProps {
   initialCafes: any[];
 }
 
+// Helper function to check if location string contains raw numeric coordinates
+function isRawCoordinates(locationStr?: string): boolean {
+  if (!locationStr) return false;
+  return /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(locationStr.trim());
+}
+
 export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
   const preferences = loadDirectoryPreferences();
   const [cafes, setCafes] = useState<any[]>(initialCafes);
@@ -35,7 +41,11 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
   }, [initialCafes]);
 
   useEffect(() => {
-    saveDirectoryPreferences({ searchQuery });
+    saveDirectoryPreferences({ 
+      searchQuery, 
+      priceFilter: '', 
+      vibeFilter: '' 
+    });
   }, [searchQuery]);
 
   const filteredCafes = useMemo(() => {
@@ -56,15 +66,25 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
           </p>
         </div>
 
-        {/* Cleaned Search Field */}
-        <div className="w-full md:w-80">
-          <input
-            type="text"
-            placeholder="Search cafes or locations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
-          />
+        {/* Highly Visible Search Bar */}
+        <div className="w-full md:w-96 relative flex items-center">
+          <div className="relative w-full flex items-center bg-zinc-900 border border-zinc-700/80 rounded-2xl focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30 transition-all shadow-xl overflow-hidden">
+            <input
+              type="text"
+              placeholder="Search cafes or locations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent text-white px-5 py-3.5 text-sm placeholder-zinc-400 focus:outline-none"
+            />
+            <button
+              type="button"
+              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-4 py-3.5 flex items-center justify-center gap-1.5 transition-colors border-l border-amber-400/50 cursor-pointer text-sm shrink-0"
+              title="Search"
+            >
+              <span>🔍</span>
+              <span className="hidden sm:inline">Search</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -85,11 +105,14 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-90" />
 
-              <div className="absolute top-5 left-5 flex gap-2 flex-wrap max-w-[80%]">
-                <span className="bg-zinc-950/60 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-300 border border-white/5 truncate">
-                  {cafe.location}
-                </span>
-              </div>
+              {/* Only show location badge if it is NOT raw coordinates */}
+              {cafe.location && !isRawCoordinates(cafe.location) && (
+                <div className="absolute top-5 left-5 flex gap-2 flex-wrap max-w-[80%]">
+                  <span className="bg-zinc-950/75 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-200 border border-white/10 truncate">
+                    📍 {cafe.location}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="p-5 sm:p-8 flex flex-col flex-1 relative z-10 -mt-10">
