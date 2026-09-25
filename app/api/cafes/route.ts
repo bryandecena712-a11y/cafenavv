@@ -46,8 +46,8 @@ export async function POST(request: Request) {
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    // Strict base payload using standard Prisma schema fields
-    const dataPayload: Record<string, any> = {
+    // Construct clean payload matching standard schema fields
+    const dataPayload: any = {
       name: name.trim(),
       location: location || `${parsedLat.toFixed(4)}, ${parsedLng.toFixed(4)}`,
       description: description?.trim() || 'No description provided',
@@ -55,21 +55,28 @@ export async function POST(request: Request) {
       vibe: vibe || 'chill',
       image_url: validImageUrl,
       status: status || 'PENDING',
+      lat: parsedLat,
+      lng: parsedLng,
     };
 
-    // Safely attach parsed numerical coordinates
-    if (lat !== undefined || latitude !== undefined) {
-      dataPayload.lat = parsedLat;
-    }
-    if (lng !== undefined || longitude !== undefined) {
-      dataPayload.lng = parsedLng;
-    }
+    // Attempt creation with standard lat/lng
+    try {
+      const newCafe = await prisma.cafes.create({
+        data: dataPayload,
+      });
+      return NextResponse.json(newCafe, { status: 201 });
+    } catch (prismaErr: any) {
+      // Fallback if schema uses latitude / longitude instead of lat / lng
+      delete dataPayload.lat;
+      delete dataPayload.lng;
+      dataPayload.latitude = parsedLat;
+      dataPayload.longitude = parsedLng;
 
-    const newCafe = await prisma.cafes.create({
-      data: dataPayload as any,
-    });
-
-    return NextResponse.json(newCafe, { status: 201 });
+      const newCafeFallback = await prisma.cafes.create({
+        data: dataPayload,
+      });
+      return NextResponse.json(newCafeFallback, { status: 201 });
+    }
   } catch (error: any) {
     console.error('Failed to create cafe suggestion:', error);
     return NextResponse.json(
