@@ -36,7 +36,7 @@ export default async function Home() {
                 href="/offers" 
                 className="bg-amber-500 text-zinc-950 font-medium px-8 py-3.5 rounded-full text-center hover:bg-amber-400 hover:-translate-y-[1px] active:scale-[0.98] transition-all"
               >
-                Take the Quiz
+                Take the Survey
               </Link>
               <Link
                 href="/suggest"
@@ -67,7 +67,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-zinc-100">Perfect Match</div>
-                    <div className="text-xs text-zinc-400 mt-1">Based on your quiz</div>
+                    <div className="text-xs text-zinc-400 mt-1">Based on your survey</div>
                   </div>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">

@@ -16,10 +16,6 @@ export default function Navbar() {
         </Link>
         
         <div className="flex items-center gap-2 sm:gap-6 text-sm font-medium">
-          <Link href="/offers" className="text-zinc-300 hover:text-white transition-colors px-2 py-2 sm:px-0">
-            Match Quiz
-          </Link>
-          
           {isAuthenticated ? (
             <div className="relative">
               <button
