@@ -24,36 +24,32 @@ export default function ServiceWorkerRegistration() {
         .register('/sw.js', { updateViaCache: 'none' })
         .then((registration) => {
           console.log(`[CafeNav] Service worker registered${isMobile ? ' on mobile' : ''}.`);
-          
-          // Force worker update check on every load
+
+          // Request worker update check on every page load
           registration.update();
 
-          // Force waiting worker to activate immediately
           if (registration.waiting) {
             registration.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
-
-          // Trigger automatic page reload when worker takes over with new assets
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  window.location.reload();
-                }
-              });
-            }
-          });
         })
         .catch((error) => {
           console.error('[CafeNav] Service worker registration failed:', error);
         });
 
-      // Clear existing CacheStorage if online to prevent stale UI views
+      // Listen for controlling service worker changes and automatically reload the page
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
+      // Clear legacy caches that do not match current VERSION
       if (navigator.onLine && 'caches' in window) {
         caches.keys().then((keys) => {
           keys.forEach((key) => {
-            if (key.includes('cafenav-static')) {
+            if (!key.includes('2026-09-25-v3')) {
               caches.delete(key);
             }
           });
