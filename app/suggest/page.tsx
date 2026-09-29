@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/app/context/AuthContext';
+
+interface Cafe {
+  id: string | number;
+  name: string;
+}
 
 const MapPicker = dynamic(() => import('@/app/components/MapPicker'), {
   ssr: false,
@@ -50,8 +55,12 @@ const compressImage = (file: File): Promise<string> => {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
+        if (!ctx) {
+          reject(new Error('Could not get 2d context from canvas'));
+          return;
+        }
 
+        ctx.drawImage(img, 0, 0, width, height);
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
         resolve(compressedDataUrl);
       };
@@ -66,7 +75,7 @@ export default function SuggestPage() {
   const { isAuthenticated } = useAuth();
 
   const [suggestionType, setSuggestionType] = useState<'cafe' | 'product'>('cafe');
-  const [cafes, setCafes] = useState<any[]>([]);
+  const [cafes, setCafes] = useState<Cafe[]>([]);
 
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [isScraping, setIsScraping] = useState(false);
@@ -106,7 +115,7 @@ export default function SuggestPage() {
       try {
         const res = await fetch('/api/cafes');
         if (res.ok) {
-          const data = await res.json();
+          const data: Cafe[] = await res.json();
           setCafes(data);
           if (data.length > 0) {
             setProductFormData((prev) => ({ ...prev, cafeId: data[0].id.toString() }));
@@ -129,7 +138,6 @@ export default function SuggestPage() {
     }));
   };
 
-  // Convert uploaded image file using canvas compression
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: 'cafe' | 'product') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -206,32 +214,7 @@ export default function SuggestPage() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white relative">
-        <div className="absolute top-6 left-6 z-20">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
-          >
-            ← Back to Home
-          </Link>
-        </div>
-
-        <span className="text-4xl mb-4">🔒</span>
-        <h1 className="text-2xl font-bold mb-2">Login Required</h1>
-        <p className="text-zinc-400 mb-6">You must be logged in to make suggestions.</p>
-        <button
-          onClick={() => router.push('/login')}
-          className="bg-amber-500 text-zinc-950 font-medium px-6 py-2 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
-        >
-          Go to Login
-        </button>
-      </div>
-    );
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -317,6 +300,31 @@ export default function SuggestPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white relative">
+        <div className="absolute top-6 left-6 z-20">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+
+        <span className="text-4xl mb-4">🔒</span>
+        <h1 className="text-2xl font-bold mb-2">Login Required</h1>
+        <p className="text-zinc-400 mb-6">You must be logged in to make suggestions.</p>
+        <button
+          onClick={() => router.push('/login')}
+          className="bg-amber-500 text-zinc-950 font-medium px-6 py-2 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
+  }
 
   if (success) {
     return (

@@ -19,21 +19,44 @@ export async function PATCH(
     }
 
     const data = await request.json();
-    const { status } = data;
+    const { status, name, location, description, price_level, vibe, image_url, lat, lng } = data;
 
-    if (!status) {
-      return NextResponse.json({ error: 'Status is required' }, { status: 400 });
+    // Build dynamic update payload to prevent overriding existing values with undefined
+    const updateData: Record<string, any> = {};
+
+    if (status !== undefined) updateData.status = status;
+    if (name !== undefined) updateData.name = name.trim();
+    if (location !== undefined) updateData.location = location;
+    if (description !== undefined) updateData.description = description.trim();
+    if (price_level !== undefined) updateData.price_level = price_level;
+    if (vibe !== undefined) updateData.vibe = vibe;
+    if (lat !== undefined) updateData.lat = parseFloat(lat);
+    if (lng !== undefined) updateData.lng = parseFloat(lng);
+
+    if (image_url !== undefined) {
+      const validImageUrl =
+        image_url &&
+        (image_url.startsWith('http://') ||
+          image_url.startsWith('https://') ||
+          image_url.startsWith('data:image/'))
+          ? image_url.trim()
+          : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
+      updateData.image_url = validImageUrl;
     }
 
-    const cafe = await prisma.cafes.update({
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields provided for update' }, { status: 400 });
+    }
+
+    const updatedCafe = await prisma.cafes.update({
       where: { id },
-      data: { status },
+      data: updateData,
     });
 
-    return NextResponse.json(cafe);
-  } catch (error) {
-    console.error('Error updating cafe status:', error);
-    return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
+    return NextResponse.json(updatedCafe);
+  } catch (error: any) {
+    console.error('Error updating cafe:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update cafe' }, { status: 500 });
   }
 }
 
@@ -49,13 +72,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
 
+    // Clean up relations first to prevent Prisma Foreign Key constraint errors
+    await prisma.reviews.deleteMany({
+      where: { cafe_id: id },
+    });
+
+    await prisma.products.deleteMany({
+      where: { cafe_id: id },
+    });
+
     await prisma.cafes.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
+    return NextResponse.json({ success: true, message: 'Cafe deleted successfully' });
+  } catch (error: any) {
     console.error('Error deleting cafe:', error);
-    return NextResponse.json({ error: 'Failed to delete cafe' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to delete cafe' }, { status: 500 });
   }
 }

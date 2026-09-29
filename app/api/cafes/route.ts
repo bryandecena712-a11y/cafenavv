@@ -41,15 +41,20 @@ export async function POST(request: Request) {
     const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
     const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
 
+    // Accept HTTP URLs, HTTPS URLs, AND uploaded Base64 Data URLs (data:image/...)
     const validImageUrl =
-      image_url && (image_url.startsWith('http://') || image_url.startsWith('https://'))
+      image_url &&
+      (image_url.startsWith('http://') ||
+        image_url.startsWith('https://') ||
+        image_url.startsWith('data:image/'))
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    // DO NOT pass latitude/longitude keys directly here because the DB schema lacks those columns
     const dataPayload: any = {
       name: name.trim(),
       location: location || `${parsedLat}, ${parsedLng}`,
+      lat: parsedLat,
+      lng: parsedLng,
       description: description?.trim() || 'No description provided',
       price_level: price_level || '₱₱',
       vibe: vibe || 'chill',
