@@ -132,8 +132,8 @@ export default function SuggestPage() {
   const handlePositionChange = (pos: { lat: number; lng: number }) => {
     setCafeFormData((prev) => ({
       ...prev,
-      lat: pos.lat,
-      lng: pos.lng,
+      lat: Number(pos.lat),
+      lng: Number(pos.lng),
       location: `${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`,
     }));
   };
@@ -183,8 +183,8 @@ export default function SuggestPage() {
             description: data.description || prev.description,
             image_url: data.image_url || prev.image_url,
             location: data.location || prev.location,
-            lat: data.lat || prev.lat,
-            lng: data.lng || prev.lng,
+            lat: data.lat ? Number(data.lat) : prev.lat,
+            lng: data.lng ? Number(data.lng) : prev.lng,
           }));
           if (data.image_url) {
             setCafeFileName('Scraped Image');
@@ -233,8 +233,8 @@ export default function SuggestPage() {
         payload = {
           name: cafeFormData.name.trim(),
           location: cafeFormData.location,
-          lat: cafeFormData.lat,
-          lng: cafeFormData.lng,
+          lat: parseFloat(Number(cafeFormData.lat).toFixed(6)),
+          lng: parseFloat(Number(cafeFormData.lng).toFixed(6)),
           description: cafeFormData.description.trim() || 'No description provided',
           price_level: cafeFormData.price_level || '₱₱',
           vibe: cafeFormData.vibe || 'chill',

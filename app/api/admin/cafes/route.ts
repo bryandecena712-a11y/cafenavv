@@ -25,29 +25,73 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { name, photo, description, priceLevel, vibe, pinnedLocation, products, userId } = data;
 
-    if (!name || !photo || !description || !pinnedLocation) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Support both client payload formats seamlessly
+    const name = data.name?.trim();
+    const photo = data.photo || data.image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
+    const description = data.description?.trim() || 'No description provided';
+    const priceLevel = data.priceLevel || data.price_level || '₱₱';
+    const vibe = data.vibe || 'chill';
+    const status = data.status || 'PENDING';
+    const userId = data.userId || null;
+    const products = data.products || [];
+
+    // Extract latitude and longitude flexibly from pinnedLocation or flat lat/lng fields
+    let latVal: number | null = null;
+    let lngVal: number | null = null;
+
+    if (data.pinnedLocation && typeof data.pinnedLocation === 'object') {
+      latVal = parseFloat(data.pinnedLocation.lat);
+      lngVal = parseFloat(data.pinnedLocation.lng);
+    } else if (data.lat !== undefined && data.lng !== undefined) {
+      latVal = parseFloat(data.lat);
+      lngVal = parseFloat(data.lng);
+    }
+
+    if (!name) {
+      return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
+    }
+
+    // Format location string safely
+    const locationStr =
+      data.location ||
+      (latVal !== null && lngVal !== null
+        ? `${latVal.toFixed(4)}, ${lngVal.toFixed(4)}`
+        : 'Calamba, Laguna');
+
+    // Build Prisma creation data object dynamically
+    const createData: any = {
+      name,
+      description,
+      image_url: photo,
+      price_level: priceLevel,
+      vibe,
+      location: locationStr,
+      status,
+    };
+
+    // If your Prisma model has explicit Float columns for lat & lng, populate them safely
+    if (latVal !== null && !isNaN(latVal)) {
+      createData.lat = latVal;
+    }
+    if (lngVal !== null && !isNaN(lngVal)) {
+      createData.lng = lngVal;
+    }
+
+    // Include nested product creation if products array is provided
+    if (Array.isArray(products) && products.length > 0) {
+      createData.products = {
+        create: products.map((p: any) => ({
+          name: p.name,
+          price: parseFloat(p.price) || 0,
+          description: p.description || '',
+          image_url: p.photo || p.image_url || '',
+        })),
+      };
     }
 
     const newCafe = await prisma.cafes.create({
-      data: {
-        name,
-        description,
-        image_url: photo,
-        price_level: priceLevel,
-        vibe: vibe,
-        location: `${pinnedLocation.lat},${pinnedLocation.lng}`,
-        products: {
-          create: (products || []).map((p: any) => ({
-            name: p.name,
-            price: p.price,
-            description: p.description,
-            image_url: p.photo || '',
-          })),
-        },
-      },
+      data: createData,
       include: {
         products: true,
       },
@@ -55,13 +99,17 @@ export async function POST(request: Request) {
 
     // Create audit log if user ID is present
     if (userId) {
-      await prisma.audit_logs.create({
-        data: {
-          user_id: userId,
-          action: 'Added Cafe',
-          target: name,
-        },
-      });
+      try {
+        await prisma.audit_logs.create({
+          data: {
+            user_id: userId,
+            action: 'Added Cafe',
+            target: name,
+          },
+        });
+      } catch (auditErr) {
+        console.warn('Failed to write audit log:', auditErr);
+      }
     }
 
     return NextResponse.json(newCafe, { status: 201 });
@@ -72,6 +120,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'A cafe with this name already exists' }, { status: 400 });
     }
 
-    return NextResponse.json({ error: error.message || 'Failed to create cafe' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to create cafe' },
+      { status: 500 }
+    );
   }
 }
