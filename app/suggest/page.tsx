@@ -8,12 +8,57 @@ import { useAuth } from '@/app/context/AuthContext';
 
 const MapPicker = dynamic(() => import('@/app/components/MapPicker'), {
   ssr: false,
-  loading: () => <div className="h-60 bg-zinc-900 animate-pulse rounded-xl flex items-center justify-center text-zinc-600 text-xs">Loading Map...</div>,
+  loading: () => (
+    <div className="h-60 bg-zinc-900 animate-pulse rounded-xl flex items-center justify-center text-zinc-600 text-xs">
+      Loading Map...
+    </div>
+  ),
 });
 
 const DEFAULT_CENTER = {
   lat: 14.212231,
   lng: 121.167516,
+};
+
+// Client-side image compression to guarantee custom uploads persist to database
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1000;
+        const MAX_HEIGHT = 1000;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
 };
 
 export default function SuggestPage() {
@@ -84,25 +129,26 @@ export default function SuggestPage() {
     }));
   };
 
-  // Convert uploaded image file to Data URL
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, type: 'cafe' | 'product') => {
+  // Convert uploaded image file using canvas compression
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, type: 'cafe' | 'product') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
+    try {
+      const compressedImage = await compressImage(file);
       if (type === 'cafe') {
         setCafeFileName(file.name);
         setCafePhotoSuccess(true);
-        setCafeFormData((prev) => ({ ...prev, image_url: result }));
+        setCafeFormData((prev) => ({ ...prev, image_url: compressedImage }));
       } else {
         setProductFileName(file.name);
         setProductPhotoSuccess(true);
-        setProductFormData((prev) => ({ ...prev, image_url: result }));
+        setProductFormData((prev) => ({ ...prev, image_url: compressedImage }));
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed to process uploaded photo:', err);
+      alert('Could not process this image. Please try another file.');
+    }
   };
 
   const handleAutoFill = async () => {
@@ -293,9 +339,9 @@ export default function SuggestPage() {
         </p>
         <button
           onClick={() => setSuccess(false)}
-          className="bg-amber-500 text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
+          className="bg-amber-500 text-zinc-950 font-bold px-8 py-3 rounded-full hover:bg-amber-400 transition-colors cursor-pointer"
         >
-          Suggest Another Item
+          {suggestionType === 'cafe' ? 'Suggest Another Cafe' : 'Suggest Another Menu Item'}
         </button>
       </div>
     );
@@ -430,7 +476,6 @@ export default function SuggestPage() {
                 </div>
               </div>
 
-              {/* Cover Photo Upload matching Admin layout */}
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Cover Photo</label>
                 <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex items-center gap-3">
@@ -506,7 +551,6 @@ export default function SuggestPage() {
                 />
               </div>
 
-              {/* Cover Photo Upload matching Admin layout */}
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Item Photo</label>
                 <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex items-center gap-3">
