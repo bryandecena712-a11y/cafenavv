@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -25,6 +25,14 @@ export default function SuggestPage() {
 
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [isScraping, setIsScraping] = useState(false);
+
+  // File upload state for Cafe
+  const [cafeFileName, setCafeFileName] = useState<string>('');
+  const [cafePhotoSuccess, setCafePhotoSuccess] = useState<boolean>(false);
+
+  // File upload state for Product
+  const [productFileName, setProductFileName] = useState<string>('');
+  const [productPhotoSuccess, setProductPhotoSuccess] = useState<boolean>(false);
 
   const [cafeFormData, setCafeFormData] = useState({
     name: '',
@@ -76,6 +84,27 @@ export default function SuggestPage() {
     }));
   };
 
+  // Convert uploaded image file to Data URL
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, type: 'cafe' | 'product') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (type === 'cafe') {
+        setCafeFileName(file.name);
+        setCafePhotoSuccess(true);
+        setCafeFormData((prev) => ({ ...prev, image_url: result }));
+      } else {
+        setProductFileName(file.name);
+        setProductPhotoSuccess(true);
+        setProductFormData((prev) => ({ ...prev, image_url: result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAutoFill = async () => {
     if (!scrapeUrl) {
       alert('Please enter a valid link first.');
@@ -103,6 +132,10 @@ export default function SuggestPage() {
             lat: data.lat || prev.lat,
             lng: data.lng || prev.lng,
           }));
+          if (data.image_url) {
+            setCafeFileName('Scraped Image');
+            setCafePhotoSuccess(true);
+          }
         } else {
           setProductFormData((prev) => ({
             ...prev,
@@ -110,6 +143,10 @@ export default function SuggestPage() {
             description: data.description || prev.description,
             image_url: data.image_url || prev.image_url,
           }));
+          if (data.image_url) {
+            setProductFileName('Scraped Image');
+            setProductPhotoSuccess(true);
+          }
         }
         alert('Details auto-filled successfully!');
       } else {
@@ -172,7 +209,7 @@ export default function SuggestPage() {
           description: cafeFormData.description.trim() || 'No description provided',
           price_level: cafeFormData.price_level || '₱₱',
           vibe: cafeFormData.vibe || 'chill',
-          image_url: cafeFormData.image_url.trim() || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
+          image_url: cafeFormData.image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
           status: 'PENDING',
         };
       } else {
@@ -188,7 +225,7 @@ export default function SuggestPage() {
           name: productFormData.name.trim(),
           price: parseFloat(productFormData.price) || 0,
           description: productFormData.description.trim() || 'No description provided',
-          image_url: productFormData.image_url.trim() || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          image_url: productFormData.image_url || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           status: 'PENDING',
         };
       }
@@ -218,6 +255,10 @@ export default function SuggestPage() {
           description: '',
           image_url: '',
         });
+        setCafeFileName('');
+        setCafePhotoSuccess(false);
+        setProductFileName('');
+        setProductPhotoSuccess(false);
         setScrapeUrl('');
       } else {
         const errorData = await res.json().catch(() => ({}));
@@ -389,15 +430,28 @@ export default function SuggestPage() {
                 </div>
               </div>
 
+              {/* Cover Photo Upload matching Admin layout */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Image URL</label>
-                <input
-                  type="text"
-                  value={cafeFormData.image_url}
-                  onChange={(e) => setCafeFormData({ ...cafeFormData, image_url: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Cover Photo</label>
+                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex items-center gap-3">
+                  <label className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors shrink-0">
+                    Choose File
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'cafe')}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-xs text-zinc-400 truncate">
+                    {cafeFileName || 'No file chosen'}
+                  </span>
+                </div>
+                {cafePhotoSuccess && (
+                  <p className="text-xs text-emerald-500 font-semibold mt-1.5">
+                    Photo uploaded successfully!
+                  </p>
+                )}
               </div>
             </>
           ) : (
@@ -452,15 +506,28 @@ export default function SuggestPage() {
                 />
               </div>
 
+              {/* Cover Photo Upload matching Admin layout */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Image URL</label>
-                <input
-                  type="text"
-                  value={productFormData.image_url}
-                  onChange={(e) => setProductFormData({ ...productFormData, image_url: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white"
-                  placeholder="https://example.com/item.jpg"
-                />
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Item Photo</label>
+                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex items-center gap-3">
+                  <label className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors shrink-0">
+                    Choose File
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'product')}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-xs text-zinc-400 truncate">
+                    {productFileName || 'No file chosen'}
+                  </span>
+                </div>
+                {productPhotoSuccess && (
+                  <p className="text-xs text-emerald-500 font-semibold mt-1.5">
+                    Photo uploaded successfully!
+                  </p>
+                )}
               </div>
             </>
           )}
