@@ -50,11 +50,10 @@ export async function POST(request: Request) {
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
+    // Strictly pass only columns that exist in the Prisma `cafes` model schema
     const dataPayload: any = {
       name: name.trim(),
       location: location || `${parsedLat}, ${parsedLng}`,
-      lat: parsedLat,
-      lng: parsedLng,
       description: description?.trim() || 'No description provided',
       price_level: price_level || '₱₱',
       vibe: vibe || 'chill',
