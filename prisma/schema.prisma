@@ -7,18 +7,27 @@ datasource db {
 }
 
 model cafes {
-  id          Int     @id @default(autoincrement())
-  name        String? @unique
-  location    String?
-  description String?
-  image_url   String?
-  price_level String?
-  vibe        String?
-  status      String? @default("APPROVED")
-  products    products[]
-  stories     stories[]
-  reviews     reviews[]
-  bookmarks   bookmarks[]
+  id              Int         @id @default(autoincrement())
+  name            String?     @unique
+  location        String?
+  description     String?
+  image_url       String?
+  price_level     String?
+  vibe            String?
+  status          String?     @default("APPROVED")
+  
+  // New fields for Cafe About Section
+  service_options String?     // e.g. "[\"Dine-in\", \"Delivery\", \"Takeout\"]"
+  offerings       String?     // e.g. "[\"Coffee\", \"Non-Coffee\", \"Quick Bites\"]"
+  facebook_url    String?
+  instagram_url   String?
+  tiktok_url      String?
+  website_url     String?
+
+  products        products[]
+  stories         stories[]
+  reviews         reviews[]
+  bookmarks       bookmarks[]
 }
 
 model products {
@@ -33,12 +42,12 @@ model products {
 }
 
 model users {
-  id         Int       @id @default(autoincrement())
+  id         Int         @id @default(autoincrement())
   username   String
-  email      String    @unique
+  email      String      @unique
   password   String
-  role       String    @default("USER")
-  created_at DateTime? @default(now())
+  role       String      @default("USER")
+  created_at DateTime?   @default(now())
   stories    stories[]
   audit_logs audit_logs[]
   reviews    reviews[]
@@ -91,12 +100,12 @@ model bookmarks {
 }
 
 model DiscoveredCafe {
-  id          Int      @id @default(autoincrement())
-  osm_id      String   @unique
-  name        String
-  location    String
-  latitude    Float?
-  longitude   Float?
-  source      String   @default("OpenStreetMap")
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  osm_id    String   @unique
+  name      String
+  location  String
+  latitude  Float?
+  longitude Float?
+  source    String   @default("OpenStreetMap")
+  createdAt DateTime @default(now())
 }
