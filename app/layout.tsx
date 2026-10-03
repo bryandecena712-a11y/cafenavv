@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   description: "Navigate straight to the brews everyone is talking about.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon-192x192.png",
-    apple: "/icon-192x192.png",
+    icon: "/logo-cafenav.png",
+    apple: "/logo-cafenav.png",
   },
 };
 
