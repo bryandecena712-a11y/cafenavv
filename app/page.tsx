@@ -102,6 +102,16 @@ export default async function Home() {
       {/* Popular Cafes & Map Section */}
       <section className="w-full relative z-10 py-24 border-t border-zinc-900/50 bg-zinc-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          {/* Map Header & Subheader */}
+          <div className="mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-50 flex items-center gap-2">
+              <span>Interactive Cafe Map</span>
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-zinc-400 max-w-2xl leading-relaxed">
+              Explore local coffee shops near you. Click any orange marker on the map to preview cafe details, check directions, or jump straight to their menu.
+            </p>
+          </div>
+
           <CafeDirectory initialCafes={cafes} />
         </div>
       </section>
