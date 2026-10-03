@@ -16,7 +16,7 @@ export default function Navbar() {
         {/* Brand Logo & Name */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
           <Image
-            src="/CafeNav-logo.png"
+            src="/logo-cafenav.png"
             alt="CafeNav Logo"
             width={32}
             height={32}
