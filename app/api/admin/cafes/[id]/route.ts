@@ -19,7 +19,24 @@ export async function PATCH(
     }
 
     const data = await request.json();
-    const { status, name, location, description, price_level, vibe, image_url, lat, lng } = data;
+    const {
+      status,
+      name,
+      location,
+      description,
+      price_level,
+      vibe,
+      image_url,
+      lat,
+      lng,
+      // New About Page fields
+      service_options,
+      offerings,
+      facebook_url,
+      instagram_url,
+      tiktok_url,
+      website_url,
+    } = data;
 
     // Build dynamic update payload to prevent overriding existing values with undefined
     const updateData: Record<string, any> = {};
@@ -32,6 +49,22 @@ export async function PATCH(
     if (vibe !== undefined) updateData.vibe = vibe;
     if (lat !== undefined) updateData.lat = parseFloat(lat);
     if (lng !== undefined) updateData.lng = parseFloat(lng);
+
+    // Handle About page fields
+    if (service_options !== undefined) {
+      updateData.service_options = Array.isArray(service_options)
+        ? JSON.stringify(service_options)
+        : service_options;
+    }
+    if (offerings !== undefined) {
+      updateData.offerings = Array.isArray(offerings)
+        ? JSON.stringify(offerings)
+        : offerings;
+    }
+    if (facebook_url !== undefined) updateData.facebook_url = facebook_url.trim();
+    if (instagram_url !== undefined) updateData.instagram_url = instagram_url.trim();
+    if (tiktok_url !== undefined) updateData.tiktok_url = tiktok_url.trim();
+    if (website_url !== undefined) updateData.website_url = website_url.trim();
 
     if (image_url !== undefined) {
       const validImageUrl =

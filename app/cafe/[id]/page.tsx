@@ -42,6 +42,20 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
     notFound();
   }
 
+  // Helper to safely parse string array or comma-separated string
+  const parseList = (data: string | null | undefined): string[] => {
+    if (!data) return [];
+    try {
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : [data];
+    } catch {
+      return data.split(',').map((item) => item.trim());
+    }
+  };
+
+  const serviceOptions = parseList((cafe as any).service_options);
+  const offeringsOptions = parseList((cafe as any).offerings);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative">
       
@@ -56,10 +70,10 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </Link>
       </div>
 
-      {/* Bookmark Button */}
+      {/* Bookmark & Share Buttons */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex gap-4">
-          <ShareButton cafeName={cafe.name} />
+          <ShareButton cafeName={cafe.name || 'Cafe'} />
           <BookmarkButton cafeId={cafe.id} />
         </div>
       </div>
@@ -90,7 +104,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </div>
       </div>
 
-      {/* Content Section (Menu) */}
+      {/* 1. Content Section (Menu Products) */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🍽️</span>
@@ -115,7 +129,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
                     <div className="w-full h-full flex items-center justify-center text-3xl">☕</div>
                   )}
                   <div className="absolute top-3 right-3 bg-zinc-950/90 backdrop-blur text-amber-400 font-bold px-3 py-1.5 rounded-full text-sm border border-amber-500/20 shadow-md">
-                    {product.price}
+                    ₱{product.price}
                   </div>
                 </div>
                 <div className="p-5 flex flex-col flex-1">
@@ -139,7 +153,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         <SuggestProductForm cafeId={cafe.id} />
       </div>
       
-      {/* Reviews Section */}
+      {/* 2. Reviews Section */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">⭐</span>
@@ -191,6 +205,94 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
           {/* Leave a Review Form */}
           <div className="lg:col-span-1">
             <ReviewForm cafeId={cafe.id} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. About Section (Moved Below Reviews) */}
+      <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+        <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+          <h2 className="text-2xl font-bold flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">ℹ️</span>
+            About {cafe.name}
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Service Options & Offerings */}
+            <div className="space-y-6">
+              {serviceOptions.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Service Options</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {serviceOptions.map((option, idx) => (
+                      <span key={idx} className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-xl text-xs font-medium">
+                        ✓ {option}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {offeringsOptions.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Offerings</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {offeringsOptions.map((offering, idx) => (
+                      <span key={idx} className="bg-zinc-800 text-zinc-300 border border-white/5 px-3 py-1.5 rounded-xl text-xs font-medium">
+                        ☕ {offering}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Social & Web Links */}
+            <div>
+              <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Connect & Links</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(cafe as any).facebook_url && (
+                  <a
+                    href={(cafe as any).facebook_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-zinc-950 border border-white/5 hover:border-amber-500/50 p-3 rounded-2xl text-xs text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <span>🌐</span> Facebook
+                  </a>
+                )}
+                {(cafe as any).instagram_url && (
+                  <a
+                    href={(cafe as any).instagram_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-zinc-950 border border-white/5 hover:border-amber-500/50 p-3 rounded-2xl text-xs text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <span>📸</span> Instagram
+                  </a>
+                )}
+                {(cafe as any).tiktok_url && (
+                  <a
+                    href={(cafe as any).tiktok_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-zinc-950 border border-white/5 hover:border-amber-500/50 p-3 rounded-2xl text-xs text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <span>🎵</span> TikTok
+                  </a>
+                )}
+                {(cafe as any).website_url && (
+                  <a
+                    href={(cafe as any).website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-zinc-950 border border-white/5 hover:border-amber-500/50 p-3 rounded-2xl text-xs text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <span>🔗</span> Website
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

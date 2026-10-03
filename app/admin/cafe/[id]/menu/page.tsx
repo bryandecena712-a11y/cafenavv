@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
 
+const SERVICE_OPTIONS = ['Dine-in', 'Delivery', 'Takeout'];
+const OFFERINGS_OPTIONS = ['Coffee', 'Non-Coffee', 'Quick Bites', 'Pastries', 'Desserts'];
+
 export default function ManageMenuPage() {
   const params = useParams();
   const rawId = params?.id;
@@ -21,12 +24,22 @@ export default function ManageMenuPage() {
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Edit states
+  // Edit states for products
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
+
+  // Cafe Details Form States
+  const [services, setServices] = useState<string[]>([]);
+  const [offerings, setOfferings] = useState<string[]>([]);
+  const [facebook, setFacebook] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [tiktok, setTiktok] = useState('');
+  const [website, setWebsite] = useState('');
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
+  const [detailsSavedSuccess, setDetailsSavedSuccess] = useState(false);
 
   const fetchData = async () => {
     if (!cafeId) return;
@@ -38,6 +51,27 @@ export default function ManageMenuPage() {
         if (found) {
           setCafe(found);
           setProducts(found.products || []);
+
+          // Populate Cafe About Details
+          setFacebook(found.facebook_url || '');
+          setInstagram(found.instagram_url || '');
+          setTiktok(found.tiktok_url || '');
+          setWebsite(found.website_url || '');
+
+          if (found.service_options) {
+            try {
+              setServices(JSON.parse(found.service_options));
+            } catch {
+              setServices(found.service_options.split(',').map((s: string) => s.trim()));
+            }
+          }
+          if (found.offerings) {
+            try {
+              setOfferings(JSON.parse(found.offerings));
+            } catch {
+              setOfferings(found.offerings.split(',').map((s: string) => s.trim()));
+            }
+          }
         }
       }
     } catch (err) {
@@ -159,6 +193,47 @@ export default function ManageMenuPage() {
     }
   };
 
+  // Toggle checklist selection
+  const toggleItem = (list: string[], setList: (val: string[]) => void, item: string) => {
+    setList(list.includes(item) ? list.filter((i) => i !== item) : [...list, item]);
+  };
+
+  // Handle saving Cafe About Section details via PATCH
+  const handleSaveCafeDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cafeId) return;
+    setIsSavingDetails(true);
+    setDetailsSavedSuccess(false);
+
+    try {
+      const res = await fetch(`/api/admin/cafes/${cafeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_options: services,
+          offerings: offerings,
+          facebook_url: facebook,
+          instagram_url: instagram,
+          tiktok_url: tiktok,
+          website_url: website,
+        }),
+      });
+
+      if (res.ok) {
+        setDetailsSavedSuccess(true);
+        setTimeout(() => setDetailsSavedSuccess(false), 3000);
+        fetchData();
+      } else {
+        alert('Failed to update cafe details');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred saving cafe details');
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-white">Loading menu manager...</div>;
   if (!cafe) return <div className="p-8 text-white">Cafe not found.</div>;
 
@@ -166,22 +241,20 @@ export default function ManageMenuPage() {
   const pendingProducts = products.filter(p => p.status === 'PENDING');
 
   return (
-    <div className="p-8 max-w-6xl mx-auto text-white">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <Link
-  href="/admin"
-  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors mb-4 shadow-md"
->
-  ← Back to Dashboard
-</Link>
-          <h1 className="text-3xl font-bold">{cafe.name} - Manage Menu</h1>
-        </div>
+    <div className="p-8 max-w-6xl mx-auto text-white space-y-12">
+      <div>
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors mb-4 shadow-md"
+        >
+          ← Back to Dashboard
+        </Link>
+        <h1 className="text-3xl font-bold">{cafe.name} - Manage Menu</h1>
       </div>
 
       {/* Pending User Suggestions */}
       {pendingProducts.length > 0 && (
-        <div className="mb-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
           <h2 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             Pending User Suggestions ({pendingProducts.length})
@@ -278,7 +351,114 @@ export default function ManageMenuPage() {
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Dynamic Section: [Cafe Name] - Manage Details */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 space-y-6">
+        <h2 className="text-2xl font-bold text-white">
+          {cafe.name} - Manage Details
+        </h2>
+
+        <form onSubmit={handleSaveCafeDetails} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-zinc-300 mb-2">Service Options</label>
+            <div className="flex flex-wrap gap-3">
+              {SERVICE_OPTIONS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => toggleItem(services, setServices, item)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                    services.includes(item)
+                      ? 'bg-amber-500 text-zinc-950 border-amber-500'
+                      : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                  }`}
+                >
+                  {services.includes(item) ? '✓ ' : '+ '}
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-zinc-300 mb-2">Offerings</label>
+            <div className="flex flex-wrap gap-3">
+              {OFFERINGS_OPTIONS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => toggleItem(offerings, setOfferings, item)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                    offerings.includes(item)
+                      ? 'bg-amber-500 text-zinc-950 border-amber-500'
+                      : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                  }`}
+                >
+                  {offerings.includes(item) ? '✓ ' : '+ '}
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Facebook URL</label>
+              <input
+                type="url"
+                value={facebook}
+                onChange={(e) => setFacebook(e.target.value)}
+                placeholder="https://facebook.com/cafe"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Instagram URL</label>
+              <input
+                type="url"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="https://instagram.com/cafe"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">TikTok URL</label>
+              <input
+                type="url"
+                value={tiktok}
+                onChange={(e) => setTiktok(e.target.value)}
+                placeholder="https://tiktok.com/@cafe"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Website URL</label>
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://cafe.com"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={isSavingDetails}
+              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isSavingDetails ? 'Saving...' : 'Save Details'}
+            </button>
+            {detailsSavedSuccess && (
+              <span className="text-xs text-emerald-500 font-semibold">✓ Details saved successfully!</span>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Edit Product Modal */}
       {editingProduct && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
