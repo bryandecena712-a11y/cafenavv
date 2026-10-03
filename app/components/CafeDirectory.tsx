@@ -132,6 +132,16 @@ export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
         ))}
       </div>
 
+      {/* Interactive Cafe Map Header & Instructions */}
+      <div className="mb-6">
+        <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight text-zinc-50 mb-2">
+          Interactive Cafe Map
+        </h2>
+        <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-2xl">
+          Explore local coffee shops near you. Click any orange marker on the map to preview cafe details, check directions, or jump straight to their menu.
+        </p>
+      </div>
+
       <div className="mb-10 w-full">
         <CafeMap cafes={filteredCafes} />
       </div>
