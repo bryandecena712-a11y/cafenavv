@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
@@ -11,8 +12,20 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 w-full bg-zinc-950/90 backdrop-blur-md border-b border-white/5 min-h-16 flex items-center">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-        <Link href="/" className="text-xl font-bold tracking-tight text-zinc-50 shrink-0">
-          CafeNav
+        
+        {/* Brand Logo & Name */}
+        <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
+          <Image
+            src="/cafenav-logo.png"
+            alt="CafeNav Logo"
+            width={32}
+            height={32}
+            className="w-8 h-8 object-contain"
+            priority
+          />
+          <span className="text-xl font-bold tracking-tight text-zinc-50 group-hover:text-amber-500 transition-colors">
+            CafeNav
+          </span>
         </Link>
         
         <div className="flex items-center gap-2 sm:gap-6 text-sm font-medium">
