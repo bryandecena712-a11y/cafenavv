@@ -29,13 +29,14 @@ export async function PATCH(
       image_url,
       lat,
       lng,
-      // New About Page fields
+      // New About Page & Operating Schedule fields
       service_options,
       offerings,
       facebook_url,
       instagram_url,
       tiktok_url,
       website_url,
+      operating_hours,
     } = data;
 
     // Build dynamic update payload to prevent overriding existing values with undefined
@@ -65,6 +66,13 @@ export async function PATCH(
     if (instagram_url !== undefined) updateData.instagram_url = instagram_url.trim();
     if (tiktok_url !== undefined) updateData.tiktok_url = tiktok_url.trim();
     if (website_url !== undefined) updateData.website_url = website_url.trim();
+
+    // Handle Operating Hours Schedule
+    if (operating_hours !== undefined) {
+      updateData.operating_hours = typeof operating_hours === 'object'
+        ? JSON.stringify(operating_hours)
+        : operating_hours;
+    }
 
     if (image_url !== undefined) {
       const validImageUrl =
