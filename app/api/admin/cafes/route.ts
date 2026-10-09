@@ -55,11 +55,11 @@ export async function POST(request: Request) {
     // Format location string safely
     const locationStr =
       data.location ||
-      (latVal !== null && lngVal !== null
+      (latVal !== null && lngVal !== null && !isNaN(latVal) && !isNaN(lngVal)
         ? `${latVal.toFixed(4)}, ${lngVal.toFixed(4)}`
         : 'Calamba, Laguna');
 
-    // Build Prisma creation data object dynamically
+    // Build Prisma creation data matching exact Prisma Schema fields
     const createData: any = {
       name,
       description,
@@ -70,20 +70,12 @@ export async function POST(request: Request) {
       status,
     };
 
-    // If your Prisma model has explicit Float columns for lat & lng, populate them safely
-    if (latVal !== null && !isNaN(latVal)) {
-      createData.lat = latVal;
-    }
-    if (lngVal !== null && !isNaN(lngVal)) {
-      createData.lng = lngVal;
-    }
-
     // Include nested product creation if products array is provided
     if (Array.isArray(products) && products.length > 0) {
       createData.products = {
         create: products.map((p: any) => ({
           name: p.name,
-          price: parseFloat(p.price) || 0,
+          price: String(p.price || 0), // Prisma schema expects price as String
           description: p.description || '',
           image_url: p.photo || p.image_url || '',
         })),
@@ -102,7 +94,7 @@ export async function POST(request: Request) {
       try {
         await prisma.audit_logs.create({
           data: {
-            user_id: userId,
+            user_id: Number(userId),
             action: 'Added Cafe',
             target: name,
           },
