@@ -42,31 +42,47 @@ function getRealTimeStatus(operatingHoursStr?: string | null) {
     }
   }
 
+  // Convert Vercel UTC Server Time to Philippine Local Time (Asia/Manila)
   const now = new Date();
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const currentDayName = dayNames[now.getDay()];
+  const options: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Manila', hourCycle: 'h23', weekday: 'long', hour: 'numeric', minute: 'numeric' };
+  const phParts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
+
+  let currentDayName = 'Friday';
+  let currentHour = 0;
+  let currentMinute = 0;
+
+  phParts.forEach((part) => {
+    if (part.type === 'weekday') currentDayName = part.value;
+    if (part.type === 'hour') currentHour = parseInt(part.value, 10);
+    if (part.type === 'minute') currentMinute = parseInt(part.value, 10);
+  });
+
   const todaySchedule = schedule[currentDayName];
 
   if (!todaySchedule || todaySchedule.isClosed) {
     return { isOpen: false, text: 'Closed today', schedule };
   }
 
-  const [openH, openM] = todaySchedule.open.split(':').map(Number);
-  const [closeH, closeM] = todaySchedule.close.split(':').map(Number);
+  let [openH, openM] = todaySchedule.open.split(':').map(Number);
+  let [closeH, closeM] = todaySchedule.close.split(':').map(Number);
 
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  // If close time is 00:00 (Midnight), convert to 24:00 so 10:40 PM (22:40) falls inside range
+  if (closeH === 0 && closeM === 0) {
+    closeH = 24;
+  }
+
+  const currentMinutes = currentHour * 60 + currentMinute;
   const openMinutes = openH * 60 + openM;
   let closeMinutes = closeH * 60 + closeM;
 
-  // Handle overnight schedules (e.g. 10:30 PM to 01:00 AM)
   let isOpen = false;
-  if (closeMinutes <= openMinutes) {
-    // Closes after midnight
+  if (closeMinutes <= openMinutes && closeH !== 24) {
+    // Overnight shifts past midnight (e.g., 10:30 PM to 01:00 AM)
     closeMinutes += 24 * 60;
     const adjustedCurrentMinutes = currentMinutes < openMinutes ? currentMinutes + 24 * 60 : currentMinutes;
     isOpen = adjustedCurrentMinutes >= openMinutes && adjustedCurrentMinutes < closeMinutes;
   } else {
-    // Normal same-day schedule
+    // Standard same-day or midnight-ending schedule
     isOpen = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
   }
 
