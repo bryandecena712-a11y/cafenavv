@@ -61,9 +61,10 @@ export default function Offers() {
       title: "Which price fits you?",
       category: "PRICE RANGE",
       options: [
-        { title: "₱ (Affordable)", value: "budget", desc: "Daily driver coffee" },
-        { title: "₱₱ (Moderate)", value: "moderate", desc: "Specialty beans, standard price" },
-        { title: "₱₱₱ (Premium)", value: "premium", desc: "Geisha beans, high-end experience" }
+        { title: "₱100-300", value: "budget", desc: "Affordable Price" },
+        { title: "₱150-300", value: "moderate", desc: "Standard Price" },
+        { title: "₱200-500", value: "premium", desc: "High-end Experience" },
+        { title: "Any Price", value: "all", desc: "Show all shops regardless of price" }
       ]
     },
     {
