@@ -253,7 +253,7 @@ export default function ManageCafes() {
               
               <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
                 <Link href={`/admin/cafe/${cafe.id}/menu`} className="flex-1 text-center bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-white font-medium py-2 rounded-xl text-sm transition-colors">
-                  Manage Menu
+                  Manage Cafe
                 </Link>
                 <button
                   onClick={() => handleDeleteCafe(cafe.id, cafe.name)}

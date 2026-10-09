@@ -249,7 +249,7 @@ export default function ManageMenuPage() {
         >
           ← Back to Dashboard
         </Link>
-        <h1 className="text-3xl font-bold">{cafe.name} - Manage Cafe</h1>
+        <h1 className="text-3xl font-bold">{cafe.name} - Manage Menu</h1>
       </div>
 
       {/* Pending User Suggestions */}
