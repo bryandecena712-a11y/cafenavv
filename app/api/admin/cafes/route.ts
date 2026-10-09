@@ -32,7 +32,9 @@ export async function POST(request: Request) {
     const description = data.description?.trim() || 'No description provided';
     const priceLevel = data.priceLevel || data.price_level || '₱₱';
     const vibe = data.vibe || 'chill';
-    const status = data.status || 'PENDING';
+    
+    // Default to APPROVED for cafes published via admin creation
+    const status = data.status || 'APPROVED';
     const userId = data.userId || null;
     const products = data.products || [];
 
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
           price: String(p.price || 0), // Prisma schema expects price as String
           description: p.description || '',
           image_url: p.photo || p.image_url || '',
+          status: 'APPROVED',
         })),
       };
     }
