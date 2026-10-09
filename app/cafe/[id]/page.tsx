@@ -58,11 +58,17 @@ function getRealTimeStatus(operatingHoursStr?: string | null) {
   const openMinutes = openH * 60 + openM;
   let closeMinutes = closeH * 60 + closeM;
 
+  // Handle overnight schedules (e.g. 10:30 PM to 01:00 AM)
+  let isOpen = false;
   if (closeMinutes <= openMinutes) {
+    // Closes after midnight
     closeMinutes += 24 * 60;
+    const adjustedCurrentMinutes = currentMinutes < openMinutes ? currentMinutes + 24 * 60 : currentMinutes;
+    isOpen = adjustedCurrentMinutes >= openMinutes && adjustedCurrentMinutes < closeMinutes;
+  } else {
+    // Normal same-day schedule
+    isOpen = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
   }
-
-  const isOpen = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 
   return {
     isOpen,
@@ -104,7 +110,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
     notFound();
   }
 
-  // Helper to safely parse string array or comma-separated string
   const parseList = (data: string | null | undefined): string[] => {
     if (!data) return [];
     try {
@@ -122,7 +127,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative">
       
-      {/* Absolute "Back to Home" button over the hero image */}
+      {/* Absolute "Back to Home" button */}
       <div className="absolute top-6 left-6 z-20">
         <Link 
           href="/" 
@@ -216,7 +221,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         <SuggestProductForm cafeId={cafe.id} />
       </div>
 
-      {/* REAL-TIME OPERATING HOURS & SCHEDULE (Placed directly ABOVE Community Reviews) */}
+      {/* REAL-TIME OPERATING HOURS & SCHEDULE */}
       <div className="max-w-6xl mx-auto px-8 py-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -266,7 +271,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Reviews List */}
           <div className="lg:col-span-2 space-y-4">
             {cafe.reviews && cafe.reviews.length > 0 ? (
               cafe.reviews.map((review: any) => (
@@ -307,14 +311,13 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
             )}
           </div>
 
-          {/* Leave a Review Form */}
           <div className="lg:col-span-1">
             <ReviewForm cafeId={cafe.id} />
           </div>
         </div>
       </div>
 
-      {/* 3. About Section (Positioned at the very bottom) */}
+      {/* 3. About Section */}
       <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -323,7 +326,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Service Options & Offerings */}
             <div className="space-y-6">
               {serviceOptions.length > 0 && (
                 <div>
@@ -352,7 +354,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
               )}
             </div>
 
-            {/* Social & Web Links */}
             <div>
               <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Connect & Links</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
