@@ -11,6 +11,68 @@ import DeleteReviewButton from './DeleteReviewButton';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function formatTime(timeStr?: string): string {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const displayHour = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${displayHour} ${period}` : `${displayHour}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
+function getRealTimeStatus(operatingHoursStr?: string | null) {
+  const defaultHours: Record<string, { open: string; close: string; isClosed: boolean }> = {
+    Monday: { open: '09:00', close: '23:00', isClosed: false },
+    Tuesday: { open: '09:00', close: '23:00', isClosed: false },
+    Wednesday: { open: '09:00', close: '23:00', isClosed: false },
+    Thursday: { open: '09:00', close: '23:00', isClosed: false },
+    Friday: { open: '09:00', close: '01:00', isClosed: false },
+    Saturday: { open: '09:00', close: '01:00', isClosed: false },
+    Sunday: { open: '09:00', close: '01:00', isClosed: false },
+  };
+
+  let schedule = defaultHours;
+  if (operatingHoursStr) {
+    try {
+      const parsed = typeof operatingHoursStr === 'string' ? JSON.parse(operatingHoursStr) : operatingHoursStr;
+      schedule = { ...defaultHours, ...parsed };
+    } catch {
+      schedule = defaultHours;
+    }
+  }
+
+  const now = new Date();
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDayName = dayNames[now.getDay()];
+  const todaySchedule = schedule[currentDayName];
+
+  if (!todaySchedule || todaySchedule.isClosed) {
+    return { isOpen: false, text: 'Closed today', schedule };
+  }
+
+  const [openH, openM] = todaySchedule.open.split(':').map(Number);
+  const [closeH, closeM] = todaySchedule.close.split(':').map(Number);
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const openMinutes = openH * 60 + openM;
+  let closeMinutes = closeH * 60 + closeM;
+
+  if (closeMinutes <= openMinutes) {
+    closeMinutes += 24 * 60;
+  }
+
+  const isOpen = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+
+  return {
+    isOpen,
+    text: isOpen
+      ? `${formatTime(todaySchedule.open)} – ${formatTime(todaySchedule.close)}`
+      : `Opens at ${formatTime(todaySchedule.open)}`,
+    schedule,
+  };
+}
+
 export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
   const cafeId = parseInt(params.id, 10);
   
@@ -55,6 +117,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
 
   const serviceOptions = parseList((cafe as any).service_options);
   const offeringsOptions = parseList((cafe as any).offerings);
+  const { isOpen, text: statusText, schedule } = getRealTimeStatus((cafe as any).operating_hours);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative">
@@ -152,7 +215,49 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         {/* Suggest Menu Item Form */}
         <SuggestProductForm cafeId={cafe.id} />
       </div>
-      
+
+      {/* REAL-TIME OPERATING HOURS & SCHEDULE (Placed directly ABOVE Community Reviews) */}
+      <div className="max-w-6xl mx-auto px-8 py-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-2xl font-bold flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🕒</span>
+              Opening Hours & Schedule
+            </h2>
+
+            {/* Indicator Badge: Green = Open, Red = Close */}
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold ${
+              isOpen
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+            }`}>
+              <span className={`w-2.5 h-2.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+              <span>{isOpen ? 'Open' : 'Close'}</span>
+              <span className="text-zinc-500 font-normal">({statusText})</span>
+            </div>
+          </div>
+
+          {/* Sequential Monday to Sunday grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {DAYS_OF_WEEK.map((day) => {
+              const item = schedule[day];
+              return (
+                <div key={day} className="bg-zinc-950/60 border border-white/5 rounded-2xl p-3.5 flex flex-col justify-between">
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{day}</span>
+                  <span className="text-sm font-semibold text-zinc-100 mt-1">
+                    {item?.isClosed ? (
+                      <span className="text-rose-400 font-medium">Closed</span>
+                    ) : (
+                      `${formatTime(item?.open)} - ${formatTime(item?.close)}`
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* 2. Reviews Section */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
@@ -209,7 +314,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </div>
       </div>
 
-      {/* 3. About Section (Moved Below Reviews) */}
+      {/* 3. About Section (Positioned at the very bottom) */}
       <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-3">

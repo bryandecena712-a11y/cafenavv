@@ -8,6 +8,18 @@ import { supabase } from '@/app/lib/supabase';
 const SERVICE_OPTIONS = ['Dine-in', 'Delivery', 'Takeout'];
 const OFFERINGS_OPTIONS = ['Coffee', 'Non-Coffee', 'Quick Bites', 'Pastries', 'Desserts'];
 
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const DEFAULT_SCHEDULE: Record<string, { open: string; close: string; isClosed: boolean }> = {
+  Monday: { open: '09:00', close: '23:00', isClosed: false },
+  Tuesday: { open: '09:00', close: '23:00', isClosed: false },
+  Wednesday: { open: '09:00', close: '23:00', isClosed: false },
+  Thursday: { open: '09:00', close: '23:00', isClosed: false },
+  Friday: { open: '09:00', close: '01:00', isClosed: false },
+  Saturday: { open: '09:00', close: '01:00', isClosed: false },
+  Sunday: { open: '09:00', close: '01:00', isClosed: false },
+};
+
 export default function ManageMenuPage() {
   const params = useParams();
   const rawId = params?.id;
@@ -31,6 +43,11 @@ export default function ManageMenuPage() {
   const [editDescription, setEditDescription] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
 
+  // Operating Schedule State
+  const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
+  const [isSavingHours, setIsSavingHours] = useState(false);
+  const [hoursSavedSuccess, setHoursSavedSuccess] = useState(false);
+
   // Cafe Details Form States
   const [services, setServices] = useState<string[]>([]);
   const [offerings, setOfferings] = useState<string[]>([]);
@@ -52,11 +69,19 @@ export default function ManageMenuPage() {
           setCafe(found);
           setProducts(found.products || []);
 
-          // Populate Cafe About Details
           setFacebook(found.facebook_url || '');
           setInstagram(found.instagram_url || '');
           setTiktok(found.tiktok_url || '');
           setWebsite(found.website_url || '');
+
+          if (found.operating_hours) {
+            try {
+              const parsed = typeof found.operating_hours === 'string' ? JSON.parse(found.operating_hours) : found.operating_hours;
+              setSchedule({ ...DEFAULT_SCHEDULE, ...parsed });
+            } catch {
+              setSchedule(DEFAULT_SCHEDULE);
+            }
+          }
 
           if (found.service_options) {
             try {
@@ -193,12 +218,48 @@ export default function ManageMenuPage() {
     }
   };
 
-  // Toggle checklist selection
   const toggleItem = (list: string[], setList: (val: string[]) => void, item: string) => {
     setList(list.includes(item) ? list.filter((i) => i !== item) : [...list, item]);
   };
 
-  // Handle saving Cafe About Section details via PATCH
+  const handleScheduleChange = (day: string, field: 'open' | 'close' | 'isClosed', value: any) => {
+    setSchedule((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveHours = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cafeId) return;
+    setIsSavingHours(true);
+    setHoursSavedSuccess(false);
+
+    try {
+      const res = await fetch(`/api/admin/cafes/${cafeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operating_hours: schedule }),
+      });
+
+      if (res.ok) {
+        setHoursSavedSuccess(true);
+        setTimeout(() => setHoursSavedSuccess(false), 3000);
+        fetchData();
+      } else {
+        alert('Failed to update operating hours');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating operating hours');
+    } finally {
+      setIsSavingHours(false);
+    }
+  };
+
   const handleSaveCafeDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cafeId) return;
@@ -237,8 +298,8 @@ export default function ManageMenuPage() {
   if (loading) return <div className="p-8 text-white">Loading menu manager...</div>;
   if (!cafe) return <div className="p-8 text-white">Cafe not found.</div>;
 
-  const approvedProducts = products.filter(p => p.status === 'APPROVED' || !p.status);
-  const pendingProducts = products.filter(p => p.status === 'PENDING');
+  const approvedProducts = products.filter((p) => p.status === 'APPROVED' || !p.status);
+  const pendingProducts = products.filter((p) => p.status === 'PENDING');
 
   return (
     <div className="p-8 max-w-6xl mx-auto text-white space-y-12">
@@ -260,7 +321,7 @@ export default function ManageMenuPage() {
             Pending User Suggestions ({pendingProducts.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pendingProducts.map(product => (
+            {pendingProducts.map((product) => (
               <div key={product.id} className="bg-zinc-950/80 border border-amber-500/20 rounded-2xl p-4 flex gap-4 relative group">
                 <button onClick={() => handleDelete(product.id)} className="absolute top-2 right-2 w-6 h-6 bg-rose-500 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                 <div className="w-16 h-16 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden">
@@ -292,19 +353,19 @@ export default function ManageMenuPage() {
           <form onSubmit={handleAddProduct} className="space-y-4">
             <div>
               <label className="block text-sm text-zinc-400 mb-1">Name *</label>
-              <input required value={name} onChange={e => setName(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+              <input required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
             </div>
             <div>
               <label className="block text-sm text-zinc-400 mb-1">Price *</label>
-              <input required value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 150" className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+              <input required value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. 150" className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
             </div>
             <div>
               <label className="block text-sm text-zinc-400 mb-1">Description</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
             </div>
             <div>
               <label className="block text-sm text-zinc-400 mb-1">Photo</label>
-              <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
+              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
             </div>
             <button disabled={isSubmitting} className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl transition-colors">
               {isSubmitting ? 'Adding...' : 'Add Product'}
@@ -316,7 +377,7 @@ export default function ManageMenuPage() {
         <div className="md:col-span-2">
           <h2 className="text-xl font-bold mb-4">Current Menu ({approvedProducts.length})</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {approvedProducts.map(product => (
+            {approvedProducts.map((product) => (
               <div key={product.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex gap-4 relative group">
                 <div className="w-20 h-20 bg-zinc-800 rounded-xl flex-shrink-0 overflow-hidden">
                   {product.image_url ? (
@@ -335,7 +396,6 @@ export default function ManageMenuPage() {
                     <p className="text-xs text-zinc-400 line-clamp-2 mt-1">{product.description || 'No description'}</p>
                   </div>
 
-                  {/* Actions: Edit & Delete Buttons */}
                   <div className="flex items-center gap-2 mt-3">
                     <button onClick={() => handleStartEdit(product)} className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/5 transition-colors">
                       ✏️ Edit
@@ -349,6 +409,76 @@ export default function ManageMenuPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* NEW CRUD SECTION: Manage Operating Hours (Placed TOP of Manage Details) */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <span>🕒</span> Manage Operating Hours
+            </h2>
+            <p className="text-xs text-zinc-400 mt-1">
+              Set real-time opening & closing times for Monday to Sunday in exact sequence.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveHours} className="space-y-4">
+          <div className="divide-y divide-zinc-800/80 border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950/60">
+            {DAYS_OF_WEEK.map((day) => {
+              const item = schedule[day] || { open: '09:00', close: '23:00', isClosed: false };
+              return (
+                <div key={day} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="w-32 font-semibold text-sm text-zinc-200">{day}</div>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={item.isClosed}
+                        onChange={(e) => handleScheduleChange(day, 'isClosed', e.target.checked)}
+                        className="rounded border-zinc-700 text-amber-500 focus:ring-amber-500/20 bg-zinc-900"
+                      />
+                      Mark as Closed
+                    </label>
+
+                    {!item.isClosed && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={item.open}
+                          onChange={(e) => handleScheduleChange(day, 'open', e.target.value)}
+                          className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-amber-500"
+                        />
+                        <span className="text-zinc-500 text-xs">to</span>
+                        <input
+                          type="time"
+                          value={item.close}
+                          onChange={(e) => handleScheduleChange(day, 'close', e.target.value)}
+                          className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={isSavingHours}
+              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isSavingHours ? 'Saving Schedule...' : 'Save Operating Hours'}
+            </button>
+            {hoursSavedSuccess && (
+              <span className="text-xs text-emerald-500 font-semibold">✓ Schedule updated successfully!</span>
+            )}
+          </div>
+        </form>
       </div>
 
       {/* Dynamic Section: [Cafe Name] - Manage Details */}
@@ -469,19 +599,19 @@ export default function ManageMenuPage() {
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Name</label>
-                <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+                <input required value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Price</label>
-                <input required value={editPrice} onChange={e => setEditPrice(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+                <input required value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Description</label>
-                <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
+                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Update Photo (Optional)</label>
-                <input type="file" accept="image/*" onChange={e => setEditImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
+                <input type="file" accept="image/*" onChange={(e) => setEditImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setEditingProduct(null)} className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-700">Cancel</button>

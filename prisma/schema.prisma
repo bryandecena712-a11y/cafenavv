@@ -16,13 +16,14 @@ model cafes {
   vibe            String?
   status          String?     @default("APPROVED")
   
-  // New fields for Cafe About Section
-  service_options String?     // e.g. "[\"Dine-in\", \"Delivery\", \"Takeout\"]"
-  offerings       String?     // e.g. "[\"Coffee\", \"Non-Coffee\", \"Quick Bites\"]"
+  // New fields for Cafe About Section & Operating Schedule
+  service_options String?     
+  offerings       String?     
   facebook_url    String?
   instagram_url   String?
   tiktok_url      String?
   website_url     String?
+  operating_hours String?     // e.g. '{"Monday":{"open":"09:00","close":"23:00","isClosed":false},...}'
 
   products        products[]
   stories         stories[]
@@ -42,12 +43,12 @@ model products {
 }
 
 model users {
-  id         Int         @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   username   String
-  email      String      @unique
+  email      String       @unique
   password   String
-  role       String      @default("USER")
-  created_at DateTime?   @default(now())
+  role       String       @default("USER")
+  created_at DateTime?    @default(now())
   stories    stories[]
   audit_logs audit_logs[]
   reviews    reviews[]
