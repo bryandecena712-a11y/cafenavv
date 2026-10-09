@@ -4,23 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle, Star } from '@phosphor-icons/react';
-
-// Helper component to render star rating visuals matching Community Reviews
-function StarRating({ count }: { count: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((starIndex) => (
-        <Star
-          key={starIndex}
-          size={18}
-          weight="fill"
-          className={starIndex <= count ? 'text-amber-500' : 'text-zinc-600'}
-        />
-      ))}
-    </div>
-  );
-}
+import { CheckCircle } from '@phosphor-icons/react';
 
 export default function Offers() {
   const [step, setStep] = useState(0);
@@ -68,13 +52,12 @@ export default function Offers() {
       ]
     },
     {
-      title: "What rating standard do you prefer?",
-      category: "RATING PREFERENCE",
+      title: "What ambiance setting do you prefer?",
+      category: "CAFE ENVIRONMENT",
       options: [
-        { title: "5.0 Rated", value: "5", stars: 5, desc: "Flawless ratings from coffee lovers" },
-        { title: "4.0 & Above", value: "4", stars: 4, desc: "Consistently highly recommended spaces" },
-        { title: "3.0 & Above", value: "3", stars: 3, desc: "Decent neighborhood spots" },
-        { title: "Any Rating", value: "all", stars: 0, desc: "Show all shops including new hidden gems" }
+        { title: "Indoor Cafe", value: "indoor", desc: "Air-conditioned, cozy interior seating" },
+        { title: "Outdoor Cafe", value: "outdoor", desc: "Al-fresco, open air, garden ambiance" },
+        { title: "Both Indoor & Outdoor", value: "both", desc: "Versatile space offering both inside and outside seating" }
       ]
     }
   ];
@@ -174,14 +157,9 @@ export default function Offers() {
                       }`}
                     >
                       <div className="flex justify-between items-start mb-4">
-                        <div className="flex flex-col gap-1.5">
-                          <h3 className={`font-semibold text-lg ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
-                            {opt.title}
-                          </h3>
-                          {'stars' in opt && opt.stars !== undefined && opt.stars > 0 && (
-                            <StarRating count={opt.stars} />
-                          )}
-                        </div>
+                        <h3 className={`font-semibold text-lg ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
+                          {opt.title}
+                        </h3>
                         {isSelected && <CheckCircle size={24} weight="fill" className="text-amber-500 shrink-0" />}
                       </div>
                       <p className={`text-sm leading-relaxed ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
@@ -224,13 +202,13 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
     const coffeeType = selections[1] || '';
     const needs = selections[2] || '';
     const price = selections[3] || '';
-    const rating = selections[4] || '';
+    const environment = selections[4] || '';
 
     const queryParams = new URLSearchParams({
       type: coffeeType,
       needs: needs,
       price: price,
-      rating: rating,
+      environment: environment,
     }).toString();
 
     const cachedCafes = () => {
