@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 // Force dynamic execution & prevent static prerender build crashes
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,7 @@ export const revalidate = 0;
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { cafeId, rating, content, userId } = data;
+    const { cafeId, rating, content, userId, image_url } = data;
 
     if (!cafeId || !rating || !content || !userId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -32,11 +33,14 @@ export async function POST(request: Request) {
         cafe_id: cafeId,
         rating: rating,
         content: content,
+        image_url: image_url || null,
       },
       include: {
         user: { select: { username: true } },
       },
     });
+
+    revalidatePath(`/cafe/${cafeId}`);
 
     return NextResponse.json(newReview, { status: 201 });
   } catch (error: any) {
