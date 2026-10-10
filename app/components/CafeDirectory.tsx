@@ -27,17 +27,41 @@ function isRawCoordinates(locationStr?: string): boolean {
   return /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(locationStr.trim());
 }
 
-export default function CafeDirectory({ initialCafes }: CafeDirectoryProps) {
+export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps) {
   const preferences = loadDirectoryPreferences();
   const [cafes, setCafes] = useState<any[]>(initialCafes);
   const [searchQuery, setSearchQuery] = useState(preferences?.searchQuery || '');
 
   useEffect(() => {
-    saveCachedCafes(initialCafes);
-    setCafes(initialCafes);
-    loadCachedCafes<any>().then((cached) => {
-      if (cached?.length && !navigator.onLine) setCafes(cached);
-    });
+    // Priority 1: If initial server props exist, update state and cache them
+    if (Array.isArray(initialCafes) && initialCafes.length > 0) {
+      setCafes(initialCafes);
+      saveCachedCafes(initialCafes);
+    } else {
+      // Priority 2: Fallback to offline storage if initial props are empty
+      loadCachedCafes<any>().then((cached) => {
+        if (Array.isArray(cached) && cached.length > 0) {
+          setCafes(cached);
+        }
+      });
+    }
+
+    // Priority 3: Fetch latest cafes in background without wiping current state on error
+    const loadBackgroundCafes = async () => {
+      try {
+        const res = await fetch('/api/cafes', { cache: 'no-store' });
+        if (!res.ok) return; // Safeguard: Keep current state on error
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setCafes(data);
+          saveCachedCafes(data);
+        }
+      } catch (err) {
+        console.warn('Background cafe refresh skipped:', err);
+      }
+    };
+
+    loadBackgroundCafes();
   }, [initialCafes]);
 
   useEffect(() => {
