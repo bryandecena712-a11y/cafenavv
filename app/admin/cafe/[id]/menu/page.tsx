@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
 
-const SERVICE_OPTIONS = ['Dine-in', 'Delivery', 'Takeout'];
-const OFFERINGS_OPTIONS = ['Coffee', 'Non-Coffee', 'Quick Bites', 'Pastries', 'Desserts'];
+const DEFAULT_SERVICES = ['Dine-in', 'Delivery', 'Takeout'];
+const DEFAULT_OFFERINGS = ['Coffee', 'Non-Coffee', 'Quick Bites', 'Pastries', 'Desserts'];
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -58,6 +58,10 @@ export default function ManageMenuPage() {
   const [isSavingDetails, setIsSavingDetails] = useState(false);
   const [detailsSavedSuccess, setDetailsSavedSuccess] = useState(false);
 
+  // Custom Tag Input States
+  const [customServiceInput, setCustomServiceInput] = useState('');
+  const [customOfferingInput, setCustomOfferingInput] = useState('');
+
   const fetchData = async () => {
     if (!cafeId) return;
     try {
@@ -85,16 +89,19 @@ export default function ManageMenuPage() {
 
           if (found.service_options) {
             try {
-              setServices(JSON.parse(found.service_options));
+              const parsed = typeof found.service_options === 'string' ? JSON.parse(found.service_options) : found.service_options;
+              setServices(Array.isArray(parsed) ? parsed : [String(parsed)]);
             } catch {
-              setServices(found.service_options.split(',').map((s: string) => s.trim()));
+              setServices(found.service_options.split(',').map((s: string) => s.trim()).filter(Boolean));
             }
           }
+
           if (found.offerings) {
             try {
-              setOfferings(JSON.parse(found.offerings));
+              const parsed = typeof found.offerings === 'string' ? JSON.parse(found.offerings) : found.offerings;
+              setOfferings(Array.isArray(parsed) ? parsed : [String(parsed)]);
             } catch {
-              setOfferings(found.offerings.split(',').map((s: string) => s.trim()));
+              setOfferings(found.offerings.split(',').map((s: string) => s.trim()).filter(Boolean));
             }
           }
         }
@@ -222,6 +229,30 @@ export default function ManageMenuPage() {
     setList(list.includes(item) ? list.filter((i) => i !== item) : [...list, item]);
   };
 
+  const addCustomService = () => {
+    const trimmed = customServiceInput.trim();
+    if (trimmed && !services.includes(trimmed)) {
+      setServices([...services, trimmed]);
+      setCustomServiceInput('');
+    }
+  };
+
+  const addCustomOffering = () => {
+    const trimmed = customOfferingInput.trim();
+    if (trimmed && !offerings.includes(trimmed)) {
+      setOfferings([...offerings, trimmed]);
+      setCustomOfferingInput('');
+    }
+  };
+
+  const deleteServiceTag = (item: string) => {
+    setServices(services.filter((s) => s !== item));
+  };
+
+  const deleteOfferingTag = (item: string) => {
+    setOfferings(offerings.filter((o) => o !== item));
+  };
+
   const handleScheduleChange = (day: string, field: 'open' | 'close' | 'isClosed', value: any) => {
     setSchedule((prev) => ({
       ...prev,
@@ -242,7 +273,7 @@ export default function ManageMenuPage() {
       const res = await fetch(`/api/admin/cafes/${cafeId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operating_hours: schedule }),
+        body: JSON.stringify({ operating_hours: JSON.stringify(schedule) }),
       });
 
       if (res.ok) {
@@ -271,8 +302,8 @@ export default function ManageMenuPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          service_options: services,
-          offerings: offerings,
+          service_options: JSON.stringify(services),
+          offerings: JSON.stringify(offerings),
           facebook_url: facebook,
           instagram_url: instagram,
           tiktok_url: tiktok,
@@ -300,6 +331,9 @@ export default function ManageMenuPage() {
 
   const approvedProducts = products.filter((p) => p.status === 'APPROVED' || !p.status);
   const pendingProducts = products.filter((p) => p.status === 'PENDING');
+
+  const allServiceOptions = Array.from(new Set([...DEFAULT_SERVICES, ...services]));
+  const allOfferingOptions = Array.from(new Set([...DEFAULT_OFFERINGS, ...offerings]));
 
   return (
     <div className="p-8 max-w-6xl mx-auto text-white space-y-12">
@@ -367,7 +401,7 @@ export default function ManageMenuPage() {
               <label className="block text-sm text-zinc-400 mb-1">Photo</label>
               <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
             </div>
-            <button disabled={isSubmitting} className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl transition-colors">
+            <button disabled={isSubmitting} className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl transition-colors cursor-pointer">
               {isSubmitting ? 'Adding...' : 'Add Product'}
             </button>
           </form>
@@ -397,10 +431,10 @@ export default function ManageMenuPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-3">
-                    <button onClick={() => handleStartEdit(product)} className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/5 transition-colors">
+                    <button onClick={() => handleStartEdit(product)} className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/5 transition-colors cursor-pointer">
                       ✏️ Edit
                     </button>
-                    <button onClick={() => handleDelete(product.id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-500/20 transition-colors">
+                    <button onClick={() => handleDelete(product.id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-500/20 transition-colors cursor-pointer">
                       🗑️ Delete
                     </button>
                   </div>
@@ -411,7 +445,7 @@ export default function ManageMenuPage() {
         </div>
       </div>
 
-      {/* NEW CRUD SECTION: Manage Operating Hours (Placed TOP of Manage Details) */}
+      {/* Manage Operating Hours */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -419,7 +453,7 @@ export default function ManageMenuPage() {
               <span>🕒</span> Manage Operating Hours
             </h2>
             <p className="text-xs text-zinc-400 mt-1">
-              Set real-time opening & closing times for Monday to Sunday in exact sequence.
+              Set real-time opening & closing times for Monday to Sunday.
             </p>
           </div>
         </div>
@@ -481,56 +515,124 @@ export default function ManageMenuPage() {
         </form>
       </div>
 
-      {/* Dynamic Section: [Cafe Name] - Manage Details */}
+      {/* Dynamic Section: Manage Details */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 space-y-6">
         <h2 className="text-2xl font-bold text-white">
           {cafe.name} - Manage Details
         </h2>
 
         <form onSubmit={handleSaveCafeDetails} className="space-y-6">
+          {/* Service Options with Add/Delete CRUD */}
           <div>
             <label className="block text-sm font-semibold text-zinc-300 mb-2">Service Options</label>
-            <div className="flex flex-wrap gap-3">
-              {SERVICE_OPTIONS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => toggleItem(services, setServices, item)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
-                    services.includes(item)
-                      ? 'bg-amber-500 text-zinc-950 border-amber-500'
-                      : 'bg-zinc-950 text-zinc-400 border-zinc-800'
-                  }`}
-                >
-                  {services.includes(item) ? '✓ ' : '+ '}
-                  {item}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2.5 mb-3">
+              {allServiceOptions.map((item) => {
+                const isSelected = services.includes(item);
+                const isCustom = !DEFAULT_SERVICES.includes(item);
+                return (
+                  <div key={item} className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(services, setServices, item)}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-500 text-zinc-950 border-amber-500 shadow-md'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      {isSelected ? '✓ ' : '+ '}
+                      {item}
+                    </button>
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={() => deleteServiceTag(item)}
+                        className="text-zinc-500 hover:text-rose-400 text-xs px-1 cursor-pointer"
+                        title="Remove custom option"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Custom Service Input */}
+            <div className="flex gap-2 max-w-sm">
+              <input
+                type="text"
+                placeholder="Add custom option (e.g., Outdoor Seating)..."
+                value={customServiceInput}
+                onChange={(e) => setCustomServiceInput(e.target.value)}
+                className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-amber-500 flex-1"
+              />
+              <button
+                type="button"
+                onClick={addCustomService}
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/5 cursor-pointer"
+              >
+                + Add
+              </button>
             </div>
           </div>
 
+          {/* Offerings Options with Add/Delete CRUD */}
           <div>
             <label className="block text-sm font-semibold text-zinc-300 mb-2">Offerings</label>
-            <div className="flex flex-wrap gap-3">
-              {OFFERINGS_OPTIONS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => toggleItem(offerings, setOfferings, item)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
-                    offerings.includes(item)
-                      ? 'bg-amber-500 text-zinc-950 border-amber-500'
-                      : 'bg-zinc-950 text-zinc-400 border-zinc-800'
-                  }`}
-                >
-                  {offerings.includes(item) ? '✓ ' : '+ '}
-                  {item}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2.5 mb-3">
+              {allOfferingOptions.map((item) => {
+                const isSelected = offerings.includes(item);
+                const isCustom = !DEFAULT_OFFERINGS.includes(item);
+                return (
+                  <div key={item} className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(offerings, setOfferings, item)}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-500 text-zinc-950 border-amber-500 shadow-md'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      {isSelected ? '✓ ' : '+ '}
+                      {item}
+                    </button>
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={() => deleteOfferingTag(item)}
+                        className="text-zinc-500 hover:text-rose-400 text-xs px-1 cursor-pointer"
+                        title="Remove custom offering"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Custom Offering Input */}
+            <div className="flex gap-2 max-w-sm">
+              <input
+                type="text"
+                placeholder="Add custom offering (e.g., Matcha, Pasta)..."
+                value={customOfferingInput}
+                onChange={(e) => setCustomOfferingInput(e.target.value)}
+                className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-amber-500 flex-1"
+              />
+              <button
+                type="button"
+                onClick={addCustomOffering}
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/5 cursor-pointer"
+              >
+                + Add
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1">Facebook URL</label>
               <input
@@ -594,7 +696,7 @@ export default function ManageMenuPage() {
           <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold">Edit Menu Item</h3>
-              <button onClick={() => setEditingProduct(null)} className="text-zinc-400 hover:text-white">✕</button>
+              <button onClick={() => setEditingProduct(null)} className="text-zinc-400 hover:text-white cursor-pointer">✕</button>
             </div>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
@@ -614,8 +716,8 @@ export default function ManageMenuPage() {
                 <input type="file" accept="image/*" onChange={(e) => setEditImageFile(e.target.files?.[0] || null)} className="text-sm text-zinc-400" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setEditingProduct(null)} className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-700">Cancel</button>
-                <button disabled={isSubmitting} type="submit" className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-xl">
+                <button type="button" onClick={() => setEditingProduct(null)} className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-700 cursor-pointer">Cancel</button>
+                <button disabled={isSubmitting} type="submit" className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-xl cursor-pointer">
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
