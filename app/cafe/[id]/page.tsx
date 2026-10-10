@@ -114,7 +114,7 @@ async function fetchCafeWithRetry(cafeId: number) {
       }
     });
 
-  let result = await query().catch(() => null);
+  let result: any = await query().catch(() => null);
 
   // If DB query returned null due to an active write transaction, wait 350ms and retry automatically
   if (!result) {
