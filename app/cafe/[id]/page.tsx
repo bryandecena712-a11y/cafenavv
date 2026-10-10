@@ -99,7 +99,6 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
 }
 
 export default async function CafeDetailsPage(props: any) {
-  // Gracefully resolve params synchronously or asynchronously
   const resolvedParams = props?.params ? await Promise.resolve(props.params) : {};
   const rawId = resolvedParams?.id;
   const cafeId = parseInt(rawId, 10);
@@ -107,49 +106,55 @@ export default async function CafeDetailsPage(props: any) {
   let cafe: any = null;
 
   if (rawId) {
-    try {
-      // 1. Primary DB Search
-      cafe = await prisma.cafes.findFirst({
-        where: {
-          OR: [
-            { id: isNaN(cafeId) ? -1 : cafeId },
-            { name: { contains: rawId, mode: 'insensitive' } }
-          ]
-        },
-        include: {
-          products: true,
-          reviews: {
-            include: {
-              user: { select: { id: true, username: true } }
-            },
-            orderBy: { created_at: 'desc' }
-          }
-        }
-      });
-    } catch (dbErr) {
-      console.error('Prisma query error:', dbErr);
-    }
-
-    // 2. Fallback DB Search without relations in case Prisma relation models throw schema errors
-    if (!cafe && !isNaN(cafeId)) {
+    // 1. Strict primary DB lookup by exact numeric ID
+    if (!isNaN(cafeId)) {
       try {
         cafe = await prisma.cafes.findUnique({
-          where: { id: cafeId }
+          where: { id: cafeId },
+          include: {
+            products: true,
+            reviews: {
+              include: {
+                user: { select: { id: true, username: true } }
+              },
+              orderBy: { created_at: 'desc' }
+            }
+          }
+        });
+      } catch (dbErr) {
+        console.error('Prisma query error:', dbErr);
+      }
+    }
+
+    // 2. Secondary fallback lookup by exact name string (only if numeric ID search yielded no result)
+    if (!cafe) {
+      try {
+        cafe = await prisma.cafes.findFirst({
+          where: { name: { equals: rawId, mode: 'insensitive' } },
+          include: {
+            products: true,
+            reviews: {
+              include: {
+                user: { select: { id: true, username: true } }
+              },
+              orderBy: { created_at: 'desc' }
+            }
+          }
         });
       } catch (err) {
-        console.error('Fallback query error:', err);
+        console.error('Name fallback query error:', err);
       }
     }
   }
 
-  // Graceful Fallback View instead of throwing 404 page
+  // Graceful view when cafe is completely missing
   if (!cafe) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center">
         <span className="text-6xl mb-4">☕</span>
         <h1 className="text-3xl font-bold mb-2">Cafe Not Found</h1>
         <p className="text-zinc-400 mb-6 max-w-md">
-          We couldn't find a cafe with ID "{rawId || 'unknown'}". It may have been updated or removed.
+          We couldn't find a cafe matching "{rawId || 'unknown'}".
         </p>
         <Link 
           href="/" 
@@ -190,7 +195,7 @@ export default async function CafeDetailsPage(props: any) {
         </Link>
       </div>
 
-      {/* Action Buttons */}
+      {/* Share & Bookmark */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex gap-4">
           <ShareButton cafeName={cafe.name || 'Cafe'} />
