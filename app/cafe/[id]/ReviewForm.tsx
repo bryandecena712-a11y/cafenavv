@@ -89,22 +89,19 @@ export default function ReviewForm({ cafeId }: ReviewFormProps) {
         }),
       });
 
+      const responseData = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to submit review');
+        throw new Error(responseData.error || 'Failed to submit review');
       }
 
-      if (res.status === 202) {
-        setError('Review saved offline. It will sync when you reconnect.');
-      }
-
-      // Reset form and refresh details
       setRating(0);
       setContent('');
       setImageFile(null);
       setPreviewUrl(null);
       router.refresh();
     } catch (err: any) {
+      console.error('Review submit error:', err);
       setError(err.message || 'Failed to submit review');
     } finally {
       setLoading(false);
@@ -143,7 +140,7 @@ export default function ReviewForm({ cafeId }: ReviewFormProps) {
         className="w-full bg-zinc-950 border border-white/10 rounded-xl p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 mb-4 resize-none text-sm"
       />
 
-      {/* Photo Attachment Input */}
+      {/* Photo Input */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
           Attach Photo (Optional)
@@ -155,10 +152,10 @@ export default function ReviewForm({ cafeId }: ReviewFormProps) {
           className="w-full text-xs text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-amber-500 hover:file:bg-zinc-700 cursor-pointer"
         />
 
-        {/* Image Preview */}
+        {/* Preview */}
         {previewUrl && (
           <div className="mt-3 relative w-full h-36 bg-zinc-950 rounded-xl overflow-hidden border border-amber-500/30">
-            <img src={previewUrl} alt="Review attachment preview" className="w-full h-full object-cover" />
+            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => {
@@ -178,7 +175,7 @@ export default function ReviewForm({ cafeId }: ReviewFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:hover:bg-amber-500 text-zinc-950 font-bold px-8 py-3 rounded-full transition-colors w-full sm:w-auto cursor-pointer"
+        className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-bold px-8 py-3 rounded-full transition-colors w-full sm:w-auto cursor-pointer"
       >
         {loading ? 'Submitting...' : 'Submit Review'}
       </button>
