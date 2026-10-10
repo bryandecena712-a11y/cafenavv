@@ -46,10 +46,16 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
       });
     }
 
-    // Priority 3: Fetch latest cafes in background without wiping current state on error
+    // Priority 3: Fetch latest cafes in real-time without caching
     const loadBackgroundCafes = async () => {
       try {
-        const res = await fetch('/api/cafes', { cache: 'no-store' });
+        const res = await fetch('/api/cafes', { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        });
         if (!res.ok) return; // Safeguard: Keep current state on error
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
