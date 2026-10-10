@@ -7,7 +7,6 @@ import ShareButton from '@/app/components/ShareButton';
 import SuggestProductForm from './SuggestProductForm';
 import DeleteReviewButton from './DeleteReviewButton';
 
-// Force dynamic execution & prevent static prerender build crashes
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -46,7 +45,6 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
     }
   }
 
-  // Convert Vercel UTC Server Time to Philippine Local Time (Asia/Manila)
   const now = new Date();
   const options: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Manila', hourCycle: 'h23', weekday: 'long', hour: 'numeric', minute: 'numeric' };
   const phParts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
@@ -101,12 +99,13 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   };
 }
 
-export default async function CafeDetailsPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  // Support both synchronous and async Promise-wrapped route parameters
-  const resolvedParams = await Promise.resolve(params);
-  const cafeId = parseInt(resolvedParams?.id, 10);
+export default async function CafeDetailsPage(props: { params: Promise<{ id: string }> | { id: string } }) {
+  // Gracefully extract 'id' regardless of Next.js 14 (Sync) or Next.js 15 (Async Promise)
+  const resolvedParams = await Promise.resolve(props.params);
+  const rawId = resolvedParams?.id;
+  const cafeId = parseInt(rawId, 10);
 
-  if (isNaN(cafeId)) {
+  if (!rawId || isNaN(cafeId)) {
     notFound();
   }
 
@@ -126,8 +125,13 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
       }
     });
   } catch (dbErr) {
-    console.error('Error fetching cafe from DB:', dbErr);
-    notFound();
+    console.error('Error querying database for cafe:', dbErr);
+    // If relations fail, fallback to a basic query to prevent a false 404 error
+    try {
+      cafe = await prisma.cafes.findUnique({ where: { id: cafeId } });
+    } catch {
+      cafe = null;
+    }
   }
 
   if (!cafe) {
@@ -152,7 +156,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative">
       
-      {/* Absolute "Back to Home" button */}
+      {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
         <Link 
           href="/" 
@@ -163,7 +167,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </Link>
       </div>
 
-      {/* Bookmark & Share Buttons */}
+      {/* Bookmark & Share */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex gap-4">
           <ShareButton cafeName={cafe.name || 'Cafe'} />
@@ -186,7 +190,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
         
-        {/* Cafe Info overlay */}
         <div className="absolute bottom-0 left-0 w-full p-8 max-w-6xl mx-auto">
           <h1 className="text-5xl font-bold text-white tracking-tight drop-shadow-md mb-2">
             {cafe.name}
@@ -197,7 +200,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </div>
       </div>
 
-      {/* 1. Content Section (Menu Products) */}
+      {/* Menu Products */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🍽️</span>
@@ -242,11 +245,10 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
           </div>
         )}
         
-        {/* Suggest Menu Item Form */}
         <SuggestProductForm cafeId={cafe.id} />
       </div>
 
-      {/* REAL-TIME OPERATING HOURS & SCHEDULE */}
+      {/* Operating Hours */}
       <div className="max-w-6xl mx-auto px-8 py-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -255,7 +257,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
               Opening Hours & Schedule
             </h2>
 
-            {/* Indicator Badge: Green = Open, Red = Close */}
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold ${
               isOpen
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -267,7 +268,6 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
             </div>
           </div>
 
-          {/* Sequential Monday to Sunday grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {DAYS_OF_WEEK.map((day) => {
               const item = schedule[day];
@@ -288,7 +288,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </div>
       </div>
 
-      {/* 2. Reviews Section */}
+      {/* Reviews */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">⭐</span>
@@ -342,7 +342,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
         </div>
       </div>
 
-      {/* 3. About Section */}
+      {/* About Section */}
       <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-3">
