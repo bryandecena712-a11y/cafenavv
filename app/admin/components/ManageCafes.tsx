@@ -17,6 +17,7 @@ interface Product {
 
 export default function ManageCafes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCafeId, setEditingCafeId] = useState<number | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const { user } = useAuth();
 
@@ -26,11 +27,11 @@ export default function ManageCafes() {
   const [description, setDescription] = useState('');
   const [priceLevel, setPriceLevel] = useState('₱ (Affordable)');
   const [vibe, setVibe] = useState('Deep Work');
-  const [pinnedLocation, setPinnedLocation] = useState<{ lat: number, lng: number } | null>(null);
+  const [pinnedLocation, setPinnedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cafes, setCafes] = useState<any[]>([]);
-  const activeCafes = cafes.filter(c => c.status === 'APPROVED');
-  const pendingCafes = cafes.filter(c => c.status === 'PENDING');
+  const activeCafes = cafes.filter((c) => c.status === 'APPROVED');
+  const pendingCafes = cafes.filter((c) => c.status === 'PENDING');
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -38,7 +39,7 @@ export default function ManageCafes() {
     try {
       const res = await fetch('/api/admin/cafes');
       const data = await res.json();
-      if (res.ok) setCafes(data);
+      if (res.ok && Array.isArray(data)) setCafes(data);
     } catch (err) {
       console.error('Failed to fetch cafes', err);
     }
@@ -52,7 +53,7 @@ export default function ManageCafes() {
   }, []);
 
   const handleMapClick = (e: any) => {
-    if (e.detail.latLng) {
+    if (e.detail?.latLng) {
       setPinnedLocation({ lat: e.detail.latLng.lat, lng: e.detail.latLng.lng });
     }
   };
@@ -62,11 +63,11 @@ export default function ManageCafes() {
   };
 
   const updateProduct = (id: string, field: keyof Product, value: string) => {
-    setProducts(products.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setProducts(products.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
   };
 
   const removeProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+    setProducts(products.filter((p) => p.id !== id));
   };
 
   const uploadFileToSupabase = async (file: File, folder: string) => {
@@ -74,19 +75,17 @@ export default function ManageCafes() {
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
 
-    const { error } = await supabase.storage
-      .from('cafes')
-      .upload(filePath, file);
+    const { error } = await supabase.storage.from('cafes').upload(filePath, file);
 
     if (error) {
       console.error('Upload error:', error);
-      alert('Error uploading image. Is your Supabase bucket set up correctly?');
+      alert('Error uploading image.');
       throw error;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('cafes')
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('cafes').getPublicUrl(filePath);
 
     return publicUrl;
   };
@@ -108,24 +107,101 @@ export default function ManageCafes() {
     } catch (err) {}
   };
 
+  const handleOpenCreateModal = () => {
+    setEditingCafeId(null);
+    setName('');
+    setPhoto('');
+    setDescription('');
+    setPriceLevel('₱ (Affordable)');
+    setVibe('Deep Work');
+    setPinnedLocation(null);
+    setProducts([]);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (cafe: any) => {
+    setEditingCafeId(cafe.id);
+    setName(cafe.name || '');
+    setPhoto(cafe.image_url || '');
+    setDescription(cafe.description || '');
+    setPriceLevel(cafe.price_level || '₱ (Affordable)');
+    setVibe(cafe.vibe || 'Deep Work');
+
+    if (cafe.location) {
+      const parts = String(cafe.location).split(',').map((s) => parseFloat(s.trim()));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        setPinnedLocation({ lat: parts[0], lng: parts[1] });
+      } else {
+        setPinnedLocation(null);
+      }
+    } else {
+      setPinnedLocation(null);
+    }
+
+    setProducts([]);
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const res = await fetch('/api/admin/cafes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, photo, description, priceLevel, vibe, pinnedLocation, products, userId: user?.id })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        setIsModalOpen(false);
-        setName(''); setPhoto(''); setDescription(''); setPriceLevel('₱ (Affordable)'); setVibe('Deep Work'); setPinnedLocation(null); setProducts([]);
-        fetchCafes();
+      if (editingCafeId) {
+        const res = await fetch(`/api/admin/cafes/${editingCafeId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            image_url: photo,
+            description,
+            price_level: priceLevel,
+            vibe,
+            location: pinnedLocation ? `${pinnedLocation.lat.toFixed(4)}, ${pinnedLocation.lng.toFixed(4)}` : undefined,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setIsModalOpen(false);
+          setEditingCafeId(null);
+          fetchCafes();
+        } else {
+          alert(data.error || 'Failed to update cafe');
+        }
       } else {
-        alert(data.error || 'Failed to create cafe');
+        const res = await fetch('/api/admin/cafes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            photo,
+            description,
+            priceLevel,
+            vibe,
+            pinnedLocation,
+            products,
+            userId: user?.id,
+            status: 'APPROVED',
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setIsModalOpen(false);
+          setName('');
+          setPhoto('');
+          setDescription('');
+          setPriceLevel('₱ (Affordable)');
+          setVibe('Deep Work');
+          setPinnedLocation(null);
+          setProducts([]);
+          fetchCafes();
+        } else {
+          alert(data.error || 'Failed to create cafe');
+        }
       }
     } catch (err) {
       alert('An unexpected error occurred');
@@ -139,7 +215,7 @@ export default function ManageCafes() {
       const res = await fetch(`/api/admin/cafes/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' })
+        body: JSON.stringify({ status: 'APPROVED' }),
       });
       if (res.ok) fetchCafes();
     } catch (err) {}
@@ -153,17 +229,16 @@ export default function ManageCafes() {
     } catch (err) {}
   };
 
-  const handleDeleteCafe = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
+  const handleDeleteCafe = async (id: number, cafeName: string) => {
+    if (!confirm(`Are you sure you want to delete "${cafeName}"? This action cannot be undone.`)) return;
     setDeletingId(id);
     try {
-      // Try calling admin dynamic route endpoint, fallback to base api route
       let res = await fetch(`/api/admin/cafes/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         res = await fetch('/api/cafes', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cafeId: id })
+          body: JSON.stringify({ cafeId: id }),
         });
       }
       if (res.ok) {
@@ -186,9 +261,9 @@ export default function ManageCafes() {
           <h2 className="text-xl font-semibold text-white">Active Cafes</h2>
           <p className="text-sm text-zinc-400">You currently have {activeCafes.length} cafes listed.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-3 rounded-full transition-transform active:scale-95 shadow-lg shadow-amber-500/20"
+        <button
+          onClick={handleOpenCreateModal}
+          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-3 rounded-full transition-transform active:scale-95 shadow-lg shadow-amber-500/20 cursor-pointer"
         >
           + Add New Cafe
         </button>
@@ -202,7 +277,7 @@ export default function ManageCafes() {
             Pending Approvals ({pendingCafes.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pendingCafes.map(cafe => (
+            {pendingCafes.map((cafe) => (
               <div key={cafe.id} className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 relative">
                 <div className="flex gap-4 mb-4">
                   {cafe.image_url ? (
@@ -220,12 +295,12 @@ export default function ManageCafes() {
                   </div>
                 </div>
                 {cafe.description && <p className="text-sm text-zinc-300 italic mb-4">"{cafe.description}"</p>}
-                
+
                 <div className="flex gap-3 mt-4">
-                  <button onClick={() => handleApprove(cafe.id)} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl text-sm transition-colors">
+                  <button onClick={() => handleApprove(cafe.id)} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl text-sm transition-colors cursor-pointer">
                     Approve
                   </button>
-                  <button onClick={() => handleReject(cafe.id)} className="flex-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold py-2 rounded-xl text-sm transition-colors border border-rose-500/20">
+                  <button onClick={() => handleReject(cafe.id)} className="flex-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold py-2 rounded-xl text-sm transition-colors border border-rose-500/20 cursor-pointer">
                     Reject
                   </button>
                 </div>
@@ -239,7 +314,7 @@ export default function ManageCafes() {
       <div>
         <h3 className="text-lg font-bold text-white mb-4">Active Directory</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {activeCafes.map(cafe => (
+          {activeCafes.map((cafe) => (
             <div key={cafe.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:border-amber-500/50 transition-colors flex flex-col justify-between">
               <div>
                 {cafe.image_url ? (
@@ -250,15 +325,27 @@ export default function ManageCafes() {
                 <h3 className="font-bold text-white mb-1">{cafe.name}</h3>
                 <p className="text-sm text-zinc-400 mb-4">Active • {cafe.products?.length || 0} Products</p>
               </div>
-              
+
+              {/* Action Buttons */}
               <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
                 <Link href={`/admin/cafe/${cafe.id}/menu`} className="flex-1 text-center bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-white font-medium py-2 rounded-xl text-sm transition-colors">
                   Manage Cafe
                 </Link>
+
+                {/* Edit Button */}
+                <button
+                  onClick={() => handleOpenEditModal(cafe)}
+                  className="bg-zinc-800 hover:bg-amber-500/20 hover:text-amber-400 border border-white/10 text-zinc-300 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
+                  title="Edit Cafe"
+                >
+                  ✏️
+                </button>
+
+                {/* Delete Button */}
                 <button
                   onClick={() => handleDeleteCafe(cafe.id, cafe.name)}
                   disabled={deletingId === cafe.id}
-                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-medium px-3 py-2 rounded-xl text-sm transition-colors"
+                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
                   title="Delete Cafe"
                 >
                   {deletingId === cafe.id ? '...' : '🗑️'}
@@ -274,25 +361,21 @@ export default function ManageCafes() {
         </div>
       </div>
 
-      {/* Add Cafe Modal */}
+      {/* Add / Edit Cafe Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          
+
           <div className="relative bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            {/* Modal Header */}
             <div className="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
-              <h2 className="text-2xl font-bold text-white tracking-tight">Add New Cafe</h2>
-              <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+              <h2 className="text-2xl font-bold text-white tracking-tight">{editingCafeId ? 'Edit Cafe' : 'Add New Cafe'}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer">
                 ✕
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-              <form id="add-cafe-form" onSubmit={handleSubmit} className="space-y-10">
-                
-                {/* Basic Info */}
+              <form id="cafe-modal-form" onSubmit={handleSubmit} className="space-y-10">
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-xs">1</span>
@@ -301,20 +384,20 @@ export default function ManageCafes() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-zinc-400">Cafe Name</label>
-                      <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="e.g. Mocha Magic" />
+                      <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="e.g. Mocha Magic" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-zinc-400">Cover Photo</label>
                       <input type="file" accept="image/*" onChange={handlePhotoUpload} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-zinc-950 hover:file:bg-amber-400 focus:outline-none focus:border-amber-500/50" />
-                      {photo && <p className="text-xs text-green-400 font-medium">Photo uploaded successfully!</p>}
+                      {photo && <p className="text-xs text-green-400 font-medium">Photo linked successfully!</p>}
                     </div>
                     <div className="space-y-2 sm:col-span-2">
                       <label className="text-sm font-medium text-zinc-400">Description</label>
-                      <textarea required value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="A cozy place to..." />
+                      <textarea required value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="A cozy place to..." />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-zinc-400">Price Level</label>
-                      <select value={priceLevel} onChange={e => setPriceLevel(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
+                      <select value={priceLevel} onChange={(e) => setPriceLevel(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
                         <option value="₱ (Affordable)">₱ (Affordable)</option>
                         <option value="₱₱ (Moderate)">₱₱ (Moderate)</option>
                         <option value="₱₱₱ (Premium)">₱₱₱ (Premium)</option>
@@ -322,7 +405,7 @@ export default function ManageCafes() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-zinc-400">Vibe / Atmosphere</label>
-                      <select value={vibe} onChange={e => setVibe(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
+                      <select value={vibe} onChange={(e) => setVibe(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
                         <option value="Deep Work">Deep Work</option>
                         <option value="Social Catch-up">Social Catch-up</option>
                         <option value="Quick Grab">Quick Grab</option>
@@ -332,7 +415,6 @@ export default function ManageCafes() {
                   </div>
                 </section>
 
-                {/* Map Pinning */}
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-xs">2</span>
@@ -341,19 +423,10 @@ export default function ManageCafes() {
                   <div className="w-full h-[300px] rounded-2xl overflow-hidden border border-white/10 relative">
                     {apiKey ? (
                       <APIProvider apiKey={apiKey}>
-                        <Map
-                          defaultCenter={defaultCenter}
-                          defaultZoom={15}
-                          mapId="ADMIN_MAP_ID"
-                          onClick={handleMapClick}
-                          gestureHandling={'greedy'}
-                          disableDefaultUI={true}
-                        >
+                        <Map defaultCenter={pinnedLocation || defaultCenter} defaultZoom={15} mapId="ADMIN_MAP_ID" onClick={handleMapClick} gestureHandling={'greedy'} disableDefaultUI={true}>
                           {pinnedLocation && (
                             <AdvancedMarker position={pinnedLocation}>
-                              <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
-                                📍
-                              </div>
+                              <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">📍</div>
                             </AdvancedMarker>
                           )}
                         </Map>
@@ -361,12 +434,8 @@ export default function ManageCafes() {
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">Map API Key Missing</div>
                     )}
-                    
-                    {!pinnedLocation && (
-                      <div className="absolute top-4 left-4 bg-zinc-950/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 text-sm font-medium text-amber-400 pointer-events-none">
-                        Click anywhere on the map to pin location
-                      </div>
-                    )}
+
+                    {!pinnedLocation && <div className="absolute top-4 left-4 bg-zinc-950/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 text-sm font-medium text-amber-400 pointer-events-none">Click anywhere on the map to pin location</div>}
                   </div>
                   {pinnedLocation && (
                     <p className="mt-2 text-xs text-zinc-400">
@@ -375,73 +444,70 @@ export default function ManageCafes() {
                   )}
                 </section>
 
-                {/* Products */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-xs">3</span>
-                      Menu Products
-                    </h3>
-                    <button type="button" onClick={addProduct} className="text-amber-500 text-sm font-semibold hover:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg">
-                      + Add Item
-                    </button>
-                  </div>
-                  
-                  {products.length === 0 ? (
-                    <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl text-zinc-500 text-sm">
-                      No products added yet. Click "+ Add Item" to start building the menu.
+                {!editingCafeId && (
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-xs">3</span>
+                        Menu Products
+                      </h3>
+                      <button type="button" onClick={addProduct} className="text-amber-500 text-sm font-semibold hover:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg cursor-pointer">
+                        + Add Item
+                      </button>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {products.map((product) => (
-                        <div key={product.id} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl relative group">
-                          <button type="button" onClick={() => removeProduct(product.id)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shadow-lg">
-                            ✕
-                          </button>
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                            <div className="sm:col-span-4 space-y-1">
-                              <label className="text-xs text-zinc-500">Name</label>
-                              <input required value={product.name} onChange={e => updateProduct(product.id, 'name', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="Latte" />
-                            </div>
-                            <div className="sm:col-span-2 space-y-1">
-                              <label className="text-xs text-zinc-500">Price</label>
-                              <input required value={product.price} onChange={e => updateProduct(product.id, 'price', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="₱150" />
-                            </div>
-                            <div className="sm:col-span-6 space-y-1">
-                              <label className="text-xs text-zinc-500">Photo</label>
-                              <input accept="image/*" type="file" onChange={(e) => handleProductPhotoUpload(product.id, e.target.files?.[0])} className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-400 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-zinc-950 hover:file:bg-amber-400 focus:outline-none focus:border-amber-500/50" />
-                              {product.photo && <p className="text-[10px] text-green-400 mt-1 font-medium">Uploaded</p>}
-                            </div>
-                            <div className="sm:col-span-12 space-y-1">
-                              <label className="text-xs text-zinc-500">Description</label>
-                              <input required value={product.description} onChange={e => updateProduct(product.id, 'description', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="A rich espresso with steamed milk..." />
+
+                    {products.length === 0 ? (
+                      <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl text-zinc-500 text-sm">No products added yet. Click "+ Add Item" to start building the menu.</div>
+                    ) : (
+                      <div className="space-y-4">
+                        {products.map((product) => (
+                          <div key={product.id} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl relative group">
+                            <button type="button" onClick={() => removeProduct(product.id)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shadow-lg cursor-pointer">
+                              ✕
+                            </button>
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                              <div className="sm:col-span-4 space-y-1">
+                                <label className="text-xs text-zinc-500">Name</label>
+                                <input required value={product.name} onChange={(e) => updateProduct(product.id, 'name', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="Latte" />
+                              </div>
+                              <div className="sm:col-span-2 space-y-1">
+                                <label className="text-xs text-zinc-500">Price</label>
+                                <input required value={product.price} onChange={(e) => updateProduct(product.id, 'price', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="₱150" />
+                              </div>
+                              <div className="sm:col-span-6 space-y-1">
+                                <label className="text-xs text-zinc-500">Photo</label>
+                                <input accept="image/*" type="file" onChange={(e) => handleProductPhotoUpload(product.id, e.target.files?.[0])} className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-400 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-zinc-950 hover:file:bg-amber-400 focus:outline-none focus:border-amber-500/50" />
+                                {product.photo && <p className="text-[10px] text-green-400 mt-1 font-medium">Uploaded</p>}
+                              </div>
+                              <div className="sm:col-span-12 space-y-1">
+                                <label className="text-xs text-zinc-500">Description</label>
+                                <input required value={product.description} onChange={(e) => updateProduct(product.id, 'description', e.target.value)} type="text" className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none" placeholder="A rich espresso with steamed milk..." />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-                
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
               </form>
             </div>
 
-            {/* Modal Footer */}
             <div className="p-6 border-t border-white/10 bg-zinc-900/50 flex justify-end gap-3">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-zinc-400 hover:text-white font-medium transition-colors">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-zinc-400 hover:text-white font-medium transition-colors cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" form="add-cafe-form" className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50" disabled={!pinnedLocation || loading}>
-                {loading ? 'Publishing...' : 'Publish Cafe'}
+              <button type="submit" form="cafe-modal-form" className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50 cursor-pointer" disabled={!pinnedLocation || loading}>
+                {loading ? 'Saving...' : editingCafeId ? 'Save Changes' : 'Publish Cafe'}
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* Global styles for custom scrollbar in the modal */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
         }
@@ -452,7 +518,9 @@ export default function ManageCafes() {
           background-color: rgba(255, 255, 255, 0.1);
           border-radius: 20px;
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 }
