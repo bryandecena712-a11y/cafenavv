@@ -13,15 +13,17 @@ export const revalidate = 0;
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-function formatTime(timeStr?: string): string {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':').map(Number);
+function formatTime(timeStr?: string | null): string {
+  if (!timeStr || typeof timeStr !== 'string') return '';
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length < 2 || isNaN(parts[0])) return timeStr;
+  const [h, m] = parts;
   const period = h >= 12 ? 'PM' : 'AM';
   const displayHour = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${displayHour} ${period}` : `${displayHour}:${m.toString().padStart(2, '0')} ${period}`;
+  return m === 0 || isNaN(m) ? `${displayHour} ${period}` : `${displayHour}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
-function getRealTimeStatus(operatingHoursStr?: string | null) {
+function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   const defaultHours: Record<string, { open: string; close: string; isClosed: boolean }> = {
     Monday: { open: '09:00', close: '23:00', isClosed: false },
     Tuesday: { open: '09:00', close: '23:00', isClosed: false },
@@ -36,7 +38,9 @@ function getRealTimeStatus(operatingHoursStr?: string | null) {
   if (operatingHoursStr) {
     try {
       const parsed = typeof operatingHoursStr === 'string' ? JSON.parse(operatingHoursStr) : operatingHoursStr;
-      schedule = { ...defaultHours, ...parsed };
+      if (parsed && typeof parsed === 'object') {
+        schedule = { ...defaultHours, ...parsed };
+      }
     } catch {
       schedule = defaultHours;
     }
@@ -59,14 +63,18 @@ function getRealTimeStatus(operatingHoursStr?: string | null) {
 
   const todaySchedule = schedule[currentDayName];
 
-  if (!todaySchedule || todaySchedule.isClosed) {
+  if (!todaySchedule || todaySchedule.isClosed || !todaySchedule.open || !todaySchedule.close) {
     return { isOpen: false, text: 'Closed today', schedule };
   }
 
-  let [openH, openM] = todaySchedule.open.split(':').map(Number);
-  let [closeH, closeM] = todaySchedule.close.split(':').map(Number);
+  let [openH, openM] = (todaySchedule.open || '09:00').split(':').map(Number);
+  let [closeH, closeM] = (todaySchedule.close || '23:00').split(':').map(Number);
 
-  // If close time is 00:00 (Midnight), convert to 24:00 so 10:40 PM (22:40) falls inside range
+  if (isNaN(openH)) openH = 9;
+  if (isNaN(openM)) openM = 0;
+  if (isNaN(closeH)) closeH = 23;
+  if (isNaN(closeM)) closeM = 0;
+
   if (closeH === 0 && closeM === 0) {
     closeH = 24;
   }
@@ -77,12 +85,10 @@ function getRealTimeStatus(operatingHoursStr?: string | null) {
 
   let isOpen = false;
   if (closeMinutes <= openMinutes && closeH !== 24) {
-    // Overnight shifts past midnight (e.g., 10:30 PM to 01:00 AM)
     closeMinutes += 24 * 60;
     const adjustedCurrentMinutes = currentMinutes < openMinutes ? currentMinutes + 24 * 60 : currentMinutes;
     isOpen = adjustedCurrentMinutes >= openMinutes && adjustedCurrentMinutes < closeMinutes;
   } else {
-    // Standard same-day or midnight-ending schedule
     isOpen = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
   }
 
@@ -95,44 +101,54 @@ function getRealTimeStatus(operatingHoursStr?: string | null) {
   };
 }
 
-export default async function CafeDetailsPage({ params }: { params: { id: string } }) {
-  const cafeId = parseInt(params.id, 10);
-  
+export default async function CafeDetailsPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
+  // Await params safely to support Next.js 15+ async route resolution
+  const resolvedParams = await params;
+  const cafeId = parseInt(resolvedParams?.id, 10);
+
   if (isNaN(cafeId)) {
     notFound();
   }
 
-  const cafe = await prisma.cafes.findUnique({
-    where: { id: cafeId },
-    include: {
-      products: {
-        where: {
-          OR: [
-            { status: 'APPROVED' },
-            { status: null }
-          ]
-        }
-      },
-      reviews: {
-        include: {
-          user: { select: { id: true, username: true } }
+  let cafe: any = null;
+
+  try {
+    cafe = await prisma.cafes.findUnique({
+      where: { id: cafeId },
+      include: {
+        products: {
+          where: {
+            OR: [
+              { status: 'APPROVED' },
+              { status: null }
+            ]
+          }
         },
-        orderBy: { created_at: 'desc' }
+        reviews: {
+          include: {
+            user: { select: { id: true, username: true } }
+          },
+          orderBy: { created_at: 'desc' }
+        }
       }
-    }
-  });
+    });
+  } catch (dbErr) {
+    console.error('Error fetching cafe from DB:', dbErr);
+    notFound();
+  }
 
   if (!cafe) {
     notFound();
   }
 
-  const parseList = (data: string | null | undefined): string[] => {
+  const parseList = (data: any): string[] => {
     if (!data) return [];
+    if (Array.isArray(data)) return data;
     try {
-      const parsed = JSON.parse(data);
-      return Array.isArray(parsed) ? parsed : [data];
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      return Array.isArray(parsed) ? parsed : [String(data)];
     } catch {
-      return data.split(',').map((item) => item.trim());
+      return String(data).split(',').map((item) => item.trim());
     }
   };
 
