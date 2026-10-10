@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-// Force dynamic execution & prevent Vercel static build evaluation crashes
+// Force dynamic execution & prevent static build evaluation crashes
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Fetch all cafes and their products
+// Fetch all cafes and their products for Admin Directory
 export async function GET() {
   try {
     const cafes = await prisma.cafes.findMany({
@@ -14,9 +14,16 @@ export async function GET() {
       },
       orderBy: { id: 'desc' },
     });
-    return NextResponse.json(cafes);
-  } catch (error) {
-    console.error('Error fetching cafes:', error);
+
+    // Ensure status defaults to 'APPROVED' if null or lowercased so admin filters don't hide them
+    const normalizedCafes = cafes.map((cafe) => ({
+      ...cafe,
+      status: cafe.status ? String(cafe.status).toUpperCase() : 'APPROVED',
+    }));
+
+    return NextResponse.json(normalizedCafes);
+  } catch (error: any) {
+    console.error('Error fetching admin cafes:', error);
     return NextResponse.json({ error: 'Failed to fetch cafes' }, { status: 500 });
   }
 }
@@ -26,19 +33,16 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    // Support both client payload formats seamlessly
     const name = data.name?.trim();
     const photo = data.photo || data.image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
     const description = data.description?.trim() || 'No description provided';
     const priceLevel = data.priceLevel || data.price_level || '₱₱';
     const vibe = data.vibe || 'chill';
     
-    // Default to APPROVED for cafes published via admin creation
-    const status = data.status || 'APPROVED';
+    const status = data.status ? String(data.status).toUpperCase() : 'APPROVED';
     const userId = data.userId || null;
     const products = data.products || [];
 
-    // Extract latitude and longitude flexibly from pinnedLocation or flat lat/lng fields
     let latVal: number | null = null;
     let lngVal: number | null = null;
 
@@ -54,14 +58,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
     }
 
-    // Format location string safely
     const locationStr =
       data.location ||
       (latVal !== null && lngVal !== null && !isNaN(latVal) && !isNaN(lngVal)
         ? `${latVal.toFixed(4)}, ${lngVal.toFixed(4)}`
         : 'Calamba, Laguna');
 
-    // Build Prisma creation data matching exact Prisma Schema fields
     const createData: any = {
       name,
       description,
@@ -72,12 +74,11 @@ export async function POST(request: Request) {
       status,
     };
 
-    // Include nested product creation if products array is provided
     if (Array.isArray(products) && products.length > 0) {
       createData.products = {
         create: products.map((p: any) => ({
           name: p.name,
-          price: String(p.price || 0), // Prisma schema expects price as String
+          price: String(p.price || 0),
           description: p.description || '',
           image_url: p.photo || p.image_url || '',
           status: 'APPROVED',
@@ -92,7 +93,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create audit log if user ID is present
     if (userId) {
       try {
         await prisma.audit_logs.create({

@@ -102,8 +102,8 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
 }
 
 export default async function CafeDetailsPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  // Await params safely to support Next.js 15+ async route resolution
-  const resolvedParams = await params;
+  // Support both synchronous and async Promise-wrapped route parameters
+  const resolvedParams = await Promise.resolve(params);
   const cafeId = parseInt(resolvedParams?.id, 10);
 
   if (isNaN(cafeId)) {
@@ -116,14 +116,7 @@ export default async function CafeDetailsPage({ params }: { params: { id: string
     cafe = await prisma.cafes.findUnique({
       where: { id: cafeId },
       include: {
-        products: {
-          where: {
-            OR: [
-              { status: 'APPROVED' },
-              { status: null }
-            ]
-          }
-        },
+        products: true,
         reviews: {
           include: {
             user: { select: { id: true, username: true } }
