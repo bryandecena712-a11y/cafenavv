@@ -98,6 +98,38 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   };
 }
 
+// Resilient DB reader that absorbs split-second transaction locks during active admin updates
+async function fetchCafeWithRetry(cafeId: number) {
+  const query = () =>
+    prisma.cafes.findUnique({
+      where: { id: cafeId },
+      include: {
+        products: true,
+        reviews: {
+          include: {
+            user: { select: { id: true, username: true } }
+          },
+          orderBy: { created_at: 'desc' }
+        }
+      }
+    });
+
+  let result = await query().catch(() => null);
+
+  // If DB query returned null due to an active write transaction, wait 350ms and retry automatically
+  if (!result) {
+    await new Promise((res) => setTimeout(res, 350));
+    result = await query().catch(() => null);
+  }
+
+  // Fallback direct query without relations if relation query fails
+  if (!result) {
+    result = await prisma.cafes.findUnique({ where: { id: cafeId } }).catch(() => null);
+  }
+
+  return result;
+}
+
 export default async function CafeDetailsPage(props: any) {
   const resolvedParams = props?.params ? await Promise.resolve(props.params) : {};
   const rawId = resolvedParams?.id;
@@ -105,45 +137,24 @@ export default async function CafeDetailsPage(props: any) {
 
   let cafe: any = null;
 
-  if (rawId) {
-    // 1. Strict primary DB lookup by exact numeric ID
-    if (!isNaN(cafeId)) {
-      try {
-        cafe = await prisma.cafes.findUnique({
-          where: { id: cafeId },
-          include: {
-            products: true,
-            reviews: {
-              include: {
-                user: { select: { id: true, username: true } }
-              },
-              orderBy: { created_at: 'desc' }
-            }
+  if (!isNaN(cafeId)) {
+    cafe = await fetchCafeWithRetry(cafeId);
+  } else if (rawId) {
+    try {
+      cafe = await prisma.cafes.findFirst({
+        where: { name: { equals: rawId, mode: 'insensitive' } },
+        include: {
+          products: true,
+          reviews: {
+            include: {
+              user: { select: { id: true, username: true } }
+            },
+            orderBy: { created_at: 'desc' }
           }
-        });
-      } catch (dbErr) {
-        console.error('Prisma query error:', dbErr);
-      }
-    }
-
-    // 2. Secondary fallback lookup by exact name string (only if numeric ID search yielded no result)
-    if (!cafe) {
-      try {
-        cafe = await prisma.cafes.findFirst({
-          where: { name: { equals: rawId, mode: 'insensitive' } },
-          include: {
-            products: true,
-            reviews: {
-              include: {
-                user: { select: { id: true, username: true } }
-              },
-              orderBy: { created_at: 'desc' }
-            }
-          }
-        });
-      } catch (err) {
-        console.error('Name fallback query error:', err);
-      }
+        }
+      });
+    } catch (err) {
+      cafe = null;
     }
   }
 
