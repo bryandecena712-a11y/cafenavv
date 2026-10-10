@@ -147,6 +147,20 @@ function OfferingIcon({ label }: { label: string }) {
   return <span className="text-amber-400">✨</span>;
 }
 
+// Safely parse review text and attached image URL
+function parseReviewContent(rawContent: string): { text: string; imageUrl: string | null } {
+  if (!rawContent) return { text: '', imageUrl: null };
+  try {
+    const parsed = JSON.parse(rawContent);
+    if (parsed && typeof parsed === 'object' && parsed.text) {
+      return { text: parsed.text, imageUrl: parsed.image_url || null };
+    }
+  } catch {
+    // Fall back if content is plain text
+  }
+  return { text: rawContent, imageUrl: null };
+}
+
 export default async function CafeDetailsPage(props: any) {
   const resolvedParams = props?.params ? await Promise.resolve(props.params) : {};
   const rawId = resolvedParams?.id;
@@ -353,35 +367,54 @@ export default async function CafeDetailsPage(props: any) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
             {cafe.reviews && cafe.reviews.length > 0 ? (
-              cafe.reviews.map((review: any) => (
-                <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-zinc-950 font-bold text-lg">
-                        {review.user?.username ? review.user.username.charAt(0).toUpperCase() : 'U'}
+              cafe.reviews.map((review: any) => {
+                const { text: reviewText, imageUrl: reviewImageUrl } = parseReviewContent(review.content);
+                const displayImage = review.image_url || reviewImageUrl;
+
+                return (
+                  <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
+                    {/* Header with User Info & Rating */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-zinc-950 font-bold text-lg">
+                          {review.user?.username ? review.user.username.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white leading-none">{review.user?.username || 'Anonymous'}</h4>
+                          <span className="text-xs text-zinc-500">{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently'}</span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-white leading-none">{review.user?.username || 'Anonymous'}</h4>
-                        <span className="text-xs text-zinc-500">{review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently'}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`text-lg ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <DeleteReviewButton 
+                          reviewId={review.id} 
+                          reviewUserId={review.user_id || review.user?.id} 
+                        />
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <span key={star} className={`text-lg ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
-                            ★
-                          </span>
-                        ))}
+
+                    {/* Attached Photo (Positioned above description, below name/date) */}
+                    {displayImage && (
+                      <div className="mb-4 rounded-xl overflow-hidden max-h-80 w-full bg-zinc-950 border border-white/5">
+                        <img 
+                          src={displayImage} 
+                          alt="Review attachment" 
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <DeleteReviewButton 
-                        reviewId={review.id} 
-                        reviewUserId={review.user_id || review.user?.id} 
-                      />
-                    </div>
+                    )}
+
+                    {/* Review Description */}
+                    <p className="text-zinc-300 leading-relaxed">{reviewText}</p>
                   </div>
-                  <p className="text-zinc-300 leading-relaxed">{review.content}</p>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl">
                 <span className="text-4xl mb-4 block">💬</span>

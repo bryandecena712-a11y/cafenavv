@@ -18,24 +18,29 @@ export async function POST(request: Request) {
     const parsedRating = Number(rating);
     const parsedUserId = userId ? Number(userId) : null;
 
-    // Build payload safely to avoid TypeScript Prisma schema type checks
-    const reviewData: Record<string, any> = {
+    // Combine review text and optional photo URL safely
+    let finalContent = String(content);
+    if (image_url && typeof image_url === 'string' && image_url.startsWith('http')) {
+      finalContent = JSON.stringify({
+        text: String(content),
+        image_url: String(image_url),
+      });
+    }
+
+    // Build payload dynamically
+    const reviewPayload: Record<string, any> = {
       cafe_id: parsedCafeId,
       rating: parsedRating,
-      content: String(content),
+      content: finalContent,
     };
 
-    if (image_url) {
-      reviewData.image_url = String(image_url);
-    }
-
     if (parsedUserId) {
-      reviewData.user_id = parsedUserId;
+      reviewPayload.user_id = parsedUserId;
     }
 
-    // Create the review (Allows multiple reviews per user)
+    // Create the review using type-casting to bypass strict conditional TypeScript errors
     const newReview = await prisma.reviews.create({
-      data: reviewData as any,
+      data: reviewPayload as any,
       include: {
         user: { select: { id: true, username: true } },
       },
@@ -44,13 +49,16 @@ export async function POST(request: Request) {
     try {
       revalidatePath(`/cafe/${parsedCafeId}`);
     } catch {
-      // Ignore cache invalidation warnings in edge runtime
+      // Ignore cache revalidation warning in edge runtime
     }
 
     return NextResponse.json(newReview, { status: 201 });
   } catch (error: any) {
     console.error('Error creating review:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to create review' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to create review' },
+      { status: 500 }
+    );
   }
 }
 
