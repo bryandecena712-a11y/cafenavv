@@ -1,5 +1,4 @@
 import { prisma } from '@/app/lib/prisma';
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ReviewForm from './ReviewForm';
 import BookmarkButton from '@/app/components/BookmarkButton';
@@ -99,43 +98,67 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   };
 }
 
-export default async function CafeDetailsPage(props: { params: Promise<{ id: string }> | { id: string } }) {
-  // Gracefully extract 'id' regardless of Next.js 14 (Sync) or Next.js 15 (Async Promise)
-  const resolvedParams = await Promise.resolve(props.params);
+export default async function CafeDetailsPage(props: any) {
+  // Gracefully resolve params synchronously or asynchronously
+  const resolvedParams = props?.params ? await Promise.resolve(props.params) : {};
   const rawId = resolvedParams?.id;
   const cafeId = parseInt(rawId, 10);
 
-  if (!rawId || isNaN(cafeId)) {
-    notFound();
-  }
-
   let cafe: any = null;
 
-  try {
-    cafe = await prisma.cafes.findUnique({
-      where: { id: cafeId },
-      include: {
-        products: true,
-        reviews: {
-          include: {
-            user: { select: { id: true, username: true } }
-          },
-          orderBy: { created_at: 'desc' }
-        }
-      }
-    });
-  } catch (dbErr) {
-    console.error('Error querying database for cafe:', dbErr);
-    // If relations fail, fallback to a basic query to prevent a false 404 error
+  if (rawId) {
     try {
-      cafe = await prisma.cafes.findUnique({ where: { id: cafeId } });
-    } catch {
-      cafe = null;
+      // 1. Primary DB Search
+      cafe = await prisma.cafes.findFirst({
+        where: {
+          OR: [
+            { id: isNaN(cafeId) ? -1 : cafeId },
+            { name: { contains: rawId, mode: 'insensitive' } }
+          ]
+        },
+        include: {
+          products: true,
+          reviews: {
+            include: {
+              user: { select: { id: true, username: true } }
+            },
+            orderBy: { created_at: 'desc' }
+          }
+        }
+      });
+    } catch (dbErr) {
+      console.error('Prisma query error:', dbErr);
+    }
+
+    // 2. Fallback DB Search without relations in case Prisma relation models throw schema errors
+    if (!cafe && !isNaN(cafeId)) {
+      try {
+        cafe = await prisma.cafes.findUnique({
+          where: { id: cafeId }
+        });
+      } catch (err) {
+        console.error('Fallback query error:', err);
+      }
     }
   }
 
+  // Graceful Fallback View instead of throwing 404 page
   if (!cafe) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center">
+        <span className="text-6xl mb-4">☕</span>
+        <h1 className="text-3xl font-bold mb-2">Cafe Not Found</h1>
+        <p className="text-zinc-400 mb-6 max-w-md">
+          We couldn't find a cafe with ID "{rawId || 'unknown'}". It may have been updated or removed.
+        </p>
+        <Link 
+          href="/" 
+          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-3 rounded-full transition-all"
+        >
+          Return to Home
+        </Link>
+      </div>
+    );
   }
 
   const parseList = (data: any): string[] => {
@@ -167,7 +190,7 @@ export default async function CafeDetailsPage(props: { params: Promise<{ id: str
         </Link>
       </div>
 
-      {/* Bookmark & Share */}
+      {/* Action Buttons */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex gap-4">
           <ShareButton cafeName={cafe.name || 'Cafe'} />
@@ -175,7 +198,7 @@ export default async function CafeDetailsPage(props: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* Hero Section */}
+      {/* Hero Header */}
       <div className="relative w-full h-[40vh] min-h-[300px] bg-zinc-900 border-b border-white/5">
         {cafe.image_url ? (
           <img 
