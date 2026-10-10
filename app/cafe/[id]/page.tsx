@@ -98,6 +98,18 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   };
 }
 
+// Helper to return relevant icons based on offering text
+function getOfferingIcon(offering: string): string {
+  const lower = offering.toLowerCase();
+  if (lower.includes('coffee') && !lower.includes('non')) return '☕';
+  if (lower.includes('non-coffee') || lower.includes('tea') || lower.includes('matcha')) return '🍵';
+  if (lower.includes('pastr') || lower.includes('croissant') || lower.includes('bread') || lower.includes('bake')) return '🥐';
+  if (lower.includes('dessert') || lower.includes('cake') || lower.includes('sweet')) return '🍰';
+  if (lower.includes('bite') || lower.includes('sandwich') || lower.includes('snack') || lower.includes('food')) return '🥪';
+  if (lower.includes('pasta') || lower.includes('meal') || lower.includes('rice')) return '🍝';
+  return '🍽️';
+}
+
 async function fetchCafeWithRetry(cafeId: number) {
   const query = () =>
     prisma.cafes.findUnique({
@@ -202,12 +214,17 @@ export default async function CafeDetailsPage(props: any) {
         </Link>
       </div>
 
-      {/* Share & Bookmark */}
-      <div className="absolute top-6 right-6 z-20">
-        <div className="flex gap-4">
-          <ShareButton cafeName={cafe.name || 'Cafe'} />
-          <BookmarkButton cafeId={cafe.id} />
-        </div>
+      {/* Share, Bookmark & Admin Edit Shortcut */}
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-3">
+        <Link
+          href={`/admin/cafe/${cafe.id}/menu`}
+          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2 rounded-full font-bold text-xs shadow-lg transition-all"
+          title="Admin Management"
+        >
+          ✏️ Edit Details
+        </Link>
+        <ShareButton cafeName={cafe.name || 'Cafe'} />
+        <BookmarkButton cafeId={cafe.id} />
       </div>
 
       {/* Hero Header */}
@@ -380,10 +397,18 @@ export default async function CafeDetailsPage(props: any) {
       {/* About Section */}
       <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">ℹ️</span>
-            About {cafe.name}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">ℹ️</span>
+              About {cafe.name}
+            </h2>
+            <Link
+              href={`/admin/cafe/${cafe.id}/menu`}
+              className="text-xs text-amber-400 hover:text-amber-300 bg-zinc-800 border border-white/10 px-3 py-1.5 rounded-xl font-medium transition-colors"
+            >
+              ⚙️ Manage Details
+            </Link>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
@@ -392,8 +417,8 @@ export default async function CafeDetailsPage(props: any) {
                   <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Service Options</h3>
                   <div className="flex flex-wrap gap-2">
                     {serviceOptions.map((option, idx) => (
-                      <span key={idx} className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-xl text-xs font-medium">
-                        ✓ {option}
+                      <span key={idx} className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5">
+                        <span className="text-amber-500">✓</span> {option}
                       </span>
                     ))}
                   </div>
@@ -405,8 +430,8 @@ export default async function CafeDetailsPage(props: any) {
                   <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Offerings</h3>
                   <div className="flex flex-wrap gap-2">
                     {offeringsOptions.map((offering, idx) => (
-                      <span key={idx} className="bg-zinc-800 text-zinc-300 border border-white/5 px-3 py-1.5 rounded-xl text-xs font-medium">
-                        ☕ {offering}
+                      <span key={idx} className="bg-zinc-800 text-zinc-300 border border-white/5 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5">
+                        <span>{getOfferingIcon(offering)}</span> {offering}
                       </span>
                     ))}
                   </div>
