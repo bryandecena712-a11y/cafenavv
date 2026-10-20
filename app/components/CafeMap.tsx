@@ -312,6 +312,17 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   return (
     <div className="w-full relative flex flex-col items-center">
       <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-zinc-900">
+        
+        {/* Top-Left Map Instruction Overlay */}
+        {!routeInfo && (
+          <div style={{ zIndex: 9998 }} className="absolute top-4 left-4 pointer-events-none">
+            <div className="bg-zinc-950/85 backdrop-blur-md border border-amber-500/30 text-amber-400 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>Click any cafe icon on the map to preview details</span>
+            </div>
+          </div>
+        )}
+
         {/* Route Info Overlay */}
         {routeInfo && (
           <div style={{ zIndex: 9999 }} className="absolute top-4 left-4 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">

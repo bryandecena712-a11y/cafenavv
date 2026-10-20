@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
-// Force dynamic execution & prevent static build evaluation crashes
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Fetch all cafes and their products for Admin Directory
+// Fetch all cafes and their products
 export async function GET() {
   try {
     const cafes = await prisma.cafes.findMany({
@@ -15,7 +15,6 @@ export async function GET() {
       orderBy: { id: 'desc' },
     });
 
-    // Ensure status defaults to 'APPROVED' if null or lowercased so admin filters don't hide them
     const normalizedCafes = cafes.map((cafe) => ({
       ...cafe,
       status: cafe.status ? String(cafe.status).toUpperCase() : 'APPROVED',
@@ -23,12 +22,12 @@ export async function GET() {
 
     return NextResponse.json(normalizedCafes);
   } catch (error: any) {
-    console.error('Error fetching admin cafes:', error);
+    console.error('Error fetching cafes:', error);
     return NextResponse.json({ error: 'Failed to fetch cafes' }, { status: 500 });
   }
 }
 
-// Create a new cafe and its products
+// Create or update a cafe
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -38,7 +37,6 @@ export async function POST(request: Request) {
     const description = data.description?.trim() || 'No description provided';
     const priceLevel = data.priceLevel || data.price_level || '₱₱';
     const vibe = data.vibe || 'chill';
-    
     const status = data.status ? String(data.status).toUpperCase() : 'APPROVED';
     const userId = data.userId || null;
     const products = data.products || [];
@@ -106,6 +104,11 @@ export async function POST(request: Request) {
         console.warn('Failed to write audit log:', auditErr);
       }
     }
+
+    // INSTANT REAL-TIME CACHE PURGE
+    revalidatePath('/');
+    revalidatePath(`/cafe/${newCafe.id}`);
+    revalidatePath('/api/cafes');
 
     return NextResponse.json(newCafe, { status: 201 });
   } catch (error: any) {
