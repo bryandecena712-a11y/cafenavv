@@ -21,12 +21,13 @@ export default function ManageCafes() {
   const [apiKey, setApiKey] = useState<string>('');
   const { user } = useAuth();
 
-  // Form State
+  // Form State aligned with Matchmaker
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState('');
   const [description, setDescription] = useState('');
-  const [priceLevel, setPriceLevel] = useState('₱ (Affordable)');
-  const [vibe, setVibe] = useState('Deep Work');
+  const [priceLevel, setPriceLevel] = useState('₱100-300');
+  const [vibe, setVibe] = useState('Reading/Chill');
+  const [environment, setEnvironment] = useState('Both Indoor & Outdoor');
   const [pinnedLocation, setPinnedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cafes, setCafes] = useState<any[]>([]);
@@ -112,8 +113,9 @@ export default function ManageCafes() {
     setName('');
     setPhoto('');
     setDescription('');
-    setPriceLevel('₱ (Affordable)');
-    setVibe('Deep Work');
+    setPriceLevel('₱100-300');
+    setVibe('Reading/Chill');
+    setEnvironment('Both Indoor & Outdoor');
     setPinnedLocation(null);
     setProducts([]);
     setIsModalOpen(true);
@@ -124,8 +126,9 @@ export default function ManageCafes() {
     setName(cafe.name || '');
     setPhoto(cafe.image_url || '');
     setDescription(cafe.description || '');
-    setPriceLevel(cafe.price_level || '₱ (Affordable)');
-    setVibe(cafe.vibe || 'Deep Work');
+    setPriceLevel(cafe.price_level || cafe.price_range || '₱100-300');
+    setVibe(cafe.vibe || 'Reading/Chill');
+    setEnvironment(cafe.environment || 'Both Indoor & Outdoor');
 
     if (cafe.location) {
       const parts = String(cafe.location).split(',').map((s) => parseFloat(s.trim()));
@@ -156,7 +159,9 @@ export default function ManageCafes() {
             image_url: photo,
             description,
             price_level: priceLevel,
+            price_range: priceLevel,
             vibe,
+            environment,
             location: pinnedLocation ? `${pinnedLocation.lat.toFixed(4)}, ${pinnedLocation.lng.toFixed(4)}` : undefined,
           }),
         });
@@ -179,7 +184,9 @@ export default function ManageCafes() {
             photo,
             description,
             priceLevel,
+            price_range: priceLevel,
             vibe,
+            environment,
             pinnedLocation,
             products,
             userId: user?.id,
@@ -194,8 +201,9 @@ export default function ManageCafes() {
           setName('');
           setPhoto('');
           setDescription('');
-          setPriceLevel('₱ (Affordable)');
-          setVibe('Deep Work');
+          setPriceLevel('₱100-300');
+          setVibe('Reading/Chill');
+          setEnvironment('Both Indoor & Outdoor');
           setPinnedLocation(null);
           setProducts([]);
           fetchCafes();
@@ -288,9 +296,12 @@ export default function ManageCafes() {
                   <div>
                     <h4 className="font-bold text-white text-lg">{cafe.name}</h4>
                     <p className="text-sm text-zinc-400 mb-1">{cafe.location}</p>
-                    <div className="flex gap-2">
-                      <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.price_level}</span>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.price_range || cafe.price_level}</span>
                       <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.vibe}</span>
+                      {cafe.environment && (
+                        <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.environment}</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -395,21 +406,34 @@ export default function ManageCafes() {
                       <label className="text-sm font-medium text-zinc-400">Description</label>
                       <textarea required value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="A cozy place to..." />
                     </div>
+
+                    {/* Aligned Matchmaker Parameters */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Price Level</label>
-                      <select value={priceLevel} onChange={(e) => setPriceLevel(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
-                        <option value="₱ (Affordable)">₱ (Affordable)</option>
-                        <option value="₱₱ (Moderate)">₱₱ (Moderate)</option>
-                        <option value="₱₱₱ (Premium)">₱₱₱ (Premium)</option>
+                      <label className="text-sm font-medium text-zinc-400">Price Range</label>
+                      <select value={priceLevel} onChange={(e) => setPriceLevel(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
+                        <option value="₱100-300">₱100-300</option>
+                        <option value="₱150-300">₱150-300</option>
+                        <option value="₱200-500">₱200-500</option>
+                        <option value="Any Price">Any Price</option>
                       </select>
                     </div>
+
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Vibe / Atmosphere</label>
-                      <select value={vibe} onChange={(e) => setVibe(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none">
+                      <label className="text-sm font-medium text-zinc-400">Need / Vibe</label>
+                      <select value={vibe} onChange={(e) => setVibe(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
                         <option value="Deep Work">Deep Work</option>
                         <option value="Social Catch-up">Social Catch-up</option>
                         <option value="Quick Grab">Quick Grab</option>
                         <option value="Reading/Chill">Reading/Chill</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="text-sm font-medium text-zinc-400">Cafe Environment</label>
+                      <select value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
+                        <option value="Indoor Cafe">Indoor Cafe</option>
+                        <option value="Outdoor Cafe">Outdoor Cafe</option>
+                        <option value="Both Indoor & Outdoor">Both Indoor & Outdoor</option>
                       </select>
                     </div>
                   </div>
