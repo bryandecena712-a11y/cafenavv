@@ -25,7 +25,7 @@ const DEFAULT_CENTER = {
   lng: 121.167516,
 };
 
-// Client-side image compression to guarantee custom uploads persist to database
+// Client-side image compression
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -91,8 +91,9 @@ export default function SuggestPage() {
   const [cafeFormData, setCafeFormData] = useState({
     name: '',
     description: '',
-    price_level: '₱₱',
-    vibe: 'chill',
+    price_range: '₱100-300',
+    vibe: 'Reading/Chill',
+    environment: 'Both Indoor & Outdoor',
     image_url: '',
     lat: DEFAULT_CENTER.lat,
     lng: DEFAULT_CENTER.lng,
@@ -236,8 +237,9 @@ export default function SuggestPage() {
           lat: parseFloat(Number(cafeFormData.lat).toFixed(6)),
           lng: parseFloat(Number(cafeFormData.lng).toFixed(6)),
           description: cafeFormData.description.trim() || 'No description provided',
-          price_level: cafeFormData.price_level || '₱₱',
-          vibe: cafeFormData.vibe || 'chill',
+          price_range: cafeFormData.price_range || '₱100-300',
+          vibe: cafeFormData.vibe || 'Reading/Chill',
+          environment: cafeFormData.environment || 'Both Indoor & Outdoor',
           image_url: cafeFormData.image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
           status: 'PENDING',
         };
@@ -273,8 +275,9 @@ export default function SuggestPage() {
           lat: DEFAULT_CENTER.lat,
           lng: DEFAULT_CENTER.lng,
           description: '',
-          price_level: '₱₱',
-          vibe: 'chill',
+          price_range: '₱100-300',
+          vibe: 'Reading/Chill',
+          environment: 'Both Indoor & Outdoor',
           image_url: '',
         });
         setProductFormData({
@@ -457,29 +460,48 @@ export default function SuggestPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Price Range */}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">Price Level</label>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">Price Range</label>
                   <select
-                    value={cafeFormData.price_level}
-                    onChange={(e) => setCafeFormData({ ...cafeFormData, price_level: e.target.value })}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none"
+                    value={cafeFormData.price_range}
+                    onChange={(e) => setCafeFormData({ ...cafeFormData, price_range: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none cursor-pointer"
                   >
-                    <option value="₱">₱ (Affordable)</option>
-                    <option value="₱₱">₱₱ (Moderate)</option>
-                    <option value="₱₱₱">₱₱₱ (Premium)</option>
+                    <option value="₱100-300">₱100-300</option>
+                    <option value="₱150-300">₱150-300</option>
+                    <option value="₱200-500">₱200-500</option>
+                    <option value="Any Price">Any Price</option>
                   </select>
                 </div>
+
+                {/* Need / Vibe */}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">Vibe</label>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">Need / Vibe</label>
                   <select
                     value={cafeFormData.vibe}
                     onChange={(e) => setCafeFormData({ ...cafeFormData, vibe: e.target.value })}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none cursor-pointer"
                   >
-                    <option value="chill">Chill</option>
-                    <option value="focused">Focused</option>
-                    <option value="social">Social</option>
+                    <option value="Deep Work">Deep Work</option>
+                    <option value="Social Catch-up">Social Catch-up</option>
+                    <option value="Quick Grab">Quick Grab</option>
+                    <option value="Reading/Chill">Reading/Chill</option>
+                  </select>
+                </div>
+
+                {/* Cafe Environment */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">Cafe Environment</label>
+                  <select
+                    value={cafeFormData.environment}
+                    onChange={(e) => setCafeFormData({ ...cafeFormData, environment: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-white appearance-none cursor-pointer"
+                  >
+                    <option value="Indoor Cafe">Indoor Cafe</option>
+                    <option value="Outdoor Cafe">Outdoor Cafe</option>
+                    <option value="Both Indoor & Outdoor">Both Indoor & Outdoor</option>
                   </select>
                 </div>
               </div>

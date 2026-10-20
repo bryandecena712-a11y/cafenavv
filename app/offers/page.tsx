@@ -246,7 +246,7 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
           <div className="flex items-center gap-3 text-amber-500 font-medium">
             <CheckCircle size={20} weight="fill" />
             <span>
-              {cafes.length} coffee {cafes.length === 1 ? 'shop' : 'shops'} that perfect matches your preferences.
+              {cafes.length} coffee {cafes.length === 1 ? 'shop' : 'shops'} that perfectly matches your preferences.
             </span>
           </div>
         </motion.div>
