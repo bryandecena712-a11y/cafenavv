@@ -20,22 +20,26 @@ export async function GET() {
   }
 }
 
-// POST: Create a new product
+// POST: Create a new product (attaches user_id tag in description if present)
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { cafeId, name, price, description, image_url } = data;
+    const { user_id, userId, cafeId, name, price, description, image_url } = data;
 
     if (!cafeId || !name || !price) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const submitterId = user_id || userId;
+    const cleanDesc = description?.trim() || 'No description provided';
+    const finalDescription = `${cleanDesc}${submitterId ? ` [USER:${submitterId}]` : ''}`;
+
     const product = await prisma.products.create({
       data: {
         cafe_id: parseInt(cafeId, 10),
-        name,
+        name: name.trim(),
         price: String(price),
-        description: description || null,
+        description: finalDescription,
         image_url: image_url || null,
         status: 'PENDING',
       },
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT: Update an existing product (Supports status changes & full field edits)
+// PUT: Update an existing product (Triggers approval notification if status becomes APPROVED)
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
@@ -58,16 +62,50 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
 
+    const productId = parseInt(id, 10);
+
+    // Retrieve existing product to read submitter user tag
+    const existingProduct = await prisma.products.findUnique({
+      where: { id: productId },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
     const updatedProduct = await prisma.products.update({
-      where: { id: parseInt(id, 10) },
+      where: { id: productId },
       data: {
-        ...(name && { name }),
+        ...(name && { name: name.trim() }),
         ...(price && { price: String(price) }),
         ...(description !== undefined && { description }),
         ...(image_url !== undefined && { image_url }),
         ...(status && { status }),
       },
     });
+
+    // Send real-time approval notification if status was changed to APPROVED
+    if (status === 'APPROVED') {
+      let targetUserId: number | null = null;
+      if (existingProduct.description && existingProduct.description.includes('[USER:')) {
+        const match = existingProduct.description.match(/\[USER:(\d+)\]/);
+        if (match && match[1]) {
+          targetUserId = Number(match[1]);
+        }
+      }
+
+      if (targetUserId) {
+        await (prisma as any).notifications.create({
+          data: {
+            user_id: targetUserId,
+            title: 'Menu Item Suggestion Approved! 🎉',
+            message: `Your suggested menu item "${existingProduct.name}" has been approved by the admin and is now published live!`,
+            type: 'APPROVAL',
+            is_read: false,
+          },
+        });
+      }
+    }
 
     return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
@@ -76,21 +114,50 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE: Delete a product by ID
+// DELETE: Delete a product by ID (Triggers rejection notification with admin reason)
 export async function DELETE(request: Request) {
   try {
     const data = await request.json();
-    const { id } = data;
+    const { id, reason } = data;
 
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
 
-    await prisma.products.delete({
-      where: { id: parseInt(id, 10) },
+    const productId = parseInt(id, 10);
+    const rejectionReason = reason?.trim() || 'It could not be published at this time.';
+
+    const existingProduct = await prisma.products.findUnique({
+      where: { id: productId },
     });
 
-    return NextResponse.json({ success: true });
+    if (existingProduct) {
+      let targetUserId: number | null = null;
+      if (existingProduct.description && existingProduct.description.includes('[USER:')) {
+        const match = existingProduct.description.match(/\[USER:(\d+)\]/);
+        if (match && match[1]) {
+          targetUserId = Number(match[1]);
+        }
+      }
+
+      if (targetUserId) {
+        await (prisma as any).notifications.create({
+          data: {
+            user_id: targetUserId,
+            title: 'Menu Item Suggestion Update',
+            message: `Your suggested menu item "${existingProduct.name}" was reviewed and could not be published: ${rejectionReason}`,
+            type: 'REJECTION',
+            is_read: false,
+          },
+        });
+      }
+
+      await prisma.products.delete({
+        where: { id: productId },
+      });
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('Error deleting product:', error);
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
