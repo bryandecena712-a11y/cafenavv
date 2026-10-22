@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ManageCafes from './components/ManageCafes';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') || 'pending';
