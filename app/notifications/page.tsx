@@ -37,7 +37,16 @@ export default function NotificationsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white relative">
+        <div className="absolute top-6 left-6 z-20">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+
         <p className="text-zinc-400 mb-4">Please log in to view your notifications.</p>
         <Link href="/login" className="bg-amber-500 text-zinc-950 px-6 py-2 rounded-full font-bold">
           Log In
@@ -47,22 +56,27 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6">
+    <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-12 px-6 relative">
+      {/* Top Left "Back to Home" Amber Pill Button matching /suggest */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-zinc-950 font-bold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md"
+        >
+          ← Back to Home
+        </Link>
+      </div>
+
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Notifications</h1>
-            <p className="text-zinc-400 text-sm mt-1">Real-time status updates for your suggestions.</p>
-          </div>
-          <Link href="/" className="text-xs bg-zinc-900 border border-white/10 px-4 py-2 rounded-full text-zinc-300 hover:text-white">
-            ← Back to Home
-          </Link>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Notifications</h1>
+          <p className="text-zinc-400 text-sm">Real-time status updates for your suggestions.</p>
         </div>
 
         {isLoading ? (
           <div className="text-center py-12 text-zinc-500">Loading notifications...</div>
         ) : notifications.length === 0 ? (
-          <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-12 text-center text-zinc-500">
+          <div className="bg-zinc-900 border border-white/5 rounded-2xl p-12 text-center text-zinc-500">
             🔔 No notifications right now!
           </div>
         ) : (
