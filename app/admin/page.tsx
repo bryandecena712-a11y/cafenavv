@@ -174,28 +174,19 @@ function AdminContent() {
     return null;
   };
 
-  // Helper functions to get exact submitted property values
+  // Direct attribute getter functions to guarantee submitted field rendering
   const getDisplayPrice = (cafe: any) => {
-    return (
-      cafe.price_range ||
-      cafe.priceRange ||
-      cafe.price_level ||
-      cafe.priceLevel ||
-      '₱100-300'
-    );
+    const val = cafe.priceLevel || cafe.price_level || cafe.price_range || cafe.priceRange;
+    if (!val || val === '₱' || val === '₱₱' || val === '₱₱₱') return 'Any Price';
+    return val;
   };
 
   const getDisplayEnvironment = (cafe: any) => {
-    return (
-      cafe.environment ||
-      cafe.cafe_environment ||
-      cafe.cafeEnvironment ||
-      'Outdoor Cafe'
-    );
+    return cafe.environment || cafe.cafe_environment || cafe.cafeEnvironment || 'Indoor Cafe';
   };
 
   const getDisplayVibe = (cafe: any) => {
-    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Deep Work';
+    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Social Catch-up';
   };
 
   const totalPending = pendingCafes.length + pendingProducts.length;
@@ -273,9 +264,9 @@ function AdminContent() {
                         <div className="space-y-2 mt-2">
                           <button
                             onClick={() => setSelectedCafe(cafe)}
-                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-white/10 font-semibold py-2 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-white/10 font-semibold py-2 rounded-xl text-xs transition cursor-pointer flex items-center justify-center"
                           >
-                            👁️ View Details
+                            View Details
                           </button>
 
                           <div className="grid grid-cols-2 gap-2">
