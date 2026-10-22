@@ -27,6 +27,12 @@ function isRawCoordinates(locationStr?: string): boolean {
   return /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(locationStr.trim());
 }
 
+// Helper function to clean metadata tags ([ENV:...], [USER:...]) from description
+function getCleanDescription(desc?: string): string {
+  if (!desc) return 'No description provided.';
+  return desc.replace(/\[ENV:.*?\]/g, '').replace(/\[USER:.*?\]/g, '').trim();
+}
+
 export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps) {
   const preferences = loadDirectoryPreferences();
   const [cafes, setCafes] = useState<any[]>(initialCafes);
@@ -148,7 +154,7 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
             <div className="p-5 sm:p-8 flex flex-col flex-1 relative z-10 -mt-10">
               <h3 className="text-xl sm:text-2xl font-semibold text-zinc-100 mb-2">{cafe.name}</h3>
               <p className="text-zinc-400 text-sm leading-relaxed mb-6 sm:mb-8 flex-1 line-clamp-3">
-                {cafe.description}
+                {getCleanDescription(cafe.description)}
               </p>
 
               <Link
