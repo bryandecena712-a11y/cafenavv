@@ -210,7 +210,7 @@ export default function SuggestPage() {
     } catch (err) {
       console.error(err);
       alert('Error connecting to scraper service.');
-    } fontally {
+    } finally {
       setIsScraping(false);
     }
   };
