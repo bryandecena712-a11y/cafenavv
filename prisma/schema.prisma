@@ -16,14 +16,13 @@ model cafes {
   vibe            String?
   status          String?     @default("APPROVED")
   
-  // New fields for Cafe About Section & Operating Schedule
   service_options String?     
   offerings       String?     
   facebook_url    String?
   instagram_url   String?
   tiktok_url      String?
   website_url     String?
-  operating_hours String?     // e.g. '{"Monday":{"open":"09:00","close":"23:00","isClosed":false},...}'
+  operating_hours String?     
 
   products        products[]
   stories         stories[]
@@ -43,16 +42,29 @@ model products {
 }
 
 model users {
-  id         Int          @id @default(autoincrement())
-  username   String
-  email      String       @unique
-  password   String
-  role       String       @default("USER")
-  created_at DateTime?    @default(now())
-  stories    stories[]
-  audit_logs audit_logs[]
-  reviews    reviews[]
-  bookmarks  bookmarks[]
+  id            Int             @id @default(autoincrement())
+  username      String
+  email         String          @unique
+  password      String
+  role          String          @default("USER")
+  created_at    DateTime?       @default(now())
+  stories       stories[]
+  audit_logs    audit_logs[]
+  reviews       reviews[]
+  bookmarks     bookmarks[]
+  notifications notifications[]
+}
+
+model notifications {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  title      String
+  message    String
+  type       String   @default("INFO") // APPROVAL, REJECTION, INFO
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model audit_logs {
