@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ManageCafes from './components/ManageCafes';
 
+// Pinipigilan ang prerendering build error sa Vercel
 export const dynamic = 'force-dynamic';
 
-export default function AdminPage() {
+function AdminContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') || 'pending';
 
@@ -35,7 +36,7 @@ export default function AdminPage() {
     }
   };
 
-  // Fetch discovered cafes from OpenStreetMap
+  // Fetch discovered cafes mula sa OpenStreetMap
   const fetchDiscovered = async () => {
     try {
       const res = await fetch('/api/admin/discovered');
@@ -265,5 +266,14 @@ export default function AdminPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Balot sa Suspense boundary para sa useSearchParams
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-zinc-400">Loading Admin Dashboard...</div>}>
+      <AdminContent />
+    </Suspense>
   );
 }
