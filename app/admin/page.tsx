@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { defaultCenter } from '@/app/lib/coordinates';
 import ManageCafes from './components/ManageCafes';
 
 export const dynamic = 'force-dynamic';
@@ -175,6 +174,30 @@ function AdminContent() {
     return null;
   };
 
+  // Helper functions to get exact submitted property values
+  const getDisplayPrice = (cafe: any) => {
+    return (
+      cafe.price_range ||
+      cafe.priceRange ||
+      cafe.price_level ||
+      cafe.priceLevel ||
+      '₱100-300'
+    );
+  };
+
+  const getDisplayEnvironment = (cafe: any) => {
+    return (
+      cafe.environment ||
+      cafe.cafe_environment ||
+      cafe.cafeEnvironment ||
+      'Outdoor Cafe'
+    );
+  };
+
+  const getDisplayVibe = (cafe: any) => {
+    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Deep Work';
+  };
+
   const totalPending = pendingCafes.length + pendingProducts.length;
 
   return (
@@ -205,13 +228,22 @@ function AdminContent() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {pendingCafes.map((cafe) => (
-                      <div key={cafe.id} className="bg-[#191512] border border-[#2b221b] rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/30 transition-colors">
+                      <div
+                        key={cafe.id}
+                        className="bg-[#191512] border border-[#2b221b] rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/30 transition-colors"
+                      >
                         <div>
                           <div className="flex gap-4 mb-3">
                             {cafe.image_url ? (
-                              <img src={cafe.image_url} alt={cafe.name} className="w-14 h-14 rounded-xl object-cover shrink-0" />
+                              <img
+                                src={cafe.image_url}
+                                alt={cafe.name}
+                                className="w-14 h-14 rounded-xl object-cover shrink-0"
+                              />
                             ) : (
-                              <div className="w-14 h-14 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl shrink-0">☕</div>
+                              <div className="w-14 h-14 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                                ☕
+                              </div>
                             )}
                             <div>
                               <h3 className="font-bold text-white text-base leading-tight">{cafe.name}</h3>
@@ -221,20 +253,20 @@ function AdminContent() {
 
                           <div className="flex flex-wrap gap-2 mb-3">
                             <span className="text-xs px-2 py-0.5 bg-zinc-900 border border-white/10 rounded text-amber-400 font-medium">
-                              {cafe.price_range || cafe.price_level || '₱100-300'}
+                              {getDisplayPrice(cafe)}
                             </span>
                             <span className="text-xs px-2 py-0.5 bg-zinc-900 border border-white/10 rounded text-amber-400 font-medium">
-                              {cafe.vibe || 'Reading/Chill'}
+                              {getDisplayVibe(cafe)}
                             </span>
-                            {cafe.environment && (
-                              <span className="text-xs px-2 py-0.5 bg-zinc-900 border border-white/10 rounded text-amber-400 font-medium">
-                                {cafe.environment}
-                              </span>
-                            )}
+                            <span className="text-xs px-2 py-0.5 bg-zinc-900 border border-white/10 rounded text-amber-400 font-medium">
+                              {getDisplayEnvironment(cafe)}
+                            </span>
                           </div>
 
                           {cafe.description && (
-                            <p className="text-xs text-zinc-300 italic mb-4 line-clamp-2">"{cafe.description}"</p>
+                            <p className="text-xs text-zinc-300 italic mb-4 line-clamp-2">
+                              "{cafe.description}"
+                            </p>
                           )}
                         </div>
 
@@ -441,21 +473,21 @@ function AdminContent() {
               {/* Attributes Badges */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
-                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">Price Range</p>
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">PRICE RANGE</p>
                   <p className="text-xs font-bold text-amber-400 mt-1">
-                    {selectedCafe.price_range || selectedCafe.price_level || '₱100-300'}
+                    {getDisplayPrice(selectedCafe)}
                   </p>
                 </div>
                 <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
-                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">Need / Vibe</p>
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">NEED / VIBE</p>
                   <p className="text-xs font-bold text-amber-400 mt-1">
-                    {selectedCafe.vibe || 'Reading/Chill'}
+                    {getDisplayVibe(selectedCafe)}
                   </p>
                 </div>
                 <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
-                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">Environment</p>
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">ENVIRONMENT</p>
                   <p className="text-xs font-bold text-amber-400 mt-1">
-                    {selectedCafe.environment || 'Indoor & Outdoor'}
+                    {getDisplayEnvironment(selectedCafe)}
                   </p>
                 </div>
               </div>
