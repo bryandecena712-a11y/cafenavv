@@ -2,6 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { defaultCenter } from '@/app/lib/coordinates';
 import ManageCafes from './components/ManageCafes';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +16,14 @@ function AdminContent() {
   const [pendingProducts, setPendingProducts] = useState<any[]>([]);
   const [discoveredCafes, setDiscoveredCafes] = useState<any[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [selectedCafe, setSelectedCafe] = useState<any | null>(null);
+  const [apiKey, setApiKey] = useState<string>('');
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+      setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
+    }
+  }, []);
 
   // Fetch all pending cafe suggestions
   const fetchPendingCafes = async () => {
@@ -86,10 +96,16 @@ function AdminContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'APPROVED' }),
         });
-        if (res.ok) fetchPendingCafes();
+        if (res.ok) {
+          fetchPendingCafes();
+          setSelectedCafe(null);
+        }
       } else {
         const res = await fetch(`/api/admin/cafes/${id}`, { method: 'DELETE' });
-        if (res.ok) fetchPendingCafes();
+        if (res.ok) {
+          fetchPendingCafes();
+          setSelectedCafe(null);
+        }
       }
     } catch (err) {
       console.error('Failed to update cafe status:', err);
@@ -150,6 +166,15 @@ function AdminContent() {
     }
   };
 
+  const parseCoordinates = (loc: string) => {
+    if (!loc) return null;
+    const parts = String(loc).split(',').map((s) => parseFloat(s.trim()));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return { lat: parts[0], lng: parts[1] };
+    }
+    return null;
+  };
+
   const totalPending = pendingCafes.length + pendingProducts.length;
 
   return (
@@ -180,7 +205,7 @@ function AdminContent() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {pendingCafes.map((cafe) => (
-                      <div key={cafe.id} className="bg-[#191512] border border-[#2b221b] rounded-2xl p-5 flex flex-col justify-between">
+                      <div key={cafe.id} className="bg-[#191512] border border-[#2b221b] rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/30 transition-colors">
                         <div>
                           <div className="flex gap-4 mb-3">
                             {cafe.image_url ? (
@@ -209,23 +234,32 @@ function AdminContent() {
                           </div>
 
                           {cafe.description && (
-                            <p className="text-xs text-zinc-300 italic mb-4">"{cafe.description}"</p>
+                            <p className="text-xs text-zinc-300 italic mb-4 line-clamp-2">"{cafe.description}"</p>
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 mt-2">
+                        <div className="space-y-2 mt-2">
                           <button
-                            onClick={() => handleCafeAction(cafe.id, 'approve')}
-                            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
+                            onClick={() => setSelectedCafe(cafe)}
+                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-white/10 font-semibold py-2 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
                           >
-                            Approve
+                            👁️ View Details
                           </button>
-                          <button
-                            onClick={() => handleCafeAction(cafe.id, 'reject')}
-                            className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
-                          >
-                            Reject
-                          </button>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => handleCafeAction(cafe.id, 'approve')}
+                              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleCafeAction(cafe.id, 'reject')}
+                              className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -363,6 +397,130 @@ function AdminContent() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* VIEW CAFE DETAILS MODAL */}
+      {selectedCafe && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setSelectedCafe(null)}
+          />
+
+          <div className="relative bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
+              <div>
+                <h2 className="text-xl font-bold text-white">{selectedCafe.name}</h2>
+                <p className="text-xs text-amber-500 font-medium mt-0.5">Pending Cafe Evaluation</p>
+              </div>
+              <button
+                onClick={() => setSelectedCafe(null)}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Cover Photo */}
+              {selectedCafe.image_url ? (
+                <img
+                  src={selectedCafe.image_url}
+                  alt={selectedCafe.name}
+                  className="w-full h-56 rounded-2xl object-cover border border-white/10"
+                />
+              ) : (
+                <div className="w-full h-40 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center text-zinc-600 font-medium text-sm">
+                  No Cover Photo Uploaded
+                </div>
+              )}
+
+              {/* Attributes Badges */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">Price Range</p>
+                  <p className="text-xs font-bold text-amber-400 mt-1">
+                    {selectedCafe.price_range || selectedCafe.price_level || '₱100-300'}
+                  </p>
+                </div>
+                <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">Need / Vibe</p>
+                  <p className="text-xs font-bold text-amber-400 mt-1">
+                    {selectedCafe.vibe || 'Reading/Chill'}
+                  </p>
+                </div>
+                <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold">Environment</p>
+                  <p className="text-xs font-bold text-amber-400 mt-1">
+                    {selectedCafe.environment || 'Indoor & Outdoor'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="bg-zinc-900/50 border border-white/10 p-4 rounded-xl">
+                <p className="text-xs text-zinc-400 font-semibold mb-1">Description from User:</p>
+                <p className="text-sm text-zinc-200 italic">
+                  "{selectedCafe.description || 'No description provided.'}"
+                </p>
+              </div>
+
+              {/* Map Preview */}
+              <div>
+                <p className="text-xs text-zinc-400 font-semibold mb-2">Pinned Location on Map:</p>
+                <div className="w-full h-[220px] rounded-xl overflow-hidden border border-white/10 relative">
+                  {apiKey && parseCoordinates(selectedCafe.location) ? (
+                    <APIProvider apiKey={apiKey}>
+                      <Map
+                        defaultCenter={parseCoordinates(selectedCafe.location)!}
+                        defaultZoom={16}
+                        mapId="ADMIN_EVAL_MAP_ID"
+                        gestureHandling={'greedy'}
+                        disableDefaultUI={true}
+                      >
+                        <AdvancedMarker position={parseCoordinates(selectedCafe.location)!}>
+                          <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
+                            📍
+                          </div>
+                        </AdvancedMarker>
+                      </Map>
+                    </APIProvider>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 text-zinc-500 text-xs">
+                      {selectedCafe.location ? `Coordinates: ${selectedCafe.location}` : 'No pinned location available'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-6 border-t border-white/10 bg-zinc-900/50 flex justify-between items-center gap-3">
+              <button
+                onClick={() => setSelectedCafe(null)}
+                className="px-5 py-2.5 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleCafeAction(selectedCafe.id, 'reject')}
+                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => handleCafeAction(selectedCafe.id, 'approve')}
+                  className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  Approve & Publish
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
