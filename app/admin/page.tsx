@@ -24,7 +24,6 @@ function AdminContent() {
     }
   }, []);
 
-  // Fetch all pending cafe suggestions
   const fetchPendingCafes = async () => {
     try {
       const res = await fetch('/api/admin/cafes');
@@ -39,7 +38,6 @@ function AdminContent() {
     }
   };
 
-  // Fetch all pending menu item suggestions
   const fetchPendingProducts = async () => {
     try {
       const res = await fetch('/api/admin/products');
@@ -58,7 +56,6 @@ function AdminContent() {
     }
   };
 
-  // Fetch discovered OSM cafes
   const fetchDiscovered = async () => {
     try {
       const res = await fetch('/api/admin/discovered');
@@ -71,7 +68,6 @@ function AdminContent() {
     }
   };
 
-  // Initial load + 5-second interval for real-time updates
   useEffect(() => {
     fetchPendingCafes();
     fetchPendingProducts();
@@ -86,7 +82,6 @@ function AdminContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle Cafe Approvals & Rejections
   const handleCafeAction = async (id: number, action: 'approve' | 'reject') => {
     try {
       if (action === 'approve') {
@@ -111,7 +106,6 @@ function AdminContent() {
     }
   };
 
-  // Handle Product Approvals & Rejections
   const handleProductAction = async (id: number, action: 'approve' | 'reject') => {
     try {
       if (action === 'approve') {
@@ -134,7 +128,6 @@ function AdminContent() {
     }
   };
 
-  // Handle Discovered OSM Cafes
   const handleDiscoveredAction = async (id: number, action: 'APPROVE' | 'DISMISS') => {
     try {
       const res = await fetch('/api/admin/discovered', {
@@ -174,21 +167,28 @@ function AdminContent() {
     return null;
   };
 
-  // Direct getters that return exact submitted user string values without hardcoded overwrites
   const getDisplayPrice = (cafe: any) => {
-    const raw = cafe.price_range || cafe.priceLevel || cafe.price_level || cafe.priceRange;
-    if (!raw || raw === '₱' || raw === '₱₱' || raw === '₱₱₱') {
-      return cafe.price_range && cafe.price_range !== '₱' ? cafe.price_range : 'Any Price';
-    }
+    const raw = cafe.price_level || cafe.price_range || cafe.priceLevel || cafe.priceRange;
+    if (!raw || raw === '₱' || raw === '₱₱' || raw === '₱₱₱') return 'Any Price';
     return raw;
   };
 
   const getDisplayVibe = (cafe: any) => {
-    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Not specified';
+    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Social Catch-up';
   };
 
   const getDisplayEnvironment = (cafe: any) => {
-    return cafe.environment || cafe.cafe_environment || cafe.cafeEnvironment || 'Not specified';
+    if (cafe.environment) return cafe.environment;
+    if (cafe.description && cafe.description.includes('[ENV:')) {
+      const match = cafe.description.match(/\[ENV:(.*?)\]/);
+      if (match && match[1]) return match[1];
+    }
+    return 'Both Indoor & Outdoor';
+  };
+
+  const getCleanDescription = (desc: string) => {
+    if (!desc) return 'No description provided.';
+    return desc.replace(/\[ENV:.*?\]/g, '').trim();
   };
 
   const totalPending = pendingCafes.length + pendingProducts.length;
@@ -258,7 +258,7 @@ function AdminContent() {
 
                           {cafe.description && (
                             <p className="text-xs text-zinc-300 italic mb-4 line-clamp-2">
-                              "{cafe.description}"
+                              "{getCleanDescription(cafe.description)}"
                             </p>
                           )}
                         </div>
@@ -489,7 +489,7 @@ function AdminContent() {
               <div className="bg-zinc-900/50 border border-white/10 p-4 rounded-xl">
                 <p className="text-xs text-zinc-400 font-semibold mb-1">Description from User:</p>
                 <p className="text-sm text-zinc-200 italic">
-                  "{selectedCafe.description || 'No description provided.'}"
+                  "{getCleanDescription(selectedCafe.description)}"
                 </p>
               </div>
 

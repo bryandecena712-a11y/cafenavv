@@ -58,7 +58,6 @@ export async function POST(request: Request) {
     const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
     const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
 
-    // Image URL validation
     const validImageUrl =
       image_url &&
       (image_url.startsWith('http://') ||
@@ -71,14 +70,14 @@ export async function POST(request: Request) {
     const selectedVibe = vibe || 'Reading/Chill';
     const selectedEnv = environment || cafe_environment || 'Both Indoor & Outdoor';
 
-    // Format location text safely
-    const finalLocation = location || `${parsedLat}, ${parsedLng}`;
+    const cleanDesc = description?.trim() || 'No description provided';
+    // Tag the environment metadata at the end of the description text
+    const finalDescription = `${cleanDesc} [ENV:${selectedEnv}]`;
 
-    // Strictly construct payload using ONLY validated Prisma schema fields
     const dataPayload: any = {
       name: name.trim(),
-      location: finalLocation,
-      description: description?.trim() || 'No description provided',
+      location: location || `${parsedLat}, ${parsedLng}`,
+      description: finalDescription,
       price_level: selectedPrice,
       vibe: selectedVibe,
       image_url: validImageUrl,
@@ -89,14 +88,7 @@ export async function POST(request: Request) {
       data: dataPayload,
     });
 
-    // Return extended object with user choices attached in JSON response for Admin UI
-    const responseData = {
-      ...newCafe,
-      price_range: selectedPrice,
-      environment: selectedEnv,
-    };
-
-    return NextResponse.json(responseData, { status: 201 });
+    return NextResponse.json(newCafe, { status: 201 });
   } catch (error: any) {
     console.error('Failed to create cafe suggestion:', error);
     return NextResponse.json(
