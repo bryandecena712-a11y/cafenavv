@@ -10,9 +10,9 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
-  // Poll for real-time notifications every 4 seconds
+  // Poll for real-time notifications ONLY for regular users (not Admins)
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || user?.isAdmin) return;
 
     const checkNotifications = async () => {
       try {
@@ -29,10 +29,10 @@ export default function Navbar() {
     checkNotifications();
     const interval = setInterval(checkNotifications, 4000);
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [user?.id, user?.isAdmin]);
 
   const handleMarkAsRead = async () => {
-    if (!user?.id) return;
+    if (!user?.id || user?.isAdmin) return;
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
@@ -67,17 +67,17 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-6 text-sm font-medium">
           {isAuthenticated ? (
             <div className="relative flex items-center gap-2">
-              {/* User Avatar Circle with Red Notification Badge */}
+              {/* User Avatar Circle */}
               <div className="relative">
                 <button
                   aria-label="Open account menu"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-white hover:border-amber-500 transition-colors relative"
+                  className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-white hover:border-amber-500 transition-colors relative cursor-pointer"
                 >
                   {user?.name?.charAt(0) || 'U'}
 
-                  {/* Red Dot Notification Indicator */}
-                  {unreadCount > 0 && (
+                  {/* Red Dot Notification Badge (Regular Users Only) */}
+                  {!user?.isAdmin && unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 border-2 border-zinc-950 rounded-full animate-pulse" />
                   )}
                 </button>
@@ -85,7 +85,7 @@ export default function Navbar() {
                 {/* Dropdown Arrow Indicator */}
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="absolute -bottom-1 -right-1 w-4 h-4 bg-zinc-800 border border-zinc-600 rounded-full flex items-center justify-center text-[8px] text-zinc-300"
+                  className="absolute -bottom-1 -right-1 w-4 h-4 bg-zinc-800 border border-zinc-600 rounded-full flex items-center justify-center text-[8px] text-zinc-300 cursor-pointer"
                 >
                   ▼
                 </button>
@@ -108,7 +108,7 @@ export default function Navbar() {
                     </div>
 
                     <div className="p-2 border-b border-white/5">
-                      {user?.isAdmin && (
+                      {user?.isAdmin ? (
                         <Link 
                           href="/admin"
                           onClick={() => setIsDropdownOpen(false)}
@@ -116,45 +116,42 @@ export default function Navbar() {
                         >
                           Admin Dashboard
                         </Link>
+                      ) : (
+                        <>
+                          <Link 
+                            href="/profile"
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              handleMarkAsRead();
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors flex items-center justify-between"
+                          >
+                            <span>My Profile</span>
+                          </Link>
+
+                          <Link 
+                            href="/notifications"
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              handleMarkAsRead();
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-xl transition-colors flex items-center justify-between"
+                          >
+                            <span>🔔 Notifications</span>
+                            {unreadCount > 0 && (
+                              <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                {unreadCount}
+                              </span>
+                            )}
+                          </Link>
+                        </>
                       )}
-
-                      <Link 
-                        href="/profile"
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          handleMarkAsRead();
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors flex items-center justify-between"
-                      >
-                        <span>My Profile</span>
-                        {unreadCount > 0 && (
-                          <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </Link>
-
-                      <Link 
-                        href="/notifications"
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          handleMarkAsRead();
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-xl transition-colors flex items-center justify-between"
-                      >
-                        <span>🔔 Notifications</span>
-                        {unreadCount > 0 && (
-                          <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </Link>
                     </div>
 
                     <div className="p-2">
                       <button 
                         onClick={() => { logout(); setIsDropdownOpen(false); }}
-                        className="w-full text-left px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
                       >
                         Sign Out
                       </button>
