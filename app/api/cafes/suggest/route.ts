@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     }
 
     const selectedPrice = price_range || price_level || '₱100-300';
+    const selectedVibe = vibe || 'Reading/Chill';
 
     const cafe = await prisma.cafes.create({
       data: {
@@ -30,15 +31,20 @@ export async function POST(request: Request) {
         location,
         description: description?.trim() || 'No description provided',
         price_level: selectedPrice,
-        price_range: selectedPrice,
-        vibe: vibe || 'Reading/Chill',
-        environment: environment || 'Both Indoor & Outdoor',
+        vibe: selectedVibe,
         image_url: image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
         status: 'PENDING',
-      } as any,
+      },
     });
 
-    return NextResponse.json(cafe, { status: 201 });
+    return NextResponse.json(
+      {
+        ...cafe,
+        price_range: selectedPrice,
+        environment: environment || 'Both Indoor & Outdoor',
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     console.error('Error suggesting cafe:', error);
     return NextResponse.json({ error: error.message || 'Failed to suggest cafe' }, { status: 500 });

@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
     const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
 
-    // Accept HTTP URLs, HTTPS URLs, AND uploaded Base64 Data URLs
+    // Image URL validation
     const validImageUrl =
       image_url &&
       (image_url.startsWith('http://') ||
@@ -69,17 +69,18 @@ export async function POST(request: Request) {
 
     const selectedPrice = price_range || price_level || priceRange || priceLevel || '₱100-300';
     const selectedVibe = vibe || 'Reading/Chill';
-    const selectedEnvironment = environment || cafe_environment || 'Both Indoor & Outdoor';
+    const selectedEnv = environment || cafe_environment || 'Both Indoor & Outdoor';
 
-    // Store attributes dynamically to match Prisma schema variations cleanly
+    // Format location text safely
+    const finalLocation = location || `${parsedLat}, ${parsedLng}`;
+
+    // Strictly construct payload using ONLY validated Prisma schema fields
     const dataPayload: any = {
       name: name.trim(),
-      location: location || `${parsedLat}, ${parsedLng}`,
+      location: finalLocation,
       description: description?.trim() || 'No description provided',
       price_level: selectedPrice,
-      price_range: selectedPrice,
       vibe: selectedVibe,
-      environment: selectedEnvironment,
       image_url: validImageUrl,
       status: status || 'PENDING',
     };
@@ -88,7 +89,14 @@ export async function POST(request: Request) {
       data: dataPayload,
     });
 
-    return NextResponse.json(newCafe, { status: 201 });
+    // Return extended object with user choices attached in JSON response for Admin UI
+    const responseData = {
+      ...newCafe,
+      price_range: selectedPrice,
+      environment: selectedEnv,
+    };
+
+    return NextResponse.json(responseData, { status: 201 });
   } catch (error: any) {
     console.error('Failed to create cafe suggestion:', error);
     return NextResponse.json(
