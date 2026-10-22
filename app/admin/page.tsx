@@ -174,19 +174,21 @@ function AdminContent() {
     return null;
   };
 
-  // Direct attribute getter functions to guarantee submitted field rendering
+  // Direct attribute getter functions reading exact submitted DB values
   const getDisplayPrice = (cafe: any) => {
-    const val = cafe.priceLevel || cafe.price_level || cafe.price_range || cafe.priceRange;
-    if (!val || val === '₱' || val === '₱₱' || val === '₱₱₱') return 'Any Price';
-    return val;
+    const raw = cafe.price_range || cafe.priceRange || cafe.price_level || cafe.priceLevel;
+    if (raw && raw !== '₱' && raw !== '₱₱' && raw !== '₱₱₱') {
+      return raw;
+    }
+    return 'Any Price';
   };
 
   const getDisplayEnvironment = (cafe: any) => {
-    return cafe.environment || cafe.cafe_environment || cafe.cafeEnvironment || 'Indoor Cafe';
+    return cafe.environment || cafe.cafe_environment || cafe.cafeEnvironment || 'Both Indoor & Outdoor';
   };
 
   const getDisplayVibe = (cafe: any) => {
-    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Social Catch-up';
+    return cafe.vibe || cafe.need_vibe || cafe.needVibe || 'Reading/Chill';
   };
 
   const totalPending = pendingCafes.length + pendingProducts.length;
