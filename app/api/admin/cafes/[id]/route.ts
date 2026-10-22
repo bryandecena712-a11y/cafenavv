@@ -17,6 +17,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
 
+    // Retrieve existing cafe details before updating so we can read submitter tags
+    const existingCafe = await prisma.cafes.findUnique({
+      where: { id },
+    });
+
+    if (!existingCafe) {
+      return NextResponse.json({ error: 'Cafe not found' }, { status: 404 });
+    }
+
     const data = await request.json();
     const {
       status,
@@ -80,6 +89,29 @@ export async function PATCH(
       data: updateData,
     });
 
+    // Check if status changed to APPROVED and create notification for submitting user
+    if (status === 'APPROVED') {
+      let targetUserId: number | null = null;
+      if (existingCafe.description && existingCafe.description.includes('[USER:')) {
+        const match = existingCafe.description.match(/\[USER:(\d+)\]/);
+        if (match && match[1]) {
+          targetUserId = Number(match[1]);
+        }
+      }
+
+      if (targetUserId) {
+        await (prisma as any).notifications.create({
+          data: {
+            user_id: targetUserId,
+            title: 'Cafe Suggestion Approved! 🎉',
+            message: `Your suggested cafe "${existingCafe.name}" has been approved by the admin and is now published live!`,
+            type: 'APPROVAL',
+            is_read: false,
+          },
+        });
+      }
+    }
+
     return NextResponse.json(updatedCafe);
   } catch (error: any) {
     console.error('Error updating cafe:', error);
@@ -99,9 +131,35 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
 
-    await prisma.reviews.deleteMany({ where: { cafe_id: id } });
-    await prisma.products.deleteMany({ where: { cafe_id: id } });
-    await prisma.cafes.delete({ where: { id } });
+    const existingCafe = await prisma.cafes.findUnique({
+      where: { id },
+    });
+
+    if (existingCafe) {
+      let targetUserId: number | null = null;
+      if (existingCafe.description && existingCafe.description.includes('[USER:')) {
+        const match = existingCafe.description.match(/\[USER:(\d+)\]/);
+        if (match && match[1]) {
+          targetUserId = Number(match[1]);
+        }
+      }
+
+      if (targetUserId) {
+        await (prisma as any).notifications.create({
+          data: {
+            user_id: targetUserId,
+            title: 'Cafe Suggestion Update',
+            message: `Your suggested cafe "${existingCafe.name}" was reviewed and could not be published at this time.`,
+            type: 'REJECTION',
+            is_read: false,
+          },
+        });
+      }
+
+      await prisma.reviews.deleteMany({ where: { cafe_id: id } });
+      await prisma.products.deleteMany({ where: { cafe_id: id } });
+      await prisma.cafes.delete({ where: { id } });
+    }
 
     return NextResponse.json({ success: true, message: 'Cafe deleted successfully' });
   } catch (error: any) {

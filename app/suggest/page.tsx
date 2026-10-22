@@ -25,7 +25,6 @@ const DEFAULT_CENTER = {
   lng: 121.167516,
 };
 
-// Client-side image compression
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -72,7 +71,7 @@ const compressImage = (file: File): Promise<string> => {
 
 export default function SuggestPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [suggestionType, setSuggestionType] = useState<'cafe' | 'product'>('cafe');
   const [cafes, setCafes] = useState<Cafe[]>([]);
@@ -80,11 +79,9 @@ export default function SuggestPage() {
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [isScraping, setIsScraping] = useState(false);
 
-  // File upload state for Cafe
   const [cafeFileName, setCafeFileName] = useState<string>('');
   const [cafePhotoSuccess, setCafePhotoSuccess] = useState<boolean>(false);
 
-  // File upload state for Product
   const [productFileName, setProductFileName] = useState<string>('');
   const [productPhotoSuccess, setProductPhotoSuccess] = useState<boolean>(false);
 
@@ -232,6 +229,7 @@ export default function SuggestPage() {
 
         endpoint = '/api/cafes';
         payload = {
+          user_id: user?.id ? Number(user.id) : null,
           name: cafeFormData.name.trim(),
           location: cafeFormData.location,
           lat: parseFloat(Number(cafeFormData.lat).toFixed(6)),
@@ -253,6 +251,7 @@ export default function SuggestPage() {
 
         endpoint = '/api/admin/products';
         payload = {
+          user_id: user?.id ? Number(user.id) : null,
           cafeId: productFormData.cafeId,
           name: productFormData.name.trim(),
           price: parseFloat(productFormData.price) || 0,
@@ -462,7 +461,6 @@ export default function SuggestPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Price Range */}
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-2">Price Range</label>
                   <select
@@ -477,7 +475,6 @@ export default function SuggestPage() {
                   </select>
                 </div>
 
-                {/* Need / Vibe */}
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-2">Need / Vibe</label>
                   <select
@@ -492,7 +489,6 @@ export default function SuggestPage() {
                   </select>
                 </div>
 
-                {/* Cafe Environment */}
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-2">Cafe Environment</label>
                   <select

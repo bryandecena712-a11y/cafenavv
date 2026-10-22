@@ -33,30 +33,27 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      user_id,
+      userId,
       name,
       location,
       description,
       price_range,
       price_level,
-      priceRange,
-      priceLevel,
       vibe,
       environment,
-      cafe_environment,
       image_url,
       status,
       lat,
       lng,
-      latitude,
-      longitude,
     } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
     }
 
-    const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
-    const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
+    const parsedLat = parseFloat(lat ?? 14.212231);
+    const parsedLng = parseFloat(lng ?? 121.167516);
 
     const validImageUrl =
       image_url &&
@@ -66,13 +63,14 @@ export async function POST(request: Request) {
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    const selectedPrice = price_range || price_level || priceRange || priceLevel || '₱100-300';
+    const selectedPrice = price_range || price_level || '₱100-300';
     const selectedVibe = vibe || 'Reading/Chill';
-    const selectedEnv = environment || cafe_environment || 'Both Indoor & Outdoor';
+    const selectedEnv = environment || 'Both Indoor & Outdoor';
+    const submitterId = user_id || userId;
 
     const cleanDesc = description?.trim() || 'No description provided';
-    // Tag the environment metadata at the end of the description text
-    const finalDescription = `${cleanDesc} [ENV:${selectedEnv}]`;
+    // Append both environment and user_id tags in description safely
+    const finalDescription = `${cleanDesc} [ENV:${selectedEnv}]${submitterId ? ` [USER:${submitterId}]` : ''}`;
 
     const dataPayload: any = {
       name: name.trim(),
