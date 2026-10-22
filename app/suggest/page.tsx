@@ -210,7 +210,7 @@ export default function SuggestPage() {
     } catch (err) {
       console.error(err);
       alert('Error connecting to scraper service.');
-    } finally {
+    } fontally {
       setIsScraping(false);
     }
   };
@@ -237,9 +237,10 @@ export default function SuggestPage() {
           lat: parseFloat(Number(cafeFormData.lat).toFixed(6)),
           lng: parseFloat(Number(cafeFormData.lng).toFixed(6)),
           description: cafeFormData.description.trim() || 'No description provided',
-          price_range: cafeFormData.price_range || '₱100-300',
-          vibe: cafeFormData.vibe || 'Reading/Chill',
-          environment: cafeFormData.environment || 'Both Indoor & Outdoor',
+          price_range: cafeFormData.price_range,
+          price_level: cafeFormData.price_range,
+          vibe: cafeFormData.vibe,
+          environment: cafeFormData.environment,
           image_url: cafeFormData.image_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24',
           status: 'PENDING',
         };

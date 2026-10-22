@@ -32,7 +32,24 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, location, description, price_level, vibe, image_url, status, lat, lng, latitude, longitude } = body;
+    const {
+      name,
+      location,
+      description,
+      price_range,
+      price_level,
+      priceRange,
+      priceLevel,
+      vibe,
+      environment,
+      cafe_environment,
+      image_url,
+      status,
+      lat,
+      lng,
+      latitude,
+      longitude,
+    } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Cafe name is required' }, { status: 400 });
@@ -41,7 +58,7 @@ export async function POST(request: Request) {
     const parsedLat = parseFloat(lat ?? latitude ?? 14.212231);
     const parsedLng = parseFloat(lng ?? longitude ?? 121.167516);
 
-    // Accept HTTP URLs, HTTPS URLs, AND uploaded Base64 Data URLs (data:image/...)
+    // Accept HTTP URLs, HTTPS URLs, AND uploaded Base64 Data URLs
     const validImageUrl =
       image_url &&
       (image_url.startsWith('http://') ||
@@ -50,13 +67,19 @@ export async function POST(request: Request) {
         ? image_url.trim()
         : 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
 
-    // Strictly pass only columns that exist in the Prisma `cafes` model schema
+    const selectedPrice = price_range || price_level || priceRange || priceLevel || '₱100-300';
+    const selectedVibe = vibe || 'Reading/Chill';
+    const selectedEnvironment = environment || cafe_environment || 'Both Indoor & Outdoor';
+
+    // Store attributes dynamically to match Prisma schema variations cleanly
     const dataPayload: any = {
       name: name.trim(),
       location: location || `${parsedLat}, ${parsedLng}`,
       description: description?.trim() || 'No description provided',
-      price_level: price_level || '₱₱',
-      vibe: vibe || 'chill',
+      price_level: selectedPrice,
+      price_range: selectedPrice,
+      vibe: selectedVibe,
+      environment: selectedEnvironment,
       image_url: validImageUrl,
       status: status || 'PENDING',
     };
