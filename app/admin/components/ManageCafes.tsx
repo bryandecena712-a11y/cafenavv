@@ -31,8 +31,9 @@ export default function ManageCafes() {
   const [pinnedLocation, setPinnedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cafes, setCafes] = useState<any[]>([]);
-  const activeCafes = cafes.filter((c) => c.status === 'APPROVED');
-  const pendingCafes = cafes.filter((c) => c.status === 'PENDING');
+  
+  // Dedicated exclusively to active/approved cafes
+  const activeCafes = cafes.filter((c) => c.status === 'APPROVED' || !c.status);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -218,25 +219,6 @@ export default function ManageCafes() {
     }
   };
 
-  const handleApprove = async (id: number) => {
-    try {
-      const res = await fetch(`/api/admin/cafes/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' }),
-      });
-      if (res.ok) fetchCafes();
-    } catch (err) {}
-  };
-
-  const handleReject = async (id: number) => {
-    if (!confirm('Are you sure you want to reject and delete this suggestion?')) return;
-    try {
-      const res = await fetch(`/api/admin/cafes/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchCafes();
-    } catch (err) {}
-  };
-
   const handleDeleteCafe = async (id: number, cafeName: string) => {
     if (!confirm(`Are you sure you want to delete "${cafeName}"? This action cannot be undone.`)) return;
     setDeletingId(id);
@@ -262,7 +244,7 @@ export default function ManageCafes() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header Actions */}
       <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-2xl border border-white/5">
         <div>
@@ -277,51 +259,7 @@ export default function ManageCafes() {
         </button>
       </div>
 
-      {/* Pending Approvals List */}
-      {pendingCafes.length > 0 && (
-        <div className="mb-12">
-          <h3 className="text-lg font-bold text-amber-500 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            Pending Approvals ({pendingCafes.length})
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pendingCafes.map((cafe) => (
-              <div key={cafe.id} className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 relative">
-                <div className="flex gap-4 mb-4">
-                  {cafe.image_url ? (
-                    <img src={cafe.image_url} alt={cafe.name} className="w-16 h-16 rounded-xl object-cover" />
-                  ) : (
-                    <div className="w-16 h-16 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl">☕</div>
-                  )}
-                  <div>
-                    <h4 className="font-bold text-white text-lg">{cafe.name}</h4>
-                    <p className="text-sm text-zinc-400 mb-1">{cafe.location}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.price_range || cafe.price_level}</span>
-                      <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.vibe}</span>
-                      {cafe.environment && (
-                        <span className="text-xs px-2 py-1 bg-zinc-900 rounded border border-white/10">{cafe.environment}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {cafe.description && <p className="text-sm text-zinc-300 italic mb-4">"{cafe.description}"</p>}
-
-                <div className="flex gap-3 mt-4">
-                  <button onClick={() => handleApprove(cafe.id)} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2 rounded-xl text-sm transition-colors cursor-pointer">
-                    Approve
-                  </button>
-                  <button onClick={() => handleReject(cafe.id)} className="flex-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold py-2 rounded-xl text-sm transition-colors border border-rose-500/20 cursor-pointer">
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Active Cafes List */}
+      {/* Active Directory Grid */}
       <div>
         <h3 className="text-lg font-bold text-white mb-4">Active Directory</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -343,7 +281,6 @@ export default function ManageCafes() {
                   Manage Cafe
                 </Link>
 
-                {/* Edit Button */}
                 <button
                   onClick={() => handleOpenEditModal(cafe)}
                   className="bg-zinc-800 hover:bg-amber-500/20 hover:text-amber-400 border border-white/10 text-zinc-300 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
@@ -352,7 +289,6 @@ export default function ManageCafes() {
                   ✏️
                 </button>
 
-                {/* Delete Button */}
                 <button
                   onClick={() => handleDeleteCafe(cafe.id, cafe.name)}
                   disabled={deletingId === cafe.id}
@@ -407,7 +343,6 @@ export default function ManageCafes() {
                       <textarea required value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" placeholder="A cozy place to..." />
                     </div>
 
-                    {/* Aligned Matchmaker Parameters */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-zinc-400">Price Range</label>
                       <select value={priceLevel} onChange={(e) => setPriceLevel(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
