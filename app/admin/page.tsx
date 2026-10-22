@@ -18,6 +18,19 @@ function AdminContent() {
   const [selectedCafe, setSelectedCafe] = useState<any | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
 
+  // Rejection Modal State
+  const [rejectionModal, setRejectionModal] = useState<{
+    isOpen: boolean;
+    type: 'cafe' | 'product';
+    id: number | null;
+    reason: string;
+  }>({
+    isOpen: false,
+    type: 'cafe',
+    id: null,
+    reason: '',
+  });
+
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
       setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
@@ -82,49 +95,70 @@ function AdminContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCafeAction = async (id: number, action: 'approve' | 'reject') => {
+  const handleCafeApprove = async (id: number) => {
     try {
-      if (action === 'approve') {
-        const res = await fetch(`/api/admin/cafes/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'APPROVED' }),
-        });
-        if (res.ok) {
-          fetchPendingCafes();
-          setSelectedCafe(null);
-        }
-      } else {
-        const res = await fetch(`/api/admin/cafes/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          fetchPendingCafes();
-          setSelectedCafe(null);
-        }
+      const res = await fetch(`/api/admin/cafes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'APPROVED' }),
+      });
+      if (res.ok) {
+        fetchPendingCafes();
+        setSelectedCafe(null);
       }
     } catch (err) {
-      console.error('Failed to update cafe status:', err);
+      console.error('Failed to approve cafe:', err);
     }
   };
 
-  const handleProductAction = async (id: number, action: 'approve' | 'reject') => {
+  const openRejectModal = (type: 'cafe' | 'product', id: number) => {
+    setRejectionModal({
+      isOpen: true,
+      type,
+      id,
+      reason: '',
+    });
+  };
+
+  const handleConfirmRejection = async () => {
+    if (!rejectionModal.id) return;
+
     try {
-      if (action === 'approve') {
-        const res = await fetch('/api/admin/products', {
-          method: 'PUT',
+      if (rejectionModal.type === 'cafe') {
+        const res = await fetch(`/api/admin/cafes/${rejectionModal.id}`, {
+          method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status: 'APPROVED' }),
+          body: JSON.stringify({ reason: rejectionModal.reason }),
         });
-        if (res.ok) fetchPendingProducts();
+        if (res.ok) {
+          fetchPendingCafes();
+          setSelectedCafe(null);
+        }
       } else {
         const res = await fetch('/api/admin/products', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
+          body: JSON.stringify({ id: rejectionModal.id, reason: rejectionModal.reason }),
         });
         if (res.ok) fetchPendingProducts();
       }
     } catch (err) {
-      console.error('Failed to update product status:', err);
+      console.error('Failed to reject item:', err);
+    } finally {
+      setRejectionModal({ isOpen: false, type: 'cafe', id: null, reason: '' });
+    }
+  };
+
+  const handleProductApprove = async (id: number) => {
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'APPROVED' }),
+      });
+      if (res.ok) fetchPendingProducts();
+    } catch (err) {
+      console.error('Failed to approve product:', err);
     }
   };
 
@@ -188,14 +222,13 @@ function AdminContent() {
 
   const getCleanDescription = (desc: string) => {
     if (!desc) return 'No description provided.';
-    return desc.replace(/\[ENV:.*?\]/g, '').trim();
+    return desc.replace(/\[ENV:.*?\]/g, '').replace(/\[USER:.*?\]/g, '').trim();
   };
 
   const totalPending = pendingCafes.length + pendingProducts.length;
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
-      {/* 1. PENDING APPROVALS VIEW */}
       {tabParam === 'pending' && (
         <div>
           <div className="mb-8">
@@ -211,7 +244,6 @@ function AdminContent() {
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Pending Cafes Section */}
               {pendingCafes.length > 0 && (
                 <div>
                   <h2 className="text-amber-500 font-bold text-lg mb-4 flex items-center gap-2">
@@ -273,13 +305,13 @@ function AdminContent() {
 
                           <div className="grid grid-cols-2 gap-2">
                             <button
-                              onClick={() => handleCafeAction(cafe.id, 'approve')}
+                              onClick={() => handleCafeApprove(cafe.id)}
                               className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => handleCafeAction(cafe.id, 'reject')}
+                              onClick={() => openRejectModal('cafe', cafe.id)}
                               className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
                             >
                               Reject
@@ -292,7 +324,6 @@ function AdminContent() {
                 </div>
               )}
 
-              {/* Pending Products Section */}
               {pendingProducts.length > 0 && (
                 <div>
                   <h2 className="text-amber-500 font-bold text-lg mb-4 flex items-center gap-2">
@@ -331,13 +362,13 @@ function AdminContent() {
 
                         <div className="grid grid-cols-2 gap-3 mt-2">
                           <button
-                            onClick={() => handleProductAction(item.id, 'approve')}
+                            onClick={() => handleProductApprove(item.id)}
                             className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
                           >
                             Approve
                           </button>
                           <button
-                            onClick={() => handleProductAction(item.id, 'reject')}
+                            onClick={() => openRejectModal('product', item.id)}
                             className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
                           >
                             Reject
@@ -353,14 +384,8 @@ function AdminContent() {
         </div>
       )}
 
-      {/* 2. MANAGE CAFES VIEW */}
-      {tabParam === 'manage' && (
-        <div>
-          <ManageCafes />
-        </div>
-      )}
+      {tabParam === 'manage' && <ManageCafes />}
 
-      {/* 3. DISCOVERED VIEW */}
       {tabParam === 'discovered' && (
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -425,7 +450,7 @@ function AdminContent() {
         </div>
       )}
 
-      {/* VIEW CAFE DETAILS MODAL */}
+      {/* VIEW DETAILS MODAL */}
       {selectedCafe && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <div
@@ -434,7 +459,6 @@ function AdminContent() {
           />
 
           <div className="relative bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
             <div className="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
               <div>
                 <h2 className="text-xl font-bold text-white">{selectedCafe.name}</h2>
@@ -448,9 +472,7 @@ function AdminContent() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Cover Photo */}
               {selectedCafe.image_url ? (
                 <img
                   src={selectedCafe.image_url}
@@ -463,7 +485,6 @@ function AdminContent() {
                 </div>
               )}
 
-              {/* Attributes Badges */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-zinc-900 border border-white/10 p-3 rounded-xl text-center">
                   <p className="text-[10px] text-zinc-500 uppercase font-semibold">PRICE RANGE</p>
@@ -485,7 +506,6 @@ function AdminContent() {
                 </div>
               </div>
 
-              {/* Description */}
               <div className="bg-zinc-900/50 border border-white/10 p-4 rounded-xl">
                 <p className="text-xs text-zinc-400 font-semibold mb-1">Description from User:</p>
                 <p className="text-sm text-zinc-200 italic">
@@ -493,7 +513,6 @@ function AdminContent() {
                 </p>
               </div>
 
-              {/* Map Preview */}
               <div>
                 <p className="text-xs text-zinc-400 font-semibold mb-2">Pinned Location on Map:</p>
                 <div className="w-full h-[220px] rounded-xl overflow-hidden border border-white/10 relative">
@@ -522,7 +541,6 @@ function AdminContent() {
               </div>
             </div>
 
-            {/* Modal Footer Actions */}
             <div className="p-6 border-t border-white/10 bg-zinc-900/50 flex justify-between items-center gap-3">
               <button
                 onClick={() => setSelectedCafe(null)}
@@ -532,18 +550,58 @@ function AdminContent() {
               </button>
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleCafeAction(selectedCafe.id, 'reject')}
+                  onClick={() => openRejectModal('cafe', selectedCafe.id)}
                   className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
                 >
                   Reject
                 </button>
                 <button
-                  onClick={() => handleCafeAction(selectedCafe.id, 'approve')}
+                  onClick={() => handleCafeApprove(selectedCafe.id)}
                   className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
                 >
                   Approve & Publish
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECTION REASON PROMPT MODAL */}
+      {rejectionModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setRejectionModal({ isOpen: false, type: 'cafe', id: null, reason: '' })}
+          />
+
+          <div className="relative bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-white mb-1">State Rejection Reason</h3>
+            <p className="text-xs text-zinc-400 mb-4">
+              Please state why this suggestion is being rejected. This explanation will be sent directly to the user's notifications.
+            </p>
+
+            <textarea
+              required
+              value={rejectionModal.reason}
+              onChange={(e) => setRejectionModal({ ...rejectionModal, reason: e.target.value })}
+              placeholder="e.g., Duplicate entry, inaccurate location, or insufficient details."
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-amber-500 h-28 resize-none mb-6"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setRejectionModal({ isOpen: false, type: 'cafe', id: null, reason: '' })}
+                className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRejection}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition cursor-pointer shadow-lg shadow-rose-600/20"
+              >
+                Confirm Rejection
+              </button>
             </div>
           </div>
         </div>

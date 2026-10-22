@@ -17,7 +17,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
 
-    // Retrieve existing cafe details before updating so we can read submitter tags
     const existingCafe = await prisma.cafes.findUnique({
       where: { id },
     });
@@ -54,7 +53,6 @@ export async function PATCH(
     if (price_level !== undefined) updateData.price_level = price_level;
     if (vibe !== undefined) updateData.vibe = vibe;
 
-    // Convert latitude and longitude into location string
     if (lat !== undefined && lng !== undefined && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))) {
       updateData.location = `${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`;
     } else if (location !== undefined) {
@@ -89,7 +87,6 @@ export async function PATCH(
       data: updateData,
     });
 
-    // Check if status changed to APPROVED and create notification for submitting user
     if (status === 'APPROVED') {
       let targetUserId: number | null = null;
       if (existingCafe.description && existingCafe.description.includes('[USER:')) {
@@ -131,6 +128,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid cafe ID' }, { status: 400 });
     }
 
+    const body = await request.json().catch(() => ({}));
+    const reasonText = body?.reason?.trim() ? `Reason: ${body.reason.trim()}` : 'was reviewed and could not be published at this time.';
+
     const existingCafe = await prisma.cafes.findUnique({
       where: { id },
     });
@@ -149,7 +149,7 @@ export async function DELETE(
           data: {
             user_id: targetUserId,
             title: 'Cafe Suggestion Update',
-            message: `Your suggested cafe "${existingCafe.name}" was reviewed and could not be published at this time.`,
+            message: `Your suggested cafe "${existingCafe.name}" ${reasonText}`,
             type: 'REJECTION',
             is_read: false,
           },
