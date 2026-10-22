@@ -22,7 +22,21 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(cafes);
+    // Clean description tags before returning to client cards
+    const cleanedCafes = cafes.map((cafe) => {
+      let cleanDesc = cafe.description || 'No description provided';
+      cleanDesc = cleanDesc
+        .replace(/\[ENV:.*?\]/g, '')
+        .replace(/\[USER:.*?\]/g, '')
+        .trim();
+
+      return {
+        ...cafe,
+        description: cleanDesc,
+      };
+    });
+
+    return NextResponse.json(cleanedCafes);
   } catch (error: any) {
     console.error('Failed to fetch cafes:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch cafes' }, { status: 500 });
@@ -69,7 +83,6 @@ export async function POST(request: Request) {
     const submitterId = user_id || userId;
 
     const cleanDesc = description?.trim() || 'No description provided';
-    // Append both environment and user_id tags in description safely
     const finalDescription = `${cleanDesc} [ENV:${selectedEnv}]${submitterId ? ` [USER:${submitterId}]` : ''}`;
 
     const dataPayload: any = {

@@ -11,6 +11,14 @@ export const revalidate = 0;
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+function cleanDescription(text?: string | null): string {
+  if (!text) return 'No description provided.';
+  return text
+    .replace(/\[ENV:.*?\]/g, '')
+    .replace(/\[USER:.*?\]/g, '')
+    .trim();
+}
+
 function formatTime(timeStr?: string | null): string {
   if (!timeStr || typeof timeStr !== 'string') return '';
   const parts = timeStr.split(':').map(Number);
@@ -264,7 +272,7 @@ export default async function CafeDetailsPage(props: any) {
             {cafe.name}
           </h1>
           <p className="text-zinc-300 max-w-2xl text-lg drop-shadow">
-            {cafe.description}
+            {cleanDescription(cafe.description)}
           </p>
         </div>
       </div>
@@ -300,7 +308,7 @@ export default async function CafeDetailsPage(props: any) {
                 <div className="p-5 flex flex-col flex-1">
                   <h3 className="font-bold text-lg text-white mb-2">{product.name}</h3>
                   <p className="text-zinc-400 text-sm flex-1 leading-relaxed">
-                    {product.description}
+                    {cleanDescription(product.description)}
                   </p>
                 </div>
               </div>
@@ -411,7 +419,7 @@ export default async function CafeDetailsPage(props: any) {
                     )}
 
                     {/* Review Description */}
-                    <p className="text-zinc-300 leading-relaxed">{reviewText}</p>
+                    <p className="text-zinc-300 leading-relaxed">{cleanDescription(reviewText)}</p>
                   </div>
                 );
               })
