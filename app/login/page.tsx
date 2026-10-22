@@ -31,13 +31,24 @@ export default function LoginPage() {
         const data = await response.json();
 
         if (response.ok) {
+          const isAdminUser =
+            data.user.isAdmin ||
+            data.user.role === 'ADMIN' ||
+            data.user.email.toLowerCase() === 'admin@admin.com';
+
           login({
             id: data.user.id,
             name: data.user.username,
             email: data.user.email,
-            isAdmin: data.user.email.toLowerCase() === 'admin@admin.com'
+            isAdmin: isAdminUser,
           });
-          router.push('/');
+
+          // Redirect admin users straight to admin dashboard
+          if (isAdminUser) {
+            router.push('/admin');
+          } else {
+            router.push('/');
+          }
         } else {
           setError(data.error || 'Login failed');
         }
