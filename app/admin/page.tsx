@@ -16,6 +16,7 @@ function AdminContent() {
   const [discoveredCafes, setDiscoveredCafes] = useState<any[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [selectedCafe, setSelectedCafe] = useState<any | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
 
   // Rejection Modal State
@@ -140,7 +141,10 @@ function AdminContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: rejectionModal.id, reason: rejectionModal.reason }),
         });
-        if (res.ok) fetchPendingProducts();
+        if (res.ok) {
+          fetchPendingProducts();
+          setSelectedProduct(null);
+        }
       }
     } catch (err) {
       console.error('Failed to reject item:', err);
@@ -156,7 +160,10 @@ function AdminContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: 'APPROVED' }),
       });
-      if (res.ok) fetchPendingProducts();
+      if (res.ok) {
+        fetchPendingProducts();
+        setSelectedProduct(null);
+      }
     } catch (err) {
       console.error('Failed to approve product:', err);
     }
@@ -244,6 +251,7 @@ function AdminContent() {
             </div>
           ) : (
             <div className="space-y-8">
+              {/* Pending Cafe Submissions */}
               {pendingCafes.length > 0 && (
                 <div>
                   <h2 className="text-amber-500 font-bold text-lg mb-4 flex items-center gap-2">
@@ -324,6 +332,7 @@ function AdminContent() {
                 </div>
               )}
 
+              {/* Pending Menu Item Suggestions */}
               {pendingProducts.length > 0 && (
                 <div>
                   <h2 className="text-amber-500 font-bold text-lg mb-4 flex items-center gap-2">
@@ -356,23 +365,34 @@ function AdminContent() {
                           </div>
 
                           {item.description && (
-                            <p className="text-neutral-400 text-xs italic mb-4">"{item.description}"</p>
+                            <p className="text-neutral-400 text-xs italic mb-4 line-clamp-2">
+                              "{getCleanDescription(item.description)}"
+                            </p>
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 mt-2">
+                        <div className="space-y-2 mt-2">
                           <button
-                            onClick={() => handleProductApprove(item.id)}
-                            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
+                            onClick={() => setSelectedProduct(item)}
+                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-white/10 font-semibold py-2 rounded-xl text-xs transition cursor-pointer flex items-center justify-center"
                           >
-                            Approve
+                            View Details
                           </button>
-                          <button
-                            onClick={() => openRejectModal('product', item.id)}
-                            className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
-                          >
-                            Reject
-                          </button>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => handleProductApprove(item.id)}
+                              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-xl text-sm transition cursor-pointer border-none"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => openRejectModal('product', item.id)}
+                              className="bg-[#2d1b1b] hover:bg-[#3d2020] text-red-400 font-semibold py-2 rounded-xl text-sm border border-red-900/30 transition cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -450,7 +470,7 @@ function AdminContent() {
         </div>
       )}
 
-      {/* VIEW DETAILS MODAL */}
+      {/* VIEW CAFE DETAILS MODAL */}
       {selectedCafe && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <div
@@ -557,6 +577,84 @@ function AdminContent() {
                 </button>
                 <button
                   onClick={() => handleCafeApprove(selectedCafe.id)}
+                  className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  Approve & Publish
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW MENU ITEM DETAILS MODAL */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setSelectedProduct(null)}
+          />
+
+          <div className="relative bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
+              <div>
+                <h2 className="text-xl font-bold text-white">{selectedProduct.name}</h2>
+                <p className="text-xs text-amber-500 font-medium mt-0.5">
+                  Suggested for <span className="font-semibold text-amber-400">{selectedProduct.cafe?.name || 'Unknown Cafe'}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {selectedProduct.image_url ? (
+                <img
+                  src={selectedProduct.image_url}
+                  alt={selectedProduct.name}
+                  className="w-full h-52 rounded-2xl object-cover border border-white/10"
+                />
+              ) : (
+                <div className="w-full h-40 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center text-zinc-600 font-medium text-sm">
+                  No Image Uploaded
+                </div>
+              )}
+
+              <div className="bg-zinc-900 border border-white/10 p-4 rounded-xl flex items-center justify-between">
+                <span className="text-xs text-zinc-400 font-semibold uppercase">Suggested Price</span>
+                <span className="bg-[#241e19] text-amber-500 font-bold text-sm px-3 py-1 rounded-lg border border-[#362a20]">
+                  ₱{selectedProduct.price || 0}
+                </span>
+              </div>
+
+              <div className="bg-zinc-900/50 border border-white/10 p-4 rounded-xl">
+                <p className="text-xs text-zinc-400 font-semibold mb-1">Item Description:</p>
+                <p className="text-sm text-zinc-200 italic">
+                  "{getCleanDescription(selectedProduct.description)}"
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-white/10 bg-zinc-900/50 flex justify-between items-center gap-3">
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="px-5 py-2.5 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => openRejectModal('product', selectedProduct.id)}
+                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => handleProductApprove(selectedProduct.id)}
                   className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
                 >
                   Approve & Publish
