@@ -3,10 +3,15 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle } from '@phosphor-icons/react';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function Offers() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+
   const [step, setStep] = useState(0);
   const [selections, setSelections] = useState<Record<number, string>>({});
 
@@ -61,6 +66,34 @@ export default function Offers() {
       ]
     }
   ];
+
+  // Auth Guard: Restrict access if user is not logged in
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center relative">
+        <div className="absolute top-6 left-6 z-20">
+          <Link
+            href="/"
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-xl"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+
+        <span className="text-4xl mb-4">🔒</span>
+        <h1 className="text-3xl font-bold mb-2">Login Required</h1>
+        <p className="text-zinc-400 mb-6 max-w-md">
+          You must be logged in to take the matchmaker survey.
+        </p>
+        <button
+          onClick={() => router.push('/login')}
+          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-8 py-3 rounded-full transition-all cursor-pointer"
+        >
+          Go to Login
+        </button>
+      </main>
+    );
+  }
 
   if (step === 0) {
     return (
