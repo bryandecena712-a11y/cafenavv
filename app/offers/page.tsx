@@ -45,19 +45,19 @@ export default function Offers() {
       title: "Which price fits you?",
       category: "PRICE RANGE",
       options: [
-        { title: "₱100-300", value: "₱100-300", desc: "Affordable Price" },
-        { title: "₱150-300", value: "₱150-300", desc: "Standard Price" },
-        { title: "₱200-500", value: "₱200-500", desc: "High-end Experience" },
-        { title: "Any Price", value: "Any Price", desc: "Show all shops regardless of price" }
+        { title: "₱100-300", value: "budget", desc: "Affordable Price" },
+        { title: "₱150-300", value: "moderate", desc: "Standard Price" },
+        { title: "₱200-500", value: "premium", desc: "High-end Experience" },
+        { title: "Any Price", value: "all", desc: "Show all shops regardless of price" }
       ]
     },
     {
       title: "What ambiance setting do you prefer?",
       category: "CAFE ENVIRONMENT",
       options: [
-        { title: "Indoor Cafe", value: "Indoor Cafe", desc: "Air-conditioned, cozy interior seating" },
-        { title: "Outdoor Cafe", value: "Outdoor Cafe", desc: "Al-fresco, open air, garden ambiance" },
-        { title: "Both Indoor & Outdoor", value: "Both Indoor & Outdoor", desc: "Versatile space offering both inside and outside seating" }
+        { title: "Indoor Cafe", value: "indoor", desc: "Air-conditioned, cozy interior seating" },
+        { title: "Outdoor Cafe", value: "outdoor", desc: "Al-fresco, open air, garden ambiance" },
+        { title: "Both Indoor & Outdoor", value: "both", desc: "Versatile space offering both inside and outside seating" }
       ]
     }
   ];
@@ -188,174 +188,71 @@ export default function Offers() {
 
   // Results View
   if (step === quizData.length + 1) {
-    return <ResultsView selections={selections} onRestart={() => setStep(1)} />;
+    return <ResultsView selections={selections} />;
   }
 
   return null;
 }
 
-function ResultsView({ selections, onRestart }: { selections: Record<number, string>; onRestart: () => void }) {
+function ResultsView({ selections }: { selections: Record<number, string> }) {
   const [cafes, setCafes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Helper to resolve environment setting from cafe properties or embedded tags
-  const getCafeEnvironment = (cafe: any): string => {
-    if (cafe.environment) return cafe.environment.trim();
-    if (cafe.description && cafe.description.includes('[ENV:')) {
-      const match = cafe.description.match(/\[ENV:(.*?)\]/);
-      if (match && match[1]) return match[1].trim();
-    }
-    return 'Both Indoor & Outdoor';
-  };
-
-  // Helper to extract clean description
-  const getCleanDescription = (desc?: string): string => {
-    if (!desc) return '';
-    return desc.replace(/\[ENV:.*?\]/g, '').replace(/\[USER:.*?\]/g, '').trim();
-  };
-
-  // Helper to strictly evaluate Coffee Type options
-  const matchesCoffeeType = (cafe: any, userCoffeeType: string): boolean => {
-    if (!userCoffeeType) return true;
-    const lowerType = userCoffeeType.toLowerCase();
-
-    // Direct check on cafe offerings if available
-    if (cafe.offerings) {
-      const offeringsStr = Array.isArray(cafe.offerings) 
-        ? cafe.offerings.join(' ').toLowerCase() 
-        : String(cafe.offerings).toLowerCase();
-
-      if (lowerType.includes('not coffee')) {
-        if (offeringsStr.includes('tea') || offeringsStr.includes('matcha') || offeringsStr.includes('non-coffee')) return true;
-      }
-    }
-
-    // Check products array if available
-    if (Array.isArray(cafe.products) && cafe.products.length > 0) {
-      return cafe.products.some((p: any) => {
-        const pName = (p.name || '').toLowerCase();
-        const pDesc = (p.description || '').toLowerCase();
-
-        if (lowerType.includes('not coffee')) {
-          return pName.includes('matcha') || pName.includes('tea') || pName.includes('chocolate') || pDesc.includes('non-coffee');
-        }
-        if (lowerType.includes('espresso')) {
-          return pName.includes('espresso') || pName.includes('americano') || pName.includes('shot');
-        }
-        if (lowerType.includes('milk')) {
-          return pName.includes('latte') || pName.includes('cappuccino') || pName.includes('flat white') || pName.includes('milk');
-        }
-        if (lowerType.includes('pour over')) {
-          return pName.includes('pour over') || pName.includes('filter') || pName.includes('v60') || pName.includes('drip');
-        }
-        return true;
-      });
-    }
-
-    return true; // Default match if product inventory details aren't provided
-  };
-
   useEffect(() => {
-    const userCoffeeType = selections[1] || '';
-    const userNeed = selections[2] || '';
-    const userPrice = selections[3] || '';
-    const userEnv = selections[4] || '';
+    const coffeeType = selections[1] || '';
+    const needs = selections[2] || '';
+    const price = selections[3] || '';
+    const environment = selections[4] || '';
 
-    fetch('/api/cafes')
+    const queryParams = new URLSearchParams({
+      type: coffeeType,
+      needs: needs,
+      price: price,
+      environment: environment,
+    }).toString();
+
+    const cachedCafes = () => {
+      try {
+        const stored = localStorage.getItem('cafenav_cached_cafes');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    fetch(`/api/cafes?${queryParams}`)
       .then((res) => res.json())
       .then((data) => {
-        const allCafes = Array.isArray(data) ? data : [];
-
-        // Apply STRICT filtering on all 4 criteria
-        const filtered = allCafes.filter((cafe) => {
-          // 1. Strict Environment Match
-          const cafeEnv = getCafeEnvironment(cafe).toLowerCase();
-          const targetEnv = userEnv.toLowerCase();
-
-          if (targetEnv && targetEnv !== 'both indoor & outdoor') {
-            if (targetEnv === 'indoor cafe' && !cafeEnv.includes('indoor')) return false;
-            if (targetEnv === 'outdoor cafe' && !cafeEnv.includes('outdoor')) return false;
-          }
-
-          // 2. Strict Price Range Match
-          if (userPrice && userPrice !== 'Any Price') {
-            const cafePrice = (cafe.price_level || cafe.price_range || '').trim();
-            if (cafePrice && cafePrice !== 'Any Price' && cafePrice !== userPrice) {
-              return false;
-            }
-          }
-
-          // 3. Strict Need / Vibe Match
-          if (userNeed) {
-            const cafeVibe = (cafe.vibe || '').toLowerCase();
-            const targetNeed = userNeed.toLowerCase();
-            if (cafeVibe && !cafeVibe.includes(targetNeed) && !targetNeed.includes(cafeVibe)) {
-              return false;
-            }
-          }
-
-          // 4. Coffee Type Match
-          if (!matchesCoffeeType(cafe, userCoffeeType)) {
-            return false;
-          }
-
-          return true;
-        });
-
-        setCafes(filtered);
+        const freshCafes = Array.isArray(data) ? data : [];
+        setCafes(freshCafes);
+        if (freshCafes.length) localStorage.setItem('cafenav_cached_cafes', JSON.stringify(freshCafes));
         setLoading(false);
       })
-      .catch((err) => {
-        console.error('Failed to fetch matched cafes:', err);
-        setCafes([]);
+      .catch(() => {
+        setCafes(cachedCafes());
         setLoading(false);
       });
   }, [selections]);
 
   return (
     <main className="flex-1 flex flex-col bg-zinc-950 text-stone-50 min-h-screen">
-      <div className="max-w-6xl mx-auto px-6 py-16 w-full">
+      <div className="max-w-6xl mx-auto px-6 py-20 w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="mb-16 max-w-2xl"
         >
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">Your personalized matches</h1>
-            {!loading && (
-              <div className="flex items-center gap-2 text-amber-500 font-medium text-sm">
-                <CheckCircle size={18} weight="fill" />
-                <span>
-                  {cafes.length} coffee {cafes.length === 1 ? 'shop' : 'shops'} perfectly matching all your preferences.
-                </span>
-              </div>
-            )}
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Your personalized matches</h1>
+          <div className="flex items-center gap-3 text-amber-500 font-medium">
+            <CheckCircle size={20} weight="fill" />
+            <span>
+              {cafes.length} coffee {cafes.length === 1 ? 'shop' : 'shops'} that perfectly matches your preferences.
+            </span>
           </div>
-
-          <button
-            onClick={onRestart}
-            className="bg-zinc-900 border border-white/10 hover:border-amber-500 text-zinc-300 hover:text-white px-5 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer self-start sm:self-auto"
-          >
-            🔄 Retake Survey
-          </button>
         </motion.div>
 
         {loading ? (
-          <div className="text-zinc-500 animate-pulse text-center py-20">Analyzing matches...</div>
-        ) : cafes.length === 0 ? (
-          <div className="bg-zinc-900/50 border border-white/5 rounded-3xl p-16 text-center">
-            <span className="text-5xl mb-4 block">☕</span>
-            <h3 className="text-xl font-bold text-white mb-2">No Exact Matches Found</h3>
-            <p className="text-zinc-400 max-w-md mx-auto text-sm mb-6 leading-relaxed">
-              No cafes currently match all 4 of your selected criteria perfectly. Try retaking the survey with broader selections like "Any Price" or "Both Indoor & Outdoor".
-            </p>
-            <button
-              onClick={onRestart}
-              className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-3 rounded-full text-sm transition cursor-pointer"
-            >
-              Retake Survey
-            </button>
-          </div>
+          <div className="text-zinc-500 animate-pulse">Analyzing matches...</div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
             {cafes.map((cafe, i) => (
@@ -363,52 +260,24 @@ function ResultsView({ selections, onRestart }: { selections: Record<number, str
                 key={cafe.id || i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative bg-zinc-900 border border-white/10 rounded-3xl overflow-hidden flex flex-col justify-between"
+                transition={{ delay: i * 0.15 }}
+                className="group relative bg-zinc-900 rounded-3xl overflow-hidden"
               >
-                <div>
-                  <div className="relative aspect-[4/3] w-full bg-zinc-950">
-                    <Image
-                      src={cafe.image_url || '/images/home-bg.jpg'}
-                      alt={cafe.name || 'Coffee Shop'}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
-                    <div className="absolute top-3 left-3 bg-amber-500 text-zinc-950 font-black text-[10px] uppercase px-3 py-1 rounded-full shadow">
-                      MATCH {i + 1}
-                    </div>
+                <div className="relative aspect-[4/5] w-full">
+                  <Image src={cafe.image_url || '/images/home-bg.jpg'} alt={cafe.name || 'Coffee Shop'} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+                  
+                  <div className="absolute bottom-0 left-0 w-full p-6">
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-500 mb-2 block">Match {i + 1}</span>
+                    <h3 className="text-2xl font-bold mb-2">{cafe.name}</h3>
+                    <p className="text-zinc-300 text-sm mb-6 leading-relaxed line-clamp-1">{cafe.address}</p>
+                    <Link
+                      href={`/cafe/${cafe.id}`}
+                      className="block w-full text-center bg-white text-zinc-950 font-medium py-3 rounded-xl hover:bg-zinc-200 transition-colors"
+                    >
+                      View Details
+                    </Link>
                   </div>
-
-                  <div className="p-6">
-                    <h3 className="text-2xl font-bold text-white mb-2">{cafe.name}</h3>
-                    {cafe.description && (
-                      <p className="text-zinc-400 text-xs mb-4 line-clamp-2 leading-relaxed">
-                        "{getCleanDescription(cafe.description)}"
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <span className="text-[10px] font-bold px-2.5 py-1 bg-zinc-800 border border-white/10 text-amber-400 rounded-lg">
-                        {cafe.price_level || cafe.price_range || '₱100-300'}
-                      </span>
-                      <span className="text-[10px] font-bold px-2.5 py-1 bg-zinc-800 border border-white/10 text-amber-400 rounded-lg">
-                        {cafe.vibe || 'Social Catch-up'}
-                      </span>
-                      <span className="text-[10px] font-bold px-2.5 py-1 bg-zinc-800 border border-white/10 text-amber-400 rounded-lg">
-                        {getCafeEnvironment(cafe)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 pt-0">
-                  <Link
-                    href={`/cafe/${cafe.id}`}
-                    className="block w-full text-center bg-white text-zinc-950 font-medium py-3 rounded-xl hover:bg-amber-500 transition-colors"
-                  >
-                    View Details
-                  </Link>
                 </div>
               </motion.div>
             ))}
