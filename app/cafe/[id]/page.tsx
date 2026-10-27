@@ -5,6 +5,7 @@ import BookmarkButton from '@/app/components/BookmarkButton';
 import ShareButton from '@/app/components/ShareButton';
 import SuggestProductForm from './SuggestProductForm';
 import DeleteReviewButton from './DeleteReviewButton';
+import MenuWithScroll from './MenuWithScroll';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -283,45 +284,9 @@ export default async function CafeDetailsPage(props: any) {
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🍽️</span>
           Menu Products
         </h2>
-        
-        {cafe.products && cafe.products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cafe.products.map((product: any) => (
-              <div 
-                key={product.id} 
-                className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden hover:border-amber-500/50 transition-colors flex flex-col group shadow-lg"
-              >
-                <div className="w-full h-48 bg-zinc-800 relative overflow-hidden">
-                  {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl">☕</div>
-                  )}
-                  <div className="absolute top-3 right-3 bg-zinc-950/90 backdrop-blur text-amber-400 font-bold px-3 py-1.5 rounded-full text-sm border border-amber-500/20 shadow-md">
-                    ₱{product.price}
-                  </div>
-                </div>
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="font-bold text-lg text-white mb-2">{product.name}</h3>
-                  <p className="text-zinc-400 text-sm flex-1 leading-relaxed">
-                    {cleanDescription(product.description)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-zinc-900/50 border border-white/5 rounded-3xl">
-            <span className="text-4xl mb-4 block">📝</span>
-            <h3 className="text-xl font-medium text-white mb-2">No menu available</h3>
-            <p className="text-zinc-500">This cafe hasn't added any products to their menu yet.</p>
-          </div>
-        )}
-        
+
+        <MenuWithScroll products={cafe.products || []} />
+
         <SuggestProductForm cafeId={cafe.id} />
       </div>
 

@@ -229,6 +229,7 @@ export default function Offers() {
 
 function ResultsView({ selections }: { selections: Record<number, string> }) {
   const [cafes, setCafes] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
