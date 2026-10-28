@@ -16,16 +16,16 @@ function AdminSidebarContent() {
   const isAuditActive = pathname.startsWith('/admin/audit');
 
   return (
-    <aside className="w-64 border-r border-white/5 bg-zinc-950 p-6 flex flex-col gap-6 shrink-0 min-h-screen">
+    <aside className="w-full md:w-64 border-b md:border-r border-white/5 bg-zinc-950 p-6 flex flex-col gap-6 shrink-0 md:min-h-screen">
       <div>
         <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
           ADMIN PANEL
         </h2>
-        <nav className="flex flex-col gap-1.5">
+        <nav className="flex flex-col sm:flex-row md:flex-col gap-1.5 overflow-x-auto scrollbar-hide">
           {/* 1. Pending Approvals */}
           <Link
             href="/admin?tab=pending"
-            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between ${
+            className={`whitespace-nowrap px-4 py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between ${
               isPendingActive
                 ? 'bg-amber-500 text-zinc-950 font-bold'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
@@ -37,7 +37,7 @@ function AdminSidebarContent() {
           {/* 2. Manage Cafes */}
           <Link
             href="/admin?tab=manage"
-            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+            className={`whitespace-nowrap px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
               isManageActive
                 ? 'bg-amber-500 text-zinc-950 font-bold'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
@@ -49,7 +49,7 @@ function AdminSidebarContent() {
           {/* 3. Discovered */}
           <Link
             href="/admin?tab=discovered"
-            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+            className={`whitespace-nowrap px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
               isDiscoveredActive
                 ? 'bg-amber-500 text-zinc-950 font-bold'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
@@ -61,7 +61,7 @@ function AdminSidebarContent() {
           {/* 4. Audit Log */}
           <Link
             href="/admin/audit"
-            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+            className={`whitespace-nowrap px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
               isAuditActive
                 ? 'bg-amber-500 text-zinc-950 font-bold'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
@@ -77,14 +77,14 @@ function AdminSidebarContent() {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-zinc-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-zinc-950 text-white">
       {/* Sidebar wrapped in Suspense boundary for searchParams */}
-      <Suspense fallback={<div className="w-64 bg-zinc-950 border-r border-white/5 p-6" />}>
+      <Suspense fallback={<div className="w-full md:w-64 bg-zinc-950 border-b md:border-r border-white/5 p-6" />}>
         <AdminSidebarContent />
       </Suspense>
 
       {/* Main Content View */}
-      <main className="flex-1 p-8 overflow-y-auto">{children}</main>
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto">{children}</main>
     </div>
   );
 }
