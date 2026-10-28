@@ -3,8 +3,14 @@ import { prisma } from '@/app/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const coffeeType = searchParams.get('type');
+    const needs = searchParams.get('needs');
+    const priceRange = searchParams.get('price');
+    const environment = searchParams.get('environment');
+
     const cafes = await prisma.cafes.findMany({
       where: {
         status: 'APPROVED',
@@ -22,8 +28,56 @@ export async function GET() {
       },
     });
 
+    let filteredCafes = cafes;
+
+    // Apply basic matching if filters are provided
+    if (needs || priceRange || environment) {
+      filteredCafes = cafes.filter((cafe) => {
+        let matchScore = 0;
+
+        // Vibe/Needs matching (using cafe.vibe)
+        if (needs && cafe.vibe?.toLowerCase().includes(needs.toLowerCase())) {
+          matchScore += 2;
+        }
+
+                // Price matching
+        let priceMatch = false;
+        if (priceRange === 'budget') priceMatch = cafe.price_level?.includes('100') || cafe.price_level?.includes('200') || false;
+        else if (priceRange === 'moderate') priceMatch = cafe.price_level?.includes('150') || false;
+        else if (priceRange === 'premium') priceMatch = cafe.price_level?.includes('500') || false;
+        else if (priceRange && cafe.price_level?.toLowerCase().includes(priceRange.toLowerCase())) priceMatch = true;
+        
+        if (priceMatch) {
+            matchScore += 1;
+        }
+
+        // Environment matching (using description tags)
+        let envMatch = false;
+        if (environment === 'indoor') envMatch = cafe.description?.toLowerCase().includes('indoor') || false;
+        else if (environment === 'outdoor') envMatch = cafe.description?.toLowerCase().includes('outdoor') || false;
+        else if (environment === 'both') envMatch = cafe.description?.toLowerCase().includes('indoor') && cafe.description?.toLowerCase().includes('outdoor') || false;
+        else if (environment && cafe.description?.toLowerCase().includes(environment.toLowerCase())) envMatch = true;
+
+        if (envMatch) {
+            matchScore += 2;
+        }
+
+        // Only return if it meets at least some criteria if filters were provided
+        return matchScore > 0;
+      });
+      
+      // Sort by best match (optional, simple logic)
+      filteredCafes.sort((a, b) => {
+          const scoreA = (needs && a.vibe?.toLowerCase().includes(needs.toLowerCase()) ? 2 : 0) + 
+                         (priceRange && a.price_level?.toLowerCase().includes(priceRange.toLowerCase()) ? 1 : 0);
+          const scoreB = (needs && b.vibe?.toLowerCase().includes(needs.toLowerCase()) ? 2 : 0) + 
+                         (priceRange && b.price_level?.toLowerCase().includes(priceRange.toLowerCase()) ? 1 : 0);
+          return scoreB - scoreA;
+      });
+    }
+
     // Clean description tags before returning to client cards
-    const cleanedCafes = cafes.map((cafe) => {
+    const cleanedCafes = filteredCafes.map((cafe) => {
       let cleanDesc = cafe.description || 'No description provided';
       cleanDesc = cleanDesc
         .replace(/\[ENV:.*?\]/g, '')
