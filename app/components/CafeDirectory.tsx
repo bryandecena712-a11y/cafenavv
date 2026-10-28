@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import EmptyState from './EmptyState';
 import { loadCachedCafes, loadDirectoryPreferences, saveCachedCafes, saveDirectoryPreferences } from '@/app/lib/offlineStorage';
 
@@ -37,6 +38,38 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
   const preferences = loadDirectoryPreferences();
   const [cafes, setCafes] = useState<any[]>(initialCafes);
   const [searchQuery, setSearchQuery] = useState(preferences?.searchQuery || '');
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollButtons = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    setCanScrollLeft(container.scrollLeft > 0);
+    setCanScrollRight(
+      container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+    );
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+    const container = scrollRef.current;
+    if (!container) return;
+    const handleResize = () => updateScrollButtons();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const scrollDirectory = (direction: 'left' | 'right') => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const scrollAmount = container.clientWidth * 0.8;
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
 
   useEffect(() => {
     // Priority 1: If initial server props exist, update state and cache them
@@ -124,48 +157,85 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-        {filteredCafes.length === 0 && <EmptyState />}
+      <div className="relative group">
+        {/* Left Arrow */}
+        <button
+          onClick={() => scrollDirectory('left')}
+          disabled={!canScrollLeft}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-zinc-950/90 backdrop-blur border border-white/10 flex items-center justify-center text-white/70 hover:text-amber-400 hover:border-amber-500/50 transition-all shadow-lg ${
+            !canScrollLeft ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'
+          }`}
+          aria-label="Scroll cafes left"
+        >
+          <CaretLeft weight="bold" className="w-6 h-6" />
+        </button>
 
-        {filteredCafes.map((cafe) => (
-          <div
-            key={cafe.id}
-            className="group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-2xl sm:rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500"
-          >
-            <div className="relative w-full aspect-[4/3] bg-zinc-950 overflow-hidden">
-              <Image
-                src={cafe.image_url || '/images/brewco.jpg'}
-                alt={cafe.name || 'Cafe'}
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-90" />
+        {/* Scrollable Cafe Grid (2 rows) */}
+        <div
+          ref={scrollRef}
+          onScroll={updateScrollButtons}
+          className="overflow-x-auto scrollbar-hide py-4 px-2"
+        >
+          <div className="flex flex-nowrap gap-6">
+            {filteredCafes.length === 0 ? (
+              <div className="w-full flex justify-center">
+                <EmptyState />
+              </div>
+            ) : (
+              filteredCafes.map((cafe) => (
+                <div
+                  key={cafe.id}
+                  className="w-[320px] sm:w-[380px] shrink-0 group relative flex flex-col bg-zinc-900/30 backdrop-blur-md rounded-2xl sm:rounded-[24px] overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-500"
+                >
+                  <div className="relative w-full aspect-[4/3] bg-zinc-950 overflow-hidden">
+                    <Image
+                      src={cafe.image_url || '/images/brewco.jpg'}
+                      alt={cafe.name || 'Cafe'}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-90" />
 
-              {/* Only show location badge if it is NOT raw coordinates */}
-              {cafe.location && !isRawCoordinates(cafe.location) && (
-                <div className="absolute top-5 left-5 flex gap-2 flex-wrap max-w-[80%]">
-                  <span className="bg-zinc-950/75 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-200 border border-white/10 truncate">
-                    📍 {cafe.location}
-                  </span>
+                    {/* Only show location badge if it is NOT raw coordinates */}
+                    {cafe.location && !isRawCoordinates(cafe.location) && (
+                      <div className="absolute top-5 left-5 flex gap-2 flex-wrap max-w-[80%]">
+                        <span className="bg-zinc-950/75 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-200 border border-white/10 truncate">
+                          📍 {cafe.location}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-5 sm:p-8 flex flex-col flex-1 relative z-10 -mt-10">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-zinc-100 mb-2">{cafe.name}</h3>
+                    <p className="text-zinc-400 text-sm leading-relaxed mb-6 sm:mb-8 flex-1 line-clamp-3">
+                      {getCleanDescription(cafe.description)}
+                    </p>
+
+                    <Link
+                      href={`/cafe/${cafe.id}`}
+                      className="w-full bg-zinc-800/80 text-zinc-200 font-medium py-3.5 rounded-xl border border-zinc-700/50 hover:bg-amber-500 hover:text-zinc-950 hover:border-amber-500 active:scale-[0.98] transition-all text-center block"
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <div className="p-5 sm:p-8 flex flex-col flex-1 relative z-10 -mt-10">
-              <h3 className="text-xl sm:text-2xl font-semibold text-zinc-100 mb-2">{cafe.name}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed mb-6 sm:mb-8 flex-1 line-clamp-3">
-                {getCleanDescription(cafe.description)}
-              </p>
-
-              <Link
-                href={`/cafe/${cafe.id}`}
-                className="w-full bg-zinc-800/80 text-zinc-200 font-medium py-3.5 rounded-xl border border-zinc-700/50 hover:bg-amber-500 hover:text-zinc-950 hover:border-amber-500 active:scale-[0.98] transition-all text-center block"
-              >
-                View Details
-              </Link>
-            </div>
+              ))
+            )}
           </div>
-        ))}
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => scrollDirectory('right')}
+          disabled={!canScrollRight}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-zinc-950/90 backdrop-blur border border-white/10 flex items-center justify-center text-white/70 hover:text-amber-400 hover:border-amber-500/50 transition-all shadow-lg ${
+            !canScrollRight ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'
+          }`}
+          aria-label="Scroll cafes right"
+        >
+          <CaretRight weight="bold" className="w-6 h-6" />
+        </button>
       </div>
 
       {/* Interactive Cafe Map Header & Instructions */}
