@@ -344,7 +344,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         return;
       }
       const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
-      const speedKmh = currentMode === 'walk' ? 5 : currentMode === 'two-wheeler' : 30;
+      const speedKmh = currentMode === 'walk' ? 5 : currentMode === 'two-wheeler' ? 15 : 30;
       const estimatedMinutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60));
       setRouteInfo({
         duration: `~${estimatedMinutes} min`,
