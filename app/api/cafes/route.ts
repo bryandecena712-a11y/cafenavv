@@ -94,7 +94,10 @@ export async function GET(request: Request) {
         }
 
         if (envMatch) {
-          matchScore += 5; // Give highest priority to environment match
+          matchScore += 10; // Increase weight significantly
+        } else if (environment) {
+          // If the user specified an environment, but it doesn't match, strictly exclude it
+          return false;
         }
 
         return matchScore > 0 || !environment;
