@@ -28,19 +28,46 @@ export async function GET(request: Request) {
       },
     });
 
-    let filteredCafes = cafes;
+    // Exact groupings provided by user:
+    // Both & Outdoor Cafe: The Sifted Cafe, Dose Dos Cafe, and 250 cafe
+    // Outdoor Cafe: The Outdoor Cafe and Psalm 23:5 Coffee
+    // Indoor Cafe: Wraps Coffee, Usual Coffee, Beanstalk Cafe, Roastd., Champoccino, The Elements, OG's Brew Cafe, For:, Moonbucks Coffee Shop, and Brew and Co.
 
-    // Apply basic matching if filters are provided
+    let filteredCafes = cafes.map((cafe) => {
+      const nameLower = (cafe.name || '').toLowerCase();
+      let assignedEnv = 'indoor'; // default
+
+      if (
+        nameLower.includes('sifted') ||
+        nameLower.includes('dose dos') ||
+        nameLower.includes('250 cafe')
+      ) {
+        assignedEnv = 'both';
+      } else if (
+        nameLower.includes('outdoor cafe') ||
+        nameLower.includes('psalm 23')
+      ) {
+        assignedEnv = 'outdoor';
+      } else {
+        assignedEnv = 'indoor';
+      }
+
+      return {
+        ...cafe,
+        computedEnv: assignedEnv,
+      };
+    });
+
     if (needs || priceRange || environment) {
-      filteredCafes = cafes.filter((cafe) => {
+      filteredCafes = filteredCafes.filter((cafe) => {
         let matchScore = 0;
 
-        // Vibe/Needs matching (using cafe.vibe)
+        // Vibe/Needs matching
         if (needs && cafe.vibe?.toLowerCase().includes(needs.toLowerCase())) {
           matchScore += 2;
         }
 
-                // Price matching
+        // Price matching
         let priceMatch = false;
         if (priceRange === 'budget') priceMatch = cafe.price_level?.includes('100') || cafe.price_level?.includes('200') || false;
         else if (priceRange === 'moderate') priceMatch = cafe.price_level?.includes('150') || false;
@@ -48,31 +75,48 @@ export async function GET(request: Request) {
         else if (priceRange && cafe.price_level?.toLowerCase().includes(priceRange.toLowerCase())) priceMatch = true;
         
         if (priceMatch) {
-            matchScore += 1;
+          matchScore += 1;
         }
 
-        // Environment matching (using description tags)
+        // Environment matching exact to user's specification
         let envMatch = false;
-        if (environment === 'indoor') envMatch = cafe.description?.toLowerCase().includes('indoor') || false;
-        else if (environment === 'outdoor') envMatch = cafe.description?.toLowerCase().includes('outdoor') || false;
-        else if (environment === 'both') envMatch = cafe.description?.toLowerCase().includes('indoor') && cafe.description?.toLowerCase().includes('outdoor') || false;
-        else if (environment && cafe.description?.toLowerCase().includes(environment.toLowerCase())) envMatch = true;
+        if (environment) {
+          const envLower = environment.toLowerCase();
+          if (envLower.includes('indoor') && !envLower.includes('outdoor')) {
+            if (cafe.computedEnv === 'indoor') envMatch = true;
+          } else if (envLower.includes('outdoor') && !envLower.includes('indoor')) {
+            if (cafe.computedEnv === 'outdoor') envMatch = true;
+          } else if (envLower.includes('both') || (envLower.includes('indoor') && envLower.includes('outdoor'))) {
+            if (cafe.computedEnv === 'both') envMatch = true;
+          }
+        } else {
+          envMatch = true;
+        }
 
         if (envMatch) {
-            matchScore += 2;
+          matchScore += 5; // Give highest priority to environment match
         }
 
-        // Only return if it meets at least some criteria if filters were provided
-        return matchScore > 0;
+        return matchScore > 0 || !environment;
       });
-      
-      // Sort by best match (optional, simple logic)
+
+      // Sort by match score
       filteredCafes.sort((a, b) => {
-          const scoreA = (needs && a.vibe?.toLowerCase().includes(needs.toLowerCase()) ? 2 : 0) + 
-                         (priceRange && a.price_level?.toLowerCase().includes(priceRange.toLowerCase()) ? 1 : 0);
-          const scoreB = (needs && b.vibe?.toLowerCase().includes(needs.toLowerCase()) ? 2 : 0) + 
-                         (priceRange && b.price_level?.toLowerCase().includes(priceRange.toLowerCase()) ? 1 : 0);
-          return scoreB - scoreA;
+        let scoreA = 0;
+        let scoreB = 0;
+
+        if (environment) {
+          const envLower = environment.toLowerCase();
+          const targetEnv = envLower.includes('indoor') && !envLower.includes('outdoor') ? 'indoor' :
+                            envLower.includes('outdoor') && !envLower.includes('indoor') ? 'outdoor' : 'both';
+          if (a.computedEnv === targetEnv) scoreA += 10;
+          if (b.computedEnv === targetEnv) scoreB += 10;
+        }
+
+        if (needs && a.vibe?.toLowerCase().includes(needs.toLowerCase())) scoreA += 2;
+        if (needs && b.vibe?.toLowerCase().includes(needs.toLowerCase())) scoreB += 2;
+
+        return scoreB - scoreA;
       });
     }
 
