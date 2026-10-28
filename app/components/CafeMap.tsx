@@ -56,6 +56,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
   const [svgPath, setSvgPath] = useState<string>('');
+  const [transportMode, setTransportMode] = useState<'car' | 'two-wheeler' | 'walk'>('car');
   const [routeInfo, setRouteInfo] = useState<{
     duration: string;
     distance: string;
@@ -64,7 +65,37 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
-  // Background position watch
+  // Handle URL hash params for "Locate Now" from offers/survey page
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (hash.includes('lat=') && hash.includes('lng=')) {
+      try {
+        const queryPart = hash.split('?')[1];
+        if (queryPart) {
+          const params = new URLSearchParams(queryPart);
+          const lat = parseFloat(params.get('lat') || '');
+          const lng = parseFloat(params.get('lng') || '');
+          const name = decodeURIComponent(params.get('name') || 'Selected Cafe');
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setTimeout(() => {
+              if (mapRef.current) {
+                const map = mapRef.current.getMap();
+                if (map) {
+                  map.easeTo({ center: [lng, lat], zoom: 16, duration: 1000 });
+                }
+              }
+              setSelectedCafe({ cafe: { name, id: 'survey-target' }, coords: { lat, lng } });
+              handleGetDirections(lat, lng, name);
+            }, 800);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse map hash params:', e);
+      }
+    }
+  }, [userLocation]);
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
@@ -236,7 +267,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     updateSvgOverlay();
   }, [routeCoordinates, updateSvgOverlay]);
 
-  const handleGetDirections = async (destLat: number, destLng: number, cafeName: string) => {
+  const handleGetDirections = async (destLat: number, destLng: number, cafeName: string, modeOverride?: 'car' | 'two-wheeler' | 'walk') => {
     const startPoint = userLocation || defaultCenter;
 
     setLoadingRoute(true);
@@ -244,8 +275,13 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     const start: [number, number] = [startPoint.lng, startPoint.lat];
     const end: [number, number] = [destLng, destLat];
 
+    const currentMode = modeOverride || transportMode;
+
+    // Map internal mode to OSRM profile
+    const osrmMode = currentMode === 'walk' ? 'walking' : 'driving';
+
     try {
-      const route = await getDirections(start, end);
+      const route = await getDirections(start, end, 8000, osrmMode);
       const coords: [number, number][] = route.geometry.coordinates;
 
       const baseDurationMin = route.duration / 60;
@@ -255,12 +291,25 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       let trafficMultiplier = 1.35;
       let trafficText = 'Moderate Traffic';
 
-      if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
-        trafficMultiplier = 1.75;
-        trafficText = 'Heavy Traffic';
-      } else if (currentHour >= 22 || currentHour <= 5) {
-        trafficMultiplier = 1.1;
-        trafficText = 'Light Traffic';
+      if (currentMode === 'walk') {
+        trafficMultiplier = 1.0;
+        trafficText = 'Clear path';
+      } else if (currentMode === 'two-wheeler') {
+        if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
+          trafficMultiplier = 1.45;
+          trafficText = 'Moderate Traffic';
+        } else {
+          trafficMultiplier = 1.15;
+          trafficText = 'Light Traffic';
+        }
+      } else if (currentMode === 'car') {
+        if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
+          trafficMultiplier = 1.75;
+          trafficText = 'Heavy Traffic';
+        } else if (currentHour >= 22 || currentHour <= 5) {
+          trafficMultiplier = 1.1;
+          trafficText = 'Light Traffic';
+        }
       }
 
       const adjustedDuration = Math.round(baseDurationMin * trafficMultiplier);
@@ -282,7 +331,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
       }
     } catch {
-      const cachedRoute = getCachedDirections(start, end);
+      const cachedRoute = getCachedDirections(start, end, osrmMode);
       if (cachedRoute) {
         const route = cachedRoute;
         setRouteInfo({
@@ -295,7 +344,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         return;
       }
       const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
-      const estimatedMinutes = Math.max(1, Math.round(distanceKm / 0.5));
+      const speedKmh = currentMode === 'walk' ? 5 : currentMode === 'two-wheeler' : 30;
+      const estimatedMinutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60));
       setRouteInfo({
         duration: `~${estimatedMinutes} min`,
         distance: `${distanceKm.toFixed(1)} km direct`,
@@ -325,34 +375,70 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
         {/* Route Info Overlay */}
         {routeInfo && (
-          <div style={{ zIndex: 9999 }} className="absolute top-4 left-4 bg-zinc-900/95 border border-blue-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
-              🚗
+          <div style={{ zIndex: 9999 }} className="absolute top-4 left-4 bg-zinc-900/95 border border-blue-500/40 text-white p-4 rounded-2xl shadow-2xl flex flex-col gap-3 min-w-[280px] max-w-[340px]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
+                  {transportMode === 'car' ? '🚗' : transportMode === 'two-wheeler' ? '🛵' : '🚶'}
+                </div>
+                <div>
+                  <div className="text-xs text-zinc-400 font-medium truncate max-w-[180px]">
+                    Route to <span className="text-zinc-200">{routeInfo.destinationName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-blue-400 font-extrabold text-base">{routeInfo.duration}</span>
+                    <span className="text-zinc-500 text-xs">•</span>
+                    <span className="text-zinc-300 font-semibold text-sm">{routeInfo.distance}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setRouteCoordinates(null);
+                  setSvgPath('');
+                  setRouteInfo(null);
+                }}
+                className="text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
+                title="Clear Route"
+              >
+                ✕
+              </button>
             </div>
-            <div>
-              <div className="text-xs text-zinc-400 font-medium">
-                Route to <span className="text-zinc-200">{routeInfo.destinationName}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-blue-400 font-extrabold text-base">{routeInfo.duration}</span>
-                <span className="text-zinc-500 text-xs">•</span>
-                <span className="text-zinc-300 font-semibold text-sm">{routeInfo.distance}</span>
-              </div>
-              <div className="text-[10px] text-amber-400 font-medium mt-0.5">
-                ⚡ {routeInfo.trafficLevel}
-              </div>
+
+            <div className="text-[11px] text-amber-400 font-medium">
+              ⚡ {routeInfo.trafficLevel}
             </div>
-            <button
-              onClick={() => {
-                setRouteCoordinates(null);
-                setSvgPath('');
-                setRouteInfo(null);
-              }}
-              className="ml-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-full border-none cursor-pointer text-xs"
-              title="Clear Route"
-            >
-              ✕
-            </button>
+
+            {/* Transport Mode Selector Tabs (Car, Two-Wheeler, Walk) */}
+            <div className="grid grid-cols-3 gap-1.5 bg-zinc-950/80 p-1 rounded-xl border border-white/10">
+              <button
+                onClick={() => {
+                  setTransportMode('car');
+                  if (selectedCafe) handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name, 'car');
+                }}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${transportMode === 'car' ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+              >
+                <span>🚗</span> Car
+              </button>
+              <button
+                onClick={() => {
+                  setTransportMode('two-wheeler');
+                  if (selectedCafe) handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name, 'two-wheeler');
+                }}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${transportMode === 'two-wheeler' ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+              >
+                <span>🛵</span> Two-Wheeler
+              </button>
+              <button
+                onClick={() => {
+                  setTransportMode('walk');
+                  if (selectedCafe) handleGetDirections(selectedCafe.coords.lat, selectedCafe.coords.lng, selectedCafe.cafe.name, 'walk');
+                }}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${transportMode === 'walk' ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+              >
+                <span>🚶</span> Walk
+              </button>
+            </div>
           </div>
         )}
 

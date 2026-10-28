@@ -307,9 +307,15 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
                     <p className="text-zinc-300 text-sm mb-6 leading-relaxed line-clamp-1">{cafe.address}</p>
                     <Link
                       href={`/cafe/${cafe.id}`}
-                      className="block w-full text-center bg-white text-zinc-950 font-medium py-3 rounded-xl hover:bg-zinc-200 transition-colors"
+                      className="block w-full text-center bg-white text-zinc-950 font-medium py-3 rounded-xl hover:bg-zinc-200 transition-colors mb-2"
                     >
                       View Details
+                    </Link>
+                    <Link
+                      href={`/#map?lat=${cafe.latitude || cafe.lat || ''}&lng=${cafe.longitude || cafe.lng || ''}&name=${encodeURIComponent(cafe.name)}`}
+                      className="block w-full text-center bg-amber-500 text-zinc-950 font-semibold py-3 rounded-xl hover:bg-amber-400 transition-colors"
+                    >
+                      Locate Now ↗
                     </Link>
                   </div>
                 </div>

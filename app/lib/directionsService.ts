@@ -11,11 +11,12 @@ interface OsrmResponse {
   routes?: OsrmRoute[];
 }
 
-const OSRM_ENDPOINT = 'https://router.project-osrm.org/route/v1/driving';
+const OSRM_DRIVING_ENDPOINT = 'https://router.project-osrm.org/route/v1/driving';
+const OSRM_WALKING_ENDPOINT = 'https://router.project-osrm.org/route/v1/walking';
 const ROUTE_CACHE_PREFIX = 'cafenav_osrm_route_';
 
-function routeKey(start: [number, number], end: [number, number]) {
-  return `${ROUTE_CACHE_PREFIX}${start[0].toFixed(4)}_${start[1].toFixed(4)}_${end[0].toFixed(4)}_${end[1].toFixed(4)}`;
+function routeKey(start: [number, number], end: [number, number], mode: string) {
+  return `${ROUTE_CACHE_PREFIX}${mode}_${start[0].toFixed(4)}_${start[1].toFixed(4)}_${end[0].toFixed(4)}_${end[1].toFixed(4)}`;
 }
 
 function isValidCoordinate(coordinate: [number, number]) {
@@ -29,10 +30,10 @@ function isValidCoordinate(coordinate: [number, number]) {
   );
 }
 
-export function getCachedDirections(start: [number, number], end: [number, number]): OsrmRoute | null {
+export function getCachedDirections(start: [number, number], end: [number, number], mode: string = 'driving'): OsrmRoute | null {
   if (typeof window === 'undefined') return null;
   try {
-    const cached = localStorage.getItem(routeKey(start, end));
+    const cached = localStorage.getItem(routeKey(start, end, mode));
     if (!cached) return null;
     const parsed = JSON.parse(cached) as OsrmRoute;
     return parsed?.geometry?.coordinates?.length ? parsed : null;
@@ -41,9 +42,9 @@ export function getCachedDirections(start: [number, number], end: [number, numbe
   }
 }
 
-function cacheDirections(start: [number, number], end: [number, number], route: OsrmRoute) {
+function cacheDirections(start: [number, number], end: [number, number], route: OsrmRoute, mode: string = 'driving') {
   try {
-    localStorage.setItem(routeKey(start, end), JSON.stringify({ ...route, cachedAt: Date.now() }));
+    localStorage.setItem(routeKey(start, end, mode), JSON.stringify({ ...route, cachedAt: Date.now() }));
   } catch {
     // Optional local storage fallback
   }
@@ -52,13 +53,14 @@ function cacheDirections(start: [number, number], end: [number, number], route: 
 export async function getDirections(
   start: [number, number],
   end: [number, number],
-  timeoutMs = 8000
+  timeoutMs = 8000,
+  mode: 'driving' | 'walking' = 'driving'
 ): Promise<OsrmRoute> {
   if (!isValidCoordinate(start) || !isValidCoordinate(end)) {
     throw new Error('Invalid map coordinates');
   }
 
-  const cached = getCachedDirections(start, end);
+  const cached = getCachedDirections(start, end, mode);
   if (cached) {
     return cached;
   }
@@ -69,7 +71,8 @@ export async function getDirections(
 
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-  const url = `${OSRM_ENDPOINT}/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`;
+  const endpoint = mode === 'walking' ? OSRM_WALKING_ENDPOINT : OSRM_DRIVING_ENDPOINT;
+  const url = `${endpoint}/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`;
 
   try {
     const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
@@ -80,7 +83,7 @@ export async function getDirections(
       throw new Error(`OSRM returned ${data.code || 'no route'}`);
     }
 
-    cacheDirections(start, end, data.routes[0]);
+    cacheDirections(start, end, data.routes[0], mode);
     return data.routes[0];
   } catch (error) {
     console.warn('[CafeNav] Directions request failed:', error);

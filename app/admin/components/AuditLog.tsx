@@ -5,11 +5,14 @@ import { useEffect, useState } from 'react';
 export default function AuditLog() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     async function fetchLogs() {
+      setLoading(true);
       try {
-        const res = await fetch('/api/admin/audit-logs');
+        const url = showAll ? '/api/admin/audit-logs?limit=all' : '/api/admin/audit-logs';
+        const res = await fetch(url);
         const data = await res.json();
         setLogs(data);
       } catch (err) {
@@ -19,7 +22,8 @@ export default function AuditLog() {
       }
     }
     fetchLogs();
-  }, []);
+  }, [showAll]);
+
   return (
     <div className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden shadow-xl">
       <div className="overflow-x-auto">
@@ -67,8 +71,13 @@ export default function AuditLog() {
         </table>
       </div>
       <div className="px-6 py-4 border-t border-white/5 bg-zinc-950/30 text-xs text-zinc-500 flex justify-between items-center">
-        <span>Showing 5 recent actions</span>
-        <button className="hover:text-amber-500 transition-colors">View All Logs →</button>
+        <span>{showAll ? `Showing all ${logs.length} actions` : 'Showing 5 recent actions'}</span>
+        <button 
+          onClick={() => setShowAll(!showAll)}
+          className="hover:text-amber-500 transition-colors font-semibold"
+        >
+          {showAll ? 'Show Recent 5 ←' : 'View All Logs →'}
+        </button>
       </div>
     </div>
   );
