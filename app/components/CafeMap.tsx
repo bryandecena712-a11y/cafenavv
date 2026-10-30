@@ -68,33 +68,39 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   // Handle URL hash params for "Locate Now" from offers/survey page
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const hash = window.location.hash;
-    if (hash.includes('lat=') && hash.includes('lng=')) {
-      try {
-        const queryPart = hash.split('?')[1];
-        if (queryPart) {
-          const params = new URLSearchParams(queryPart);
-          const lat = parseFloat(params.get('lat') || '');
-          const lng = parseFloat(params.get('lng') || '');
-          const name = decodeURIComponent(params.get('name') || 'Selected Cafe');
+    const checkHash = () => {
+      const hash = window.location.hash;
+      if (hash.includes('lat=') && hash.includes('lng=')) {
+        try {
+          const queryPart = hash.split('?')[1];
+          if (queryPart) {
+            const params = new URLSearchParams(queryPart);
+            const lat = parseFloat(params.get('lat') || '');
+            const lng = parseFloat(params.get('lng') || '');
+            const name = decodeURIComponent(params.get('name') || 'Selected Cafe');
 
-          if (!isNaN(lat) && !isNaN(lng)) {
-            setTimeout(() => {
-              if (mapRef.current) {
-                const map = mapRef.current.getMap();
-                if (map) {
-                  map.easeTo({ center: [lng, lat], zoom: 16, duration: 1000 });
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setTimeout(() => {
+                if (mapRef.current) {
+                  const map = mapRef.current.getMap();
+                  if (map) {
+                    map.easeTo({ center: [lng, lat], zoom: 16, duration: 1000 });
+                  }
                 }
-              }
-              setSelectedCafe({ cafe: { name, id: 'survey-target' }, coords: { lat, lng } });
-              handleGetDirections(lat, lng, name);
-            }, 800);
+                setSelectedCafe({ cafe: { name, id: 'survey-target' }, coords: { lat, lng } });
+                handleGetDirections(lat, lng, name);
+              }, 400);
+            }
           }
+        } catch (e) {
+          console.warn('Failed to parse map hash params:', e);
         }
-      } catch (e) {
-        console.warn('Failed to parse map hash params:', e);
       }
-    }
+    };
+
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
   }, [userLocation]);
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {

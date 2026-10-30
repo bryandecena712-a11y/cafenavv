@@ -312,7 +312,7 @@ function ResultsView({ selections }: { selections: Record<number, string> }) {
                       View Details
                     </Link>
                     <Link
-                      href={`/#map?lat=${cafe.latitude || cafe.lat || ''}&lng=${cafe.longitude || cafe.lng || ''}&name=${encodeURIComponent(cafe.name)}`}
+                      href={`/#map-section?lat=${cafe.latitude || cafe.lat || ''}&lng=${cafe.longitude || cafe.lng || ''}&name=${encodeURIComponent(cafe.name)}`}
                       className="block w-full text-center bg-amber-500 text-zinc-950 font-semibold py-3 rounded-xl hover:bg-amber-400 transition-colors"
                     >
                       Locate Now ↗

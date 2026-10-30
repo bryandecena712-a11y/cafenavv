@@ -239,7 +239,7 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
       </div>
 
       {/* Interactive Cafe Map Header & Instructions */}
-      <div className="mb-6">
+      <div id="map-section" className="mb-6 scroll-mt-24">
         <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight text-zinc-50 mb-2">
           Interactive Cafe Map
         </h2>
