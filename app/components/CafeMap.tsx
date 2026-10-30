@@ -70,27 +70,58 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     if (typeof window === 'undefined') return;
     const checkHash = () => {
       const hash = window.location.hash;
-      if (hash.includes('lat=') && hash.includes('lng=')) {
+      if (hash.includes('#map') || hash.includes('lat=') || hash.includes('name=')) {
         try {
-          const queryPart = hash.split('?')[1];
-          if (queryPart) {
-            const params = new URLSearchParams(queryPart);
-            const lat = parseFloat(params.get('lat') || '');
-            const lng = parseFloat(params.get('lng') || '');
-            const name = decodeURIComponent(params.get('name') || 'Selected Cafe');
+          // Smooth scroll straight to the interactive map section
+          const mapSectionElem = document.getElementById('map-section') || document.getElementById('map');
+          if (mapSectionElem) {
+            mapSectionElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
 
-            if (!isNaN(lat) && !isNaN(lng)) {
-              setTimeout(() => {
-                if (mapRef.current) {
-                  const map = mapRef.current.getMap();
-                  if (map) {
-                    map.easeTo({ center: [lng, lat], zoom: 16, duration: 1000 });
-                  }
-                }
-                setSelectedCafe({ cafe: { name, id: 'survey-target' }, coords: { lat, lng } });
-                handleGetDirections(lat, lng, name);
-              }, 400);
+          let queryPart = '';
+          if (hash.includes('?')) {
+            queryPart = hash.split('?')[1];
+          }
+
+          const params = new URLSearchParams(queryPart);
+          const name = params.get('name') ? decodeURIComponent(params.get('name')!) : '';
+          let lat = parseFloat(params.get('lat') || '');
+          let lng = parseFloat(params.get('lng') || '');
+
+          let coords: { lat: number; lng: number } | null = null;
+
+          if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+            coords = { lat, lng };
+          } else if (name) {
+            // Check cafeCoordinates dictionary first
+            if (cafeCoordinates[name]) {
+              coords = cafeCoordinates[name];
+            } else {
+              // Search case-insensitively in cafeCoordinates
+              const matchedKey = Object.keys(cafeCoordinates).find(
+                (k) => k.toLowerCase() === name.toLowerCase() || k.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(k.toLowerCase())
+              );
+              if (matchedKey) {
+                coords = cafeCoordinates[matchedKey];
+              }
             }
+          }
+
+          if (coords && name) {
+            const targetLat = coords.lat;
+            const targetLng = coords.lng;
+
+            setTimeout(() => {
+              if (mapRef.current) {
+                const map = mapRef.current.getMap();
+                if (map) {
+                  map.easeTo({ center: [targetLng, targetLat], zoom: 16, duration: 1000 });
+                }
+              }
+              const foundCafe = cafes?.find((c) => c.name?.toLowerCase() === name.toLowerCase()) || { name, id: 'survey-target' };
+              setSelectedCafe({ cafe: foundCafe, coords: { lat: targetLat, lng: targetLng } });
+              handleGetDirections(targetLat, targetLng, name);
+            }, 600);
           }
         } catch (e) {
           console.warn('Failed to parse map hash params:', e);
@@ -101,7 +132,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     checkHash();
     window.addEventListener('hashchange', checkHash);
     return () => window.removeEventListener('hashchange', checkHash);
-  }, [userLocation]);
+  }, [userLocation, cafes]);
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
