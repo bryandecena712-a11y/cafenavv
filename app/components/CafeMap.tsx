@@ -277,45 +277,52 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
     const currentMode = modeOverride || transportMode;
 
-    // Map internal mode to OSRM profile
+    // Map internal mode to OSRM profile (walking uses foot profile or walking speed factor)
     const osrmMode = currentMode === 'walk' ? 'walking' : 'driving';
 
     try {
       const route = await getDirections(start, end, 8000, osrmMode);
       const coords: [number, number][] = route.geometry.coordinates;
 
-      const baseDurationMin = route.duration / 60;
       const distanceKm = route.distance / 1000;
+      let adjustedDurationMin = 0;
+      let trafficText = 'Clear path';
 
       const currentHour = new Date().getHours();
-      let trafficMultiplier = 1.35;
-      let trafficText = 'Moderate Traffic';
 
       if (currentMode === 'walk') {
-        trafficMultiplier = 1.0;
-        trafficText = 'Clear path';
+        // Standard human walking speed: ~4.5 km/h + terrain/sidewalk factor (~1.25x)
+        const walkingSpeedKmh = 4.5;
+        adjustedDurationMin = Math.round((distanceKm / walkingSpeedKmh) * 60 * 1.25);
+        trafficText = distanceKm > 3 ? 'Long walk ahead' : 'Pedestrian friendly';
       } else if (currentMode === 'two-wheeler') {
+        const baseMin = route.duration / 60;
+        let multiplier = 1.15;
         if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
-          trafficMultiplier = 1.45;
+          multiplier = 1.35;
           trafficText = 'Moderate Traffic';
         } else {
-          trafficMultiplier = 1.15;
           trafficText = 'Light Traffic';
         }
-      } else if (currentMode === 'car') {
+        adjustedDurationMin = Math.round(baseMin * multiplier);
+      } else {
+        // Car
+        const baseMin = route.duration / 60;
+        let multiplier = 1.25;
         if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 16 && currentHour <= 20)) {
-          trafficMultiplier = 1.75;
-          trafficText = 'Heavy Traffic';
+          multiplier = 1.75;
+          trafficText = 'Heavy Traffic (Peak Hours)';
         } else if (currentHour >= 22 || currentHour <= 5) {
-          trafficMultiplier = 1.1;
+          multiplier = 1.05;
           trafficText = 'Light Traffic';
+        } else {
+          trafficText = 'Moderate Traffic';
         }
+        adjustedDurationMin = Math.round(baseMin * multiplier);
       }
 
-      const adjustedDuration = Math.round(baseDurationMin * trafficMultiplier);
-
       setRouteInfo({
-        duration: `${adjustedDuration} min`,
+        duration: adjustedDurationMin >= 60 ? `${Math.floor(adjustedDurationMin / 60)} hr ${adjustedDurationMin % 60} min` : `${adjustedDurationMin} min`,
         distance: `${distanceKm.toFixed(1)} km`,
         destinationName: cafeName,
         trafficLevel: trafficText,
@@ -332,28 +339,46 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       }
     } catch {
       const cachedRoute = getCachedDirections(start, end, osrmMode);
-      if (cachedRoute) {
-        const route = cachedRoute;
+      const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
+      
+      let speedKmh = 30;
+      let multiplier = 1.2;
+      let trafficText = 'Standard Route';
+
+      if (currentMode === 'walk') {
+        speedKmh = 4.5;
+        multiplier = 1.25;
+        trafficText = 'Pedestrian Route';
+      } else if (currentMode === 'two-wheeler') {
+        speedKmh = 25;
+        multiplier = 1.15;
+        trafficText = 'Light Traffic';
+      } else {
+        speedKmh = 30;
+        multiplier = 1.5;
+        trafficText = 'Moderate Traffic';
+      }
+
+      const estimatedMinutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60 * multiplier));
+
+      if (cachedRoute && currentMode !== 'walk') {
         setRouteInfo({
-          duration: `${Math.round(route.duration / 60)} min`,
-          distance: `${(route.distance / 1000).toFixed(1)} km`,
+          duration: `${Math.round((cachedRoute.duration / 60) * multiplier)} min`,
+          distance: `${(cachedRoute.distance / 1000).toFixed(1)} km`,
           destinationName: cafeName,
-          trafficLevel: 'Cached route',
+          trafficLevel: trafficText,
         });
-        setRouteCoordinates(route.geometry.coordinates);
+        setRouteCoordinates(cachedRoute.geometry.coordinates);
         return;
       }
-      const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
-      const speedKmh = currentMode === 'walk' ? 5 : currentMode === 'two-wheeler' ? 15 : 30;
-      const estimatedMinutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60));
+
       setRouteInfo({
-        duration: `~${estimatedMinutes} min`,
-        distance: `${distanceKm.toFixed(1)} km direct`,
+        duration: estimatedMinutes >= 60 ? `${Math.floor(estimatedMinutes / 60)} hr ${estimatedMinutes % 60} min` : `${estimatedMinutes} min`,
+        distance: `${distanceKm.toFixed(1)} km`,
         destinationName: cafeName,
-        trafficLevel: 'Offline estimate',
+        trafficLevel: trafficText,
       });
       setRouteCoordinates([[startPoint.lng, startPoint.lat], [destLng, destLat]]);
-      console.info('[CafeNav] Showing offline estimate.');
     } finally {
       setLoadingRoute(false);
     }
