@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
+import { PencilSimple, Trash, Check, X } from '@phosphor-icons/react';
 
 const DEFAULT_SERVICES = ['Dine-in', 'Delivery', 'Takeout'];
 const DEFAULT_OFFERINGS = ['Coffee', 'Non-Coffee', 'Quick Bites', 'Pastries', 'Desserts'];
@@ -362,7 +363,9 @@ export default function ManageMenuPage() {
                   {product.image_url ? (
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xl">☕</div>
+                    <div className="w-full h-full flex items-center justify-center text-xl bg-zinc-800">
+                      <i className="ph ph-coffee text-amber-500"></i>
+                    </div>
                   )}
                 </div>
                 <div className="flex-1">
@@ -417,7 +420,9 @@ export default function ManageMenuPage() {
                   {product.image_url ? (
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">☕</div>
+                    <div className="w-full h-full flex items-center justify-center text-2xl bg-zinc-800">
+                      <i className="ph ph-coffee text-amber-500"></i>
+                    </div>
                   )}
                 </div>
 
@@ -431,11 +436,11 @@ export default function ManageMenuPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-3">
-                    <button onClick={() => handleStartEdit(product)} className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/5 transition-colors cursor-pointer">
-                      ✏️ Edit
+                    <button onClick={() => handleStartEdit(product)} className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/5 transition-colors cursor-pointer flex items-center gap-1.5">
+                      <PencilSimple size={14} weight="bold" /> Edit
                     </button>
-                    <button onClick={() => handleDelete(product.id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-500/20 transition-colors cursor-pointer">
-                      🗑️ Delete
+                    <button onClick={() => handleDelete(product.id)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-500/20 transition-colors cursor-pointer flex items-center gap-1.5">
+                      <Trash size={14} weight="bold" /> Delete
                     </button>
                   </div>
                 </div>
@@ -684,7 +689,9 @@ export default function ManageMenuPage() {
               {isSavingDetails ? 'Saving...' : 'Save Details'}
             </button>
             {detailsSavedSuccess && (
-              <span className="text-xs text-emerald-500 font-semibold">✓ Details saved successfully!</span>
+              <span className="text-xs text-emerald-500 font-semibold flex items-center gap-1">
+                <Check size={14} weight="bold" /> Details saved successfully!
+              </span>
             )}
           </div>
         </form>
@@ -696,7 +703,9 @@ export default function ManageMenuPage() {
           <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold">Edit Menu Item</h3>
-              <button onClick={() => setEditingProduct(null)} className="text-zinc-400 hover:text-white cursor-pointer">✕</button>
+              <button onClick={() => setEditingProduct(null)} className="text-zinc-400 hover:text-white cursor-pointer">
+                <X size={20} weight="bold" />
+              </button>
             </div>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>

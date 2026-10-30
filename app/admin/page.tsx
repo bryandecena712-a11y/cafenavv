@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ManageCafes from './components/ManageCafes';
+import { CheckCircle, XCircle, MapPin } from '@phosphor-icons/react';
 
 export const dynamic = 'force-dynamic';
 
@@ -436,7 +437,7 @@ function AdminContent() {
                   <div>
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-lg shrink-0">
-                        ☕
+                        <i className="ph ph-coffee"></i>
                       </div>
                       <div>
                         <h3 className="font-bold text-white text-base leading-tight">{item.name}</h3>
@@ -547,7 +548,7 @@ function AdminContent() {
                       >
                         <AdvancedMarker position={parseCoordinates(selectedCafe.location)!}>
                           <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
-                            📍
+                            <MapPin size={18} weight="fill" className="text-white" />
                           </div>
                         </AdvancedMarker>
                       </Map>

@@ -1,3 +1,16 @@
+/* @ts-ignore */
+@import url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css');
+/* @ts-ignore */
+@import url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css');
+/* @ts-ignore */
+@import url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css');
+/* @ts-ignore */
+@import url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;

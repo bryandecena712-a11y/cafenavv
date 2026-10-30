@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
+import { MapPin, Car, Moped, Walking } from '@phosphor-icons/react';
 // @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
@@ -440,7 +441,13 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg">
-                  {transportMode === 'car' ? '🚗' : transportMode === 'two-wheeler' ? '🛵' : '🚶'}
+                  {transportMode === 'car' ? (
+                    <Car size={24} weight="bold" />
+                  ) : transportMode === 'two-wheeler' ? (
+                    <Moped size={24} weight="bold" />
+                  ) : (
+                    <Walking size={24} weight="bold" />
+                  )}
                 </div>
                 <div>
                   <div className="text-xs text-zinc-400 font-medium truncate max-w-[180px]">
@@ -512,7 +519,11 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           style={{ zIndex: 9999 }}
           className="absolute bottom-6 right-6 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold cursor-pointer active:scale-95 transition-all border border-amber-300/50 disabled:opacity-80"
         >
-          <span className={`text-sm ${isLocating ? 'animate-spin' : ''}`}>📍</span>
+          <MapPin 
+            size={20} 
+            weight="bold" 
+            className={`${isLocating ? 'animate-spin' : ''}`} 
+          />
           {isLocating ? 'Locating...' : 'Find My Location'}
         </button>
 
@@ -580,7 +591,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                   }}
                 >
                   <div className="w-9 h-9 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-sm shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300/40 cursor-pointer hover:scale-110 transition-transform">
-                    ☕
+                    <i className="ph ph-coffee"></i>
                   </div>
                 </Marker>
               );

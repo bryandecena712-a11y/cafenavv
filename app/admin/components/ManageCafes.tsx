@@ -6,6 +6,7 @@ import { defaultCenter } from '@/app/lib/coordinates';
 import { supabase } from '@/app/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
+import { PencilSimple, Trash, MapPin, Plus } from '@phosphor-icons/react';
 
 interface Product {
   id: string;
@@ -269,7 +270,9 @@ export default function ManageCafes() {
                 {cafe.image_url ? (
                   <img src={cafe.image_url} alt={cafe.name} className="w-12 h-12 rounded-xl mb-4 object-cover" />
                 ) : (
-                  <div className="w-12 h-12 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center text-xl">☕</div>
+                  <div className="w-12 h-12 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center text-xl text-amber-500">
+                    <i className="ph ph-coffee"></i>
+                  </div>
                 )}
                 <h3 className="font-bold text-white mb-1">{cafe.name}</h3>
                 <p className="text-sm text-zinc-400 mb-4">Active • {cafe.products?.length || 0} Products</p>
@@ -385,7 +388,9 @@ export default function ManageCafes() {
                         <Map defaultCenter={pinnedLocation || defaultCenter} defaultZoom={15} mapId="ADMIN_MAP_ID" onClick={handleMapClick} gestureHandling={'greedy'} disableDefaultUI={true}>
                           {pinnedLocation && (
                             <AdvancedMarker position={pinnedLocation}>
-                              <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">📍</div>
+                              <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
+                                <MapPin size={18} weight="fill" className="text-white" />
+                              </div>
                             </AdvancedMarker>
                           )}
                         </Map>

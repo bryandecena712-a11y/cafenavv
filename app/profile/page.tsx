@@ -139,7 +139,9 @@ export default function ProfilePage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">☕</div>
+                        <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-amber-500">
+                          <Coffee size={24} weight="duotone" />
+                        </div>
                       )}
                     </div>
                     <div className="flex-1">
@@ -165,8 +167,8 @@ export default function ProfilePage() {
         {/* Reviews Section */}
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-sm">
-              ⭐
+            <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center">
+              <Star size={16} weight="fill" />
             </span>
             My Reviews
           </h2>

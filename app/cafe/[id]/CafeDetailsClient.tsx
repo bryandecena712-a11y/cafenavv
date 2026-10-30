@@ -216,7 +216,13 @@ export default function CafeDetailsClient({ cafe }: CafeDetailsClientProps) {
                   <div key={item.id} className="group flex items-center justify-between p-5 rounded-[24px] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all">
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-full bg-zinc-900 flex items-center justify-center border border-white/5 shrink-0 shadow-inner">
-                        <span className="text-2xl">{item.category === 'Coffee' ? '☕' : item.category === 'Tea' ? '🍵' : '🥐'}</span>
+                        {item.category === 'Coffee' ? (
+                          <Coffee size={28} weight="bold" className="text-amber-500" />
+                        ) : item.category === 'Tea' ? (
+                          <TeaBag size={28} weight="bold" className="text-emerald-400" />
+                        ) : (
+                          <Cookie size={28} weight="bold" className="text-amber-300" />
+                        )}
                       </div>
                       <div>
                         <div className="font-semibold text-zinc-100 text-lg">{item.name}</div>

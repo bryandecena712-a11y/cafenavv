@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Coffee, TeaBag, Cookie, Notepad } from '@phosphor-icons/react';
 
 interface Product {
   id: number;
@@ -92,7 +92,9 @@ export default function MenuWithScroll({ products }: MenuWithScrollProps) {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl">☕</div>
+                  <div className="w-full h-full flex items-center justify-center bg-zinc-800">
+                    <Coffee size={40} weight="duotone" className="text-amber-500" />
+                  </div>
                 )}
                 <div className="absolute top-3 right-3 bg-zinc-950/90 backdrop-blur text-amber-400 font-bold px-3 py-1.5 rounded-full text-sm border border-amber-500/20 shadow-md">
                   ₱{product.price}

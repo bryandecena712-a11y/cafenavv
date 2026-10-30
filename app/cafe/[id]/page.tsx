@@ -1,3 +1,4 @@
+import { Coffee, TeaBag, Cookie, Cake, Sparkle, Star, ChatCenteredText, MapPin } from '@phosphor-icons/react';
 import { prisma } from '@/app/lib/prisma';
 import Link from 'next/link';
 import ReviewForm from './ReviewForm';
@@ -201,7 +202,7 @@ export default async function CafeDetailsPage(props: any) {
   if (!cafe) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center">
-        <span className="text-6xl mb-4">☕</span>
+        <Coffee size={64} weight="duotone" className="text-amber-500 mb-4" />
         <h1 className="text-3xl font-bold mb-2">Cafe Not Found</h1>
         <p className="text-zinc-400 mb-6 max-w-md">
           We couldn't find a cafe matching "{rawId || 'unknown'}".
@@ -262,8 +263,8 @@ export default async function CafeDetailsPage(props: any) {
             className="w-full h-full object-cover opacity-80"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-6xl opacity-50">
-            ☕
+          <div className="w-full h-full flex items-center justify-center bg-zinc-900 opacity-50">
+            <Coffee size={80} weight="duotone" className="text-amber-500" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
@@ -333,7 +334,9 @@ export default async function CafeDetailsPage(props: any) {
       {/* Community Reviews */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">⭐</span>
+          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
+            <Star size={16} weight="fill" />
+          </span>
           Community Reviews
         </h2>
 
@@ -389,8 +392,8 @@ export default async function CafeDetailsPage(props: any) {
                 );
               })
             ) : (
-              <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl">
-                <span className="text-4xl mb-4 block">💬</span>
+              <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col items-center">
+                <ChatCenteredText size={48} weight="duotone" className="text-zinc-600 mb-4" />
                 <h3 className="text-xl font-medium text-white mb-2">No reviews yet</h3>
                 <p className="text-zinc-500">Be the first to share your thoughts on {cafe.name}!</p>
               </div>

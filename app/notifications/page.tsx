@@ -95,8 +95,8 @@ export default function NotificationsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                      {n.type === 'APPROVAL' && '✅'}
-                      {n.type === 'REJECTION' && '❌'}
+                      {n.type === 'APPROVAL' && <CheckCircle size={16} weight="bold" className="text-emerald-500" />}
+                      {n.type === 'REJECTION' && <XCircle size={16} weight="bold" className="text-rose-500" />}
                       {n.title}
                     </h3>
                     <p className="text-xs text-zinc-300 mt-1">{n.message}</p>

@@ -435,7 +435,7 @@ export default function SuggestPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-zinc-300 flex items-center gap-1.5">
-                    📍 Pin to Map *
+                    <MapPin size={16} weight="bold" className="text-rose-500" /> Pin to Map *
                   </label>
                   <span className="text-xs text-zinc-400 font-mono">
                     Selected: Lat {cafeFormData.lat.toFixed(4)}, Lng {cafeFormData.lng.toFixed(4)}

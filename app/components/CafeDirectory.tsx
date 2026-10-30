@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, MagnifyingGlass, MapPin } from '@phosphor-icons/react';
 import EmptyState from './EmptyState';
 import { loadCachedCafes, loadDirectoryPreferences, saveCachedCafes, saveDirectoryPreferences } from '@/app/lib/offlineStorage';
 
@@ -150,7 +150,7 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
               className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-4 py-3.5 flex items-center justify-center gap-1.5 transition-colors border-l border-amber-400/50 cursor-pointer text-sm shrink-0"
               title="Search"
             >
-              <span>🔍</span>
+              <MagnifyingGlass size={18} weight="bold" />
               <span className="hidden sm:inline">Search</span>
             </button>
           </div>
@@ -199,8 +199,8 @@ export default function CafeDirectory({ initialCafes = [] }: CafeDirectoryProps)
                     {/* Only show location badge if it is NOT raw coordinates */}
                     {cafe.location && !isRawCoordinates(cafe.location) && (
                       <div className="absolute top-5 left-5 flex gap-2 flex-wrap max-w-[80%]">
-                        <span className="bg-zinc-950/75 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-200 border border-white/10 truncate">
-                          📍 {cafe.location}
+                        <span className="bg-zinc-950/75 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium tracking-wide text-zinc-200 border border-white/10 truncate flex items-center gap-1.5">
+                          <MapPin size={14} weight="bold" className="text-amber-500" /> {cafe.location}
                         </span>
                       </div>
                     )}
