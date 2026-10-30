@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { Bell } from '@phosphor-icons/react';
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -137,7 +138,7 @@ export default function Navbar() {
                             }}
                             className="w-full text-left px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-xl transition-colors flex items-center justify-between"
                           >
-                            <span>🔔 Notifications</span>
+                            <span><Bell size={16} /> Notifications</span>
                             {unreadCount > 0 && (
                               <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                                 {unreadCount}

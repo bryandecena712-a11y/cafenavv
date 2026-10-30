@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CheckCircle, Circle } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -76,8 +77,9 @@ export default function NotificationsPage() {
         {isLoading ? (
           <div className="text-center py-12 text-zinc-500">Loading notifications...</div>
         ) : notifications.length === 0 ? (
-          <div className="bg-zinc-900 border border-white/5 rounded-2xl p-12 text-center text-zinc-500">
-            🔔 No notifications right now!
+          <div className="bg-zinc-900 border border-white/5 rounded-2xl p-12 text-center text-zinc-500 flex flex-col items-center">
+            <i className="ph-duotone ph-bell text-5xl mb-4 text-zinc-700"></i>
+            No notifications right now!
           </div>
         ) : (
           <div className="space-y-3">
@@ -96,7 +98,7 @@ export default function NotificationsPage() {
                   <div>
                     <h3 className="font-bold text-sm text-white flex items-center gap-2">
                       {n.type === 'APPROVAL' && <CheckCircle size={16} weight="bold" className="text-emerald-500" />}
-                      {n.type === 'REJECTION' && <XCircle size={16} weight="bold" className="text-rose-500" />}
+                      {n.type === 'REJECTION' && <Circle size={16} weight="bold" className="text-rose-500" />}
                       {n.title}
                     </h3>
                     <p className="text-xs text-zinc-300 mt-1">{n.message}</p>

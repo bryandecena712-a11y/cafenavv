@@ -50,8 +50,8 @@ export default function MenuWithScroll({ products }: MenuWithScrollProps) {
 
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-16 bg-zinc-900/50 border border-white/5 rounded-3xl">
-        <span className="text-4xl mb-4 block">📝</span>
+      <div className="text-center py-16 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col items-center">
+        <i className="ph-duotone ph-notepad text-zinc-600 text-5xl mb-4"></i>
         <h3 className="text-xl font-medium text-white mb-2">No menu available</h3>
         <p className="text-zinc-500">This cafe hasn't added any products to their menu yet.</p>
       </div>

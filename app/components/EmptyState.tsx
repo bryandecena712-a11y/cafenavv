@@ -9,7 +9,9 @@ export default function EmptyState() {
 
   return (
     <div className="col-span-full py-24 px-6 bg-zinc-900/30 backdrop-blur-md border border-dashed border-white/10 rounded-[32px] text-center flex flex-col items-center justify-center">
-      <div className="w-20 h-20 bg-zinc-800/80 rounded-full flex items-center justify-center text-3xl mb-6 border border-white/5 shadow-xl">☕</div>
+      <div className="w-20 h-20 bg-zinc-800/80 rounded-full flex items-center justify-center text-3xl mb-6 border border-white/5 shadow-xl text-amber-500">
+        <i className="ph-duotone ph-coffee text-5xl"></i>
+      </div>
       <h3 className="text-2xl font-semibold text-white mb-3">No coffee shops yet</h3>
       
       {user?.isAdmin ? (

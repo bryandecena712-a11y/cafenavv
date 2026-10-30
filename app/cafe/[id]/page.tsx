@@ -1,4 +1,3 @@
-import { Coffee, TeaBag, Cookie, Cake, Sparkle, Star, ChatCenteredText, MapPin } from '@phosphor-icons/react';
 import { prisma } from '@/app/lib/prisma';
 import Link from 'next/link';
 import ReviewForm from './ReviewForm';
@@ -7,6 +6,7 @@ import ShareButton from '@/app/components/ShareButton';
 import SuggestProductForm from './SuggestProductForm';
 import DeleteReviewButton from './DeleteReviewButton';
 import MenuWithScroll from './MenuWithScroll';
+import { Coffee, Clock } from '@phosphor-icons/react';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -140,21 +140,21 @@ async function fetchCafeWithRetry(cafeId: number) {
 function OfferingIcon({ label }: { label: string }) {
   const lower = label.toLowerCase().trim();
   if (lower.includes('coffee') && !lower.includes('non')) {
-    return <span className="text-amber-500">☕</span>;
+    return <i className="ph-bold ph-coffee text-amber-500"></i>;
   }
   if (lower.includes('non-coffee') || lower.includes('tea') || lower.includes('matcha')) {
-    return <span className="text-emerald-400">🍵</span>;
+    return <i className="ph-bold ph-tea-bag text-emerald-400"></i>;
   }
   if (lower.includes('pastr') || lower.includes('bakery') || lower.includes('croissant')) {
-    return <span className="text-amber-300">🥐</span>;
+    return <i className="ph-bold ph-cookie text-amber-300"></i>;
   }
   if (lower.includes('quick') || lower.includes('bite') || lower.includes('snack') || lower.includes('sandwich')) {
-    return <span className="text-orange-400">🥪</span>;
+    return <i className="ph-bold ph-fork-knife text-orange-400"></i>;
   }
   if (lower.includes('dessert') || lower.includes('cake') || lower.includes('sweet')) {
-    return <span className="text-pink-400">🍰</span>;
+    return <i className="ph-bold ph-cake text-pink-400"></i>;
   }
-  return <span className="text-amber-400">✨</span>;
+  return <i className="ph-bold ph-sparkle text-amber-400"></i>;
 }
 
 // Safely parse review text and attached image URL
@@ -202,7 +202,7 @@ export default async function CafeDetailsPage(props: any) {
   if (!cafe) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center">
-        <Coffee size={64} weight="duotone" className="text-amber-500 mb-4" />
+        <i className="ph-duotone ph-coffee text-amber-500 text-7xl mb-4"></i>
         <h1 className="text-3xl font-bold mb-2">Cafe Not Found</h1>
         <p className="text-zinc-400 mb-6 max-w-md">
           We couldn't find a cafe matching "{rawId || 'unknown'}".
@@ -264,7 +264,7 @@ export default async function CafeDetailsPage(props: any) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-zinc-900 opacity-50">
-            <Coffee size={80} weight="duotone" className="text-amber-500" />
+            <i className="ph-duotone ph-coffee text-amber-500 text-8xl"></i>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
@@ -282,7 +282,9 @@ export default async function CafeDetailsPage(props: any) {
       {/* Menu Products */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🍽️</span>
+          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">
+            <Coffee size={18} weight="bold" />
+          </span>
           Menu Products
         </h2>
 
@@ -335,7 +337,7 @@ export default async function CafeDetailsPage(props: any) {
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
-            <Star size={16} weight="fill" />
+            <i className="ph-fill ph-star text-sm"></i>
           </span>
           Community Reviews
         </h2>
@@ -393,7 +395,7 @@ export default async function CafeDetailsPage(props: any) {
               })
             ) : (
               <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col items-center">
-                <ChatCenteredText size={48} weight="duotone" className="text-zinc-600 mb-4" />
+                <i className="ph-duotone ph-chat-centered-text text-zinc-600 text-5xl mb-4"></i>
                 <h3 className="text-xl font-medium text-white mb-2">No reviews yet</h3>
                 <p className="text-zinc-500">Be the first to share your thoughts on {cafe.name}!</p>
               </div>

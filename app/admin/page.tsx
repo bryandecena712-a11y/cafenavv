@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ManageCafes from './components/ManageCafes';
-import { CheckCircle, XCircle, MapPin } from '@phosphor-icons/react';
+import { CheckCircle, XCircle, MapPin, Bell } from '@phosphor-icons/react';
 
 export const dynamic = 'force-dynamic';
 
@@ -275,8 +275,8 @@ function AdminContent() {
                                 className="w-14 h-14 rounded-xl object-cover shrink-0"
                               />
                             ) : (
-                              <div className="w-14 h-14 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl shrink-0">
-                                ☕
+                              <div className="w-14 h-14 bg-zinc-800 rounded-xl flex items-center justify-center text-2xl shrink-0 text-amber-500">
+                                <i className="ph-fill ph-coffee"></i>
                               </div>
                             )}
                             <div>

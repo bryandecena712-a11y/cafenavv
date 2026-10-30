@@ -289,7 +289,7 @@ export default function ManageCafes() {
                   className="bg-zinc-800 hover:bg-amber-500/20 hover:text-amber-400 border border-white/10 text-zinc-300 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
                   title="Edit Cafe"
                 >
-                  ✏️
+                  <i className="ph-bold ph-pencil-simple"></i>
                 </button>
 
                 <button
@@ -298,7 +298,7 @@ export default function ManageCafes() {
                   className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
                   title="Delete Cafe"
                 >
-                  {deletingId === cafe.id ? '...' : '🗑️'}
+                  {deletingId === cafe.id ? '...' : <i className="ph-bold ph-trash"></i>}
                 </button>
               </div>
             </div>

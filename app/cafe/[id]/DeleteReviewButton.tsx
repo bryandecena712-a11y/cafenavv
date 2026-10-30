@@ -63,7 +63,11 @@ export default function DeleteReviewButton({ reviewId, reviewUserId }: { reviewI
       className="text-rose-400 hover:text-rose-300 text-xs font-semibold transition-colors bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-2 py-1 rounded-md flex items-center gap-1"
       title="Delete Review"
     >
-      {isDeleting ? 'Deleting...' : '🗑️ Delete'}
+      {isDeleting ? 'Deleting...' : (
+        <span className="flex items-center gap-1.5">
+          <i className="ph-bold ph-trash"></i> Delete
+        </span>
+      )}
     </button>
   );
 }

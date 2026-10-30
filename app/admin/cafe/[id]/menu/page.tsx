@@ -455,7 +455,7 @@ export default function ManageMenuPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <span>🕒</span> Manage Operating Hours
+              <span><Clock size={20} weight="bold" /></span> Manage Operating Hours
             </h2>
             <p className="text-xs text-zinc-400 mt-1">
               Set real-time opening & closing times for Monday to Sunday.

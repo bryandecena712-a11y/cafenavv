@@ -486,7 +486,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 }}
                 className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${transportMode === 'car' ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
               >
-                <span>🚗</span> Car
+                <i className="ph-bold ph-car"></i> Car
               </button>
               <button
                 onClick={() => {
@@ -495,7 +495,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 }}
                 className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${transportMode === 'two-wheeler' ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
               >
-                <span>🛵</span> Two-Wheeler
+                <i className="ph-bold ph-moped"></i> Two-Wheeler
               </button>
               <button
                 onClick={() => {
@@ -504,7 +504,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                 }}
                 className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${transportMode === 'walk' ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
               >
-                <span>🚶</span> Walk
+                <i className="ph-bold ph-walking"></i> Walk
               </button>
             </div>
           </div>
