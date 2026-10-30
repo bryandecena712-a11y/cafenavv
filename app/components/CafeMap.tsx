@@ -110,6 +110,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             setSelectedCafe({ cafe: foundCafe, coords: { lat: targetLat, lng: targetLng } });
             
             // Call directions directly
+            // Use userLocation directly or defaultCenter to ensure we have a valid starting point
+            const start = userLocation || defaultCenter;
             handleGetDirections(targetLat, targetLng, name);
             
             window.history.replaceState(null, '', window.location.pathname);
