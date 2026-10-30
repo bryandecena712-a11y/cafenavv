@@ -67,34 +67,27 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   // Handle URL hash params for "Locate Now" from offers/survey page
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !cafes || cafes.length === 0 || !userLocation) return;
+    
     const checkHash = () => {
       const hash = window.location.hash;
-      // Only process if it's explicitly a map locate request
       if (hash.includes('lat=') || hash.includes('name=')) {
         try {
-          // Smooth scroll straight to the interactive map section
           const mapSectionElem = document.getElementById('map-section') || document.getElementById('map');
           if (mapSectionElem) {
             mapSectionElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
 
-          let queryPart = '';
-          if (hash.includes('?')) {
-            queryPart = hash.split('?')[1];
-          }
-
+          let queryPart = hash.includes('?') ? hash.split('?')[1] : '';
           const params = new URLSearchParams(queryPart);
           const name = params.get('name') ? decodeURIComponent(params.get('name')!) : '';
           let lat = parseFloat(params.get('lat') || '');
           let lng = parseFloat(params.get('lng') || '');
 
           let coords: { lat: number; lng: number } | null = null;
-
           if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
             coords = { lat, lng };
           } else if (name) {
-            // Check cafeCoordinates dictionary
             if (cafeCoordinates[name]) {
               coords = cafeCoordinates[name];
             } else {
@@ -109,18 +102,17 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             const targetLat = coords.lat;
             const targetLng = coords.lng;
 
-            setTimeout(() => {
-              if (mapRef.current) {
-                const map = mapRef.current.getMap();
-                if (map) map.easeTo({ center: [targetLng, targetLat], zoom: 16, duration: 1000 });
-              }
-              const foundCafe = cafes?.find((c) => c.name?.toLowerCase() === name.toLowerCase()) || { name, id: 'survey-target' };
-              setSelectedCafe({ cafe: foundCafe, coords: { lat: targetLat, lng: targetLng } });
-              handleGetDirections(targetLat, targetLng, name);
-              
-              // Clear hash after processing so it doesn't re-trigger on user interaction
-              window.history.replaceState(null, '', window.location.pathname);
-            }, 600);
+            if (mapRef.current) {
+              const map = mapRef.current.getMap();
+              if (map) map.easeTo({ center: [targetLng, targetLat], zoom: 16, duration: 1000 });
+            }
+            const foundCafe = cafes.find((c) => (c.name || '').toLowerCase() === name.toLowerCase()) || { name, id: 'survey-target' };
+            setSelectedCafe({ cafe: foundCafe, coords: { lat: targetLat, lng: targetLng } });
+            
+            // Call directions directly
+            handleGetDirections(targetLat, targetLng, name);
+            
+            window.history.replaceState(null, '', window.location.pathname);
           }
         } catch (e) {
           console.warn('Failed to parse map hash params:', e);
@@ -129,9 +121,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     };
 
     checkHash();
-    window.addEventListener('hashchange', checkHash);
-    return () => window.removeEventListener('hashchange', checkHash);
-  }, []); // Run only once on mount to prevent infinite re-triggering
+  }, [userLocation, cafes]); // Trigger only when location and cafes data are fully ready
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setUserLocation(defaultCenter);
