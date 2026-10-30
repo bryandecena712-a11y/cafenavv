@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
-import { MapPin, Car, Moped, Walking } from '@phosphor-icons/react';
+import { MapPin, Car, Moped, Walk } from '@phosphor-icons/react';
 // @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
