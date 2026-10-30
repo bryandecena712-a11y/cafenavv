@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
-import { PencilSimple, Trash, Check, X } from '@phosphor-icons/react';
+import { PencilSimple, Trash, Check, X, Clock } from '@phosphor-icons/react';
 
 const DEFAULT_SERVICES = ['Dine-in', 'Delivery', 'Takeout'];
 const DEFAULT_OFFERINGS = ['Coffee', 'Non-Coffee', 'Quick Bites', 'Pastries', 'Desserts'];

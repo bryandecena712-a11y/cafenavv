@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import * as maplibregl from 'maplibre-gl';
-import { MapPin, Car, Moped, Walk } from '@phosphor-icons/react';
+import { MapPin, Car, Moped } from '@phosphor-icons/react';
 // @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
@@ -446,7 +446,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                   ) : transportMode === 'two-wheeler' ? (
                     <Moped size={24} weight="bold" />
                   ) : (
-                    <Walking size={24} weight="bold" />
+                    <MapPin size={24} weight="bold" />
                   )}
                 </div>
                 <div>
