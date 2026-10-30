@@ -88,13 +88,22 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
             coords = { lat, lng };
           } else if (name) {
-            if (cafeCoordinates[name]) {
-              coords = cafeCoordinates[name];
-            } else {
-              const matchedKey = Object.keys(cafeCoordinates).find(
-                (k) => k.toLowerCase() === name.toLowerCase() || k.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(k.toLowerCase())
-              );
-              if (matchedKey) coords = cafeCoordinates[matchedKey];
+            // First, try to find the cafe in the database-fetched cafes array to get the most accurate, up-to-date coordinates
+            const foundCafe = cafes.find((c) => (c.name || '').toLowerCase() === name.toLowerCase());
+            if (foundCafe) {
+              coords = getCafeCoords(foundCafe);
+            }
+
+            // Fallback to hardcoded coordinates if not found in database or if database coords are missing
+            if (!coords) {
+              if (cafeCoordinates[name]) {
+                coords = cafeCoordinates[name];
+              } else {
+                const matchedKey = Object.keys(cafeCoordinates).find(
+                  (k) => k.toLowerCase() === name.toLowerCase() || k.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(k.toLowerCase())
+                );
+                if (matchedKey) coords = cafeCoordinates[matchedKey];
+              }
             }
           }
 
@@ -110,8 +119,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             setSelectedCafe({ cafe: foundCafe, coords: { lat: targetLat, lng: targetLng } });
             
             // Call directions directly
-            // Use userLocation directly or defaultCenter to ensure we have a valid starting point
-            const start = userLocation || defaultCenter;
+            // Explicitly pass the user location as the start point for the calculation
             handleGetDirections(targetLat, targetLng, name);
             
             window.history.replaceState(null, '', window.location.pathname);
