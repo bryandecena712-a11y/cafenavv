@@ -1,4 +1,5 @@
 import { prisma } from '@/app/lib/prisma';
+import React from 'react';
 import Link from 'next/link';
 import ReviewForm from './ReviewForm';
 import BookmarkButton from '@/app/components/BookmarkButton';
@@ -171,6 +172,22 @@ function parseReviewContent(rawContent: string): { text: string; imageUrl: strin
   return { text: rawContent, imageUrl: null };
 }
 
+// Safely parse review text and attached image URL
+function parseReviewContent(rawContent: string): { text: string; imageUrl: string | null } {
+   if (!rawContent) return { text: '', imageUrl: null };
+   try {
+     const parsed = JSON.parse(rawContent);
+     if (parsed && typeof parsed === 'object' && parsed.text) {
+       return {
+         text: parsed.text,
+         imageUrl: parsed.image_url ? String(parsed.image_url) : null
+       };
+     }
+   } catch (error) {
+     console.error('Failed to parse JSON content:', error);
+   }
+   return { text: rawContent, imageUrl: null };
+}
 export default async function CafeDetailsPage(props: any) {
   const resolvedParams = props?.params ? await Promise.resolve(props.params) : {};
   const rawId = resolvedParams?.id;
