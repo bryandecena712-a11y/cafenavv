@@ -62,7 +62,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
   const [selectedCafe, setSelectedCafe] = useState<{ cafe: any; coords: { lat: number; lng: number } } | null>(null);
   const [geocodedCafes, setGeocodedCafes] = useState<{ [key: string]: { lat: number; lng: number } }>({});
   const [isLocating, setIsLocating] = useState(false);
-  const [loadingRoute, setLoadingRoute] = useState(false);
+
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
   const [svgPath, setSvgPath] = useState<string>('');
   const [transportMode, setTransportMode] = useState<'car' | 'two-wheeler' | 'walk'>('car');
@@ -72,6 +72,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     destinationName: string;
     trafficLevel: string;
   } | null>(null);
+  const [loadingRoute, setLoadingRoute] = useState(false);
 
   const getCafeCoords = (cafe: any): { lat: number; lng: number } | null => {
     if (cafe.latitude != null && cafe.longitude != null) {
