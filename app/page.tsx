@@ -1,5 +1,3 @@
-'use client';
-
 import { prisma } from '@/app/lib/prisma';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -7,6 +5,7 @@ import StoriesBar from './components/StoriesBar';
 import CafeDirectory from './components/CafeDirectory';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   let cafes: any[] = [];
