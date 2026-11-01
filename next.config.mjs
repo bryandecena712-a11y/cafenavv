@@ -4,10 +4,8 @@ const nextConfig = {
     staticPageGenerationTimeout: 300,
 
     // Externalize database drivers and native server libraries
-    serverExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai', 'prisma'],
-
     experimental: {
-        serverComponentsExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai'],
+        serverComponentsExternalPackages: ['pg', '@prisma/adapter-pg', '@google/genai', 'prisma'],
     },
     eslint: {
         ignoreDuringBuilds: true,

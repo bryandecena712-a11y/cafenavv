@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
+import { Coffee, TeaBag, Cookie } from '@phosphor-icons/react';
 
 interface CafeDetailsClientProps {
   cafe: any;

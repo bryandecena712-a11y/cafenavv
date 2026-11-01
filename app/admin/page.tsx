@@ -6,8 +6,6 @@ import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ManageCafes from './components/ManageCafes';
 import { CheckCircle, XCircle, MapPin, Bell } from '@phosphor-icons/react';
 
-export const dynamic = 'force-dynamic';
-
 function AdminContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') || 'pending';

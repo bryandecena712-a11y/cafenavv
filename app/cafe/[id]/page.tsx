@@ -1,13 +1,15 @@
 import { prisma } from '@/app/lib/prisma';
 import React from 'react';
 import Link from 'next/link';
-import ReviewForm from './ReviewForm';
-import BookmarkButton from '@/app/components/BookmarkButton';
-import ShareButton from '@/app/components/ShareButton';
-import SuggestProductForm from './SuggestProductForm';
-import DeleteReviewButton from './DeleteReviewButton';
-import MenuWithScroll from './MenuWithScroll';
-import { Coffee, Clock } from '@phosphor-icons/react';
+import nextDynamic from 'next/dynamic';
+
+// Safely isolate ALL client components and context-heavy packages from SSR
+const ReviewForm = nextDynamic(() => import('./ReviewForm'), { ssr: false });
+const BookmarkButton = nextDynamic(() => import('@/app/components/BookmarkButton'), { ssr: false });
+const ShareButton = nextDynamic(() => import('@/app/components/ShareButton'), { ssr: false });
+const DeleteReviewButton = nextDynamic(() => import('./DeleteReviewButton'), { ssr: false });
+const MenuWithScroll = nextDynamic(() => import('./MenuWithScroll'), { ssr: false });
+const SuggestProductForm = nextDynamic(() => import('./SuggestProductForm'), { ssr: false });
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,8 +19,8 @@ const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'S
 function cleanDescription(text?: string | null): string {
   if (!text) return 'No description provided.';
   return text
-    .replace(/\[ENV:.*?\]/g, '')
-    .replace(/\[USER:.*?\]/g, '')
+    .replace(/\nENV:.*?\n/g, '')
+    .replace(/\nUSER:.*?\n/g, '')
     .trim();
 }
 
@@ -58,11 +60,9 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   const now = new Date();
   const options: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Manila', hourCycle: 'h23', weekday: 'long', hour: 'numeric', minute: 'numeric' };
   const phParts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
-
   let currentDayName = 'Friday';
   let currentHour = 0;
   let currentMinute = 0;
-
   phParts.forEach((part) => {
     if (part.type === 'weekday') currentDayName = part.value;
     if (part.type === 'hour') currentHour = parseInt(part.value, 10);
@@ -70,28 +70,23 @@ function getRealTimeStatus(operatingHoursStr?: string | null | object) {
   });
 
   const todaySchedule = schedule[currentDayName];
-
   if (!todaySchedule || todaySchedule.isClosed || !todaySchedule.open || !todaySchedule.close) {
     return { isOpen: false, text: 'Closed today', schedule };
   }
 
   let [openH, openM] = (todaySchedule.open || '09:00').split(':').map(Number);
   let [closeH, closeM] = (todaySchedule.close || '23:00').split(':').map(Number);
-
   if (isNaN(openH)) openH = 9;
   if (isNaN(openM)) openM = 0;
   if (isNaN(closeH)) closeH = 23;
   if (isNaN(closeM)) closeM = 0;
-
-  if (closeH === 0 && closeM === 0) {
-    closeH = 24;
-  }
+  if (closeH === 0 && closeM === 0) closeH = 24;
 
   const currentMinutes = currentHour * 60 + currentMinute;
   const openMinutes = openH * 60 + openM;
   let closeMinutes = closeH * 60 + closeM;
-
   let isOpen = false;
+
   if (closeMinutes <= openMinutes && closeH !== 24) {
     closeMinutes += 24 * 60;
     const adjustedCurrentMinutes = currentMinutes < openMinutes ? currentMinutes + 24 * 60 : currentMinutes;
@@ -117,82 +112,43 @@ async function fetchCafeWithRetry(cafeId: number) {
         products: true,
         reviews: {
           include: {
-            user: { select: { id: true, username: true } }
+            user: { select: { id: true, username: true } },
           },
-          orderBy: { created_at: 'desc' }
-        }
-      }
+          orderBy: { created_at: 'desc' },
+        },
+      },
     });
-
   let result: any = await query().catch(() => null);
-
   if (!result) {
     await new Promise((res) => setTimeout(res, 350));
     result = await query().catch(() => null);
   }
-
   if (!result) {
     result = await prisma.cafes.findUnique({ where: { id: cafeId } }).catch(() => null);
   }
-
   return result;
 }
 
-function OfferingIcon({ label }: { label: string }) {
-  const lower = label.toLowerCase().trim();
-  if (lower.includes('coffee') && !lower.includes('non')) {
-    return <i className="ph-bold ph-coffee text-amber-500"></i>;
-  }
-  if (lower.includes('non-coffee') || lower.includes('tea') || lower.includes('matcha')) {
-    return <i className="ph-bold ph-tea-bag text-emerald-400"></i>;
-  }
-  if (lower.includes('pastr') || lower.includes('bakery') || lower.includes('croissant')) {
-    return <i className="ph-bold ph-cookie text-amber-300"></i>;
-  }
-  if (lower.includes('quick') || lower.includes('bite') || lower.includes('snack') || lower.includes('sandwich')) {
-    return <i className="ph-bold ph-fork-knife text-orange-400"></i>;
-  }
-  if (lower.includes('dessert') || lower.includes('cake') || lower.includes('sweet')) {
-    return <i className="ph-bold ph-cake text-pink-400"></i>;
-  }
-  return <i className="ph-bold ph-sparkle text-amber-400"></i>;
-}
-
-// Safely parse review text and attached image URL
 function parseReviewContent(rawContent: string): { text: string; imageUrl: string | null } {
   if (!rawContent) return { text: '', imageUrl: null };
   try {
     const parsed = JSON.parse(rawContent);
     if (parsed && typeof parsed === 'object' && parsed.text) {
-      return { text: parsed.text, imageUrl: parsed.image_url || null };
+      return {
+        text: parsed.text,
+        imageUrl: parsed.image_url ? String(parsed.image_url) : null,
+      };
     }
-  } catch {
-    // Fall back if content is plain text
+  } catch (error) {
+    console.error('Failed to parse JSON content:', error);
   }
   return { text: rawContent, imageUrl: null };
 }
 
-// Safely parse review text and attached image URL
-function parseReviewContent(rawContent: string): { text: string; imageUrl: string | null } {
-   if (!rawContent) return { text: '', imageUrl: null };
-   try {
-     const parsed = JSON.parse(rawContent);
-     if (parsed && typeof parsed === 'object' && parsed.text) {
-       return {
-         text: parsed.text,
-         imageUrl: parsed.image_url ? String(parsed.image_url) : null
-       };
-     }
-   } catch (error) {
-     console.error('Failed to parse JSON content:', error);
-   }
-   return { text: rawContent, imageUrl: null };
-}
 export default async function CafeDetailsPage(props: any) {
   const resolvedParams = props?.params ? await Promise.resolve(props.params) : {};
   const rawId = resolvedParams?.id;
   const cafeId = parseInt(rawId, 10);
-
   let cafe: any = null;
 
   if (!isNaN(cafeId)) {
@@ -205,11 +161,11 @@ export default async function CafeDetailsPage(props: any) {
           products: true,
           reviews: {
             include: {
-              user: { select: { id: true, username: true } }
+              user: { select: { id: true, username: true } },
             },
-            orderBy: { created_at: 'desc' }
-          }
-        }
+            orderBy: { created_at: 'desc' },
+          },
+        },
       });
     } catch (err) {
       cafe = null;
@@ -219,7 +175,9 @@ export default async function CafeDetailsPage(props: any) {
   if (!cafe) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center">
-        <i className="ph-duotone ph-coffee text-amber-500 text-7xl mb-4"></i>
+        <span className="text-amber-500 mb-4 inline-flex items-center justify-center text-4xl">
+          ☕
+        </span>
         <h1 className="text-3xl font-bold mb-2">Cafe Not Found</h1>
         <p className="text-zinc-400 mb-6 max-w-md">
           We couldn't find a cafe matching "{rawId || 'unknown'}".
@@ -251,7 +209,6 @@ export default async function CafeDetailsPage(props: any) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative">
-      
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
         <Link 
@@ -281,11 +238,12 @@ export default async function CafeDetailsPage(props: any) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-zinc-900 opacity-50">
-            <i className="ph-duotone ph-coffee text-amber-500 text-8xl"></i>
+            <span className="text-amber-500 text-6xl">
+              ☕
+            </span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
-        
         <div className="absolute bottom-0 left-0 w-full p-8 max-w-6xl mx-auto">
           <h1 className="text-5xl font-bold text-white tracking-tight drop-shadow-md mb-2">
             {cafe.name}
@@ -300,13 +258,11 @@ export default async function CafeDetailsPage(props: any) {
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">
-            <Coffee size={18} weight="bold" />
+            ☕
           </span>
           Menu Products
         </h2>
-
         <MenuWithScroll products={cafe.products || []} />
-
         <SuggestProductForm cafeId={cafe.id} />
       </div>
 
@@ -315,10 +271,11 @@ export default async function CafeDetailsPage(props: any) {
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-bold flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">🕒</span>
+              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                🕒
+              </span>
               Opening Hours & Schedule
             </h2>
-
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold ${
               isOpen
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -329,7 +286,6 @@ export default async function CafeDetailsPage(props: any) {
               <span className="text-zinc-500 font-normal">({statusText})</span>
             </div>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {DAYS_OF_WEEK.map((day) => {
               const item = schedule[day];
@@ -354,18 +310,16 @@ export default async function CafeDetailsPage(props: any) {
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
-            <i className="ph-fill ph-star text-sm"></i>
+            ⭐
           </span>
           Community Reviews
         </h2>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
             {cafe.reviews && cafe.reviews.length > 0 ? (
               cafe.reviews.map((review: any) => {
                 const { text: reviewText, imageUrl: reviewImageUrl } = parseReviewContent(review.content);
                 const displayImage = review.image_url || reviewImageUrl;
-
                 return (
                   <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
                     {/* Header with User Info & Rating */}
@@ -382,7 +336,10 @@ export default async function CafeDetailsPage(props: any) {
                       <div className="flex items-center gap-3">
                         <div className="flex gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <span key={star} className={`text-lg ${star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}`}>
+                            <span
+                              key={star}
+                              className={star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}
+                            >
                               ★
                             </span>
                           ))}
@@ -393,8 +350,7 @@ export default async function CafeDetailsPage(props: any) {
                         />
                       </div>
                     </div>
-
-                    {/* Attached Photo (Positioned above description, below name/date) */}
+                    {/* Attached Photo */}
                     {displayImage && (
                       <div className="mb-4 rounded-xl overflow-hidden max-h-80 w-full bg-zinc-950 border border-white/5">
                         <img 
@@ -404,7 +360,6 @@ export default async function CafeDetailsPage(props: any) {
                         />
                       </div>
                     )}
-
                     {/* Review Description */}
                     <p className="text-zinc-300 leading-relaxed">{cleanDescription(reviewText)}</p>
                   </div>
@@ -412,13 +367,14 @@ export default async function CafeDetailsPage(props: any) {
               })
             ) : (
               <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col items-center">
-                <i className="ph-duotone ph-chat-centered-text text-zinc-600 text-5xl mb-4"></i>
+                <span className="text-zinc-600 mb-4 inline-block text-3xl">
+                  💬
+                </span>
                 <h3 className="text-xl font-medium text-white mb-2">No reviews yet</h3>
                 <p className="text-zinc-500">Be the first to share your thoughts on {cafe.name}!</p>
               </div>
             )}
           </div>
-
           <div className="lg:col-span-1">
             <ReviewForm cafeId={cafe.id} />
           </div>
@@ -429,10 +385,11 @@ export default async function CafeDetailsPage(props: any) {
       <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">ℹ️</span>
+            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
+              ℹ️
+            </span>
             About {cafe.name}
           </h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               {serviceOptions.length > 0 && (
@@ -447,21 +404,19 @@ export default async function CafeDetailsPage(props: any) {
                   </div>
                 </div>
               )}
-
               {offeringsOptions.length > 0 && (
                 <div>
                   <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Offerings</h3>
                   <div className="flex flex-wrap gap-2">
                     {offeringsOptions.map((offering, idx) => (
                       <span key={idx} className="bg-zinc-800 text-zinc-300 border border-white/5 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5">
-                        <OfferingIcon label={offering} /> {offering}
+                        ✨ {offering}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-
             <div>
               <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Connect & Links</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -522,7 +477,6 @@ export default async function CafeDetailsPage(props: any) {
           </div>
         </div>
       </div>
-
     </div>
   );
 }

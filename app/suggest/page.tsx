@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/app/context/AuthContext';
+import { MapPin } from '@phosphor-icons/react';
 
 interface Cafe {
   id: string | number;

@@ -8,7 +8,6 @@ export default function ShareButton({ cafeName }: { cafeName: string }) {
 
   const handleShare = async () => {
     const url = window.location.href;
-
     if (navigator.share) {
       try {
         await navigator.share({

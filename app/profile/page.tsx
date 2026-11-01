@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Coffee, Star } from '@phosphor-icons/react';
 
 // Helper function to safely parse JSON review payload or plain text
 function parseReviewContent(rawContent: string): { text: string; imageUrl: string | null } {
@@ -11,10 +12,13 @@ function parseReviewContent(rawContent: string): { text: string; imageUrl: strin
   try {
     const parsed = JSON.parse(rawContent);
     if (parsed && typeof parsed === 'object' && parsed.text) {
-      return { text: parsed.text, imageUrl: parsed.image_url || null };
+      return {
+        text: parsed.text,
+        imageUrl: parsed.image_url ? String(parsed.image_url) : null
+      };
     }
-  } catch {
-    // Fallback if content is plain text
+  } catch (error) {
+    console.error('Failed to parse JSON content:', error);
   }
   return { text: rawContent, imageUrl: null };
 }
@@ -25,9 +29,7 @@ export default function ProfilePage() {
   const isAuthenticated = auth?.isAuthenticated;
   const isLoading = auth?.isLoading ?? auth?.loading ?? false;
   const logout = auth?.logout;
-
   const router = useRouter();
-
   const [profileData, setProfileData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -125,7 +127,6 @@ export default function ProfilePage() {
             </span>
             Saved Cafes
           </h2>
-
           <div className="space-y-4">
             {profileData.bookmarks && profileData.bookmarks.length > 0 ? (
               profileData.bookmarks.map((bookmark: any) => (
@@ -172,13 +173,11 @@ export default function ProfilePage() {
             </span>
             My Reviews
           </h2>
-
           <div className="space-y-4">
             {profileData.reviews && profileData.reviews.length > 0 ? (
               profileData.reviews.map((review: any) => {
                 const { text: reviewText, imageUrl: reviewImageUrl } = parseReviewContent(review.content);
                 const displayImage = review.image_url || reviewImageUrl;
-
                 return (
                   <div key={review.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-6 relative space-y-3">
                     <Link
@@ -200,7 +199,6 @@ export default function ProfilePage() {
                         </span>
                       ))}
                     </div>
-
                     {/* Attached Photo Display */}
                     {displayImage && (
                       <div className="w-full h-44 bg-zinc-950 rounded-xl overflow-hidden border border-white/5 my-2">
@@ -211,7 +209,6 @@ export default function ProfilePage() {
                         />
                       </div>
                     )}
-
                     {/* Clean Text Description */}
                     <p className="text-zinc-300 text-sm leading-relaxed">"{reviewText}"</p>
                   </div>

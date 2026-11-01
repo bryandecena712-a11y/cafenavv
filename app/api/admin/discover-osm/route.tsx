@@ -68,8 +68,12 @@ export async function POST() {
     ]);
 
     const existingNames = new Set([
-      ...existingApproved.map((c: { name: string }) => c.name.toLowerCase().trim()),
-      ...existingDiscovered.map((c: { name: string }) => c.name.toLowerCase().trim()),
+      ...existingApproved
+        .map((c: { name: string | null }) => c.name?.toLowerCase().trim())
+        .filter((name): name is string => Boolean(name)),
+      ...existingDiscovered
+        .map((c: { name: string | null }) => c.name?.toLowerCase().trim())
+        .filter((name): name is string => Boolean(name)),
     ]);
 
     let newCount = 0;
@@ -90,6 +94,7 @@ export async function POST() {
       try {
         await prisma.discoveredCafe.create({
           data: {
+            osm_id: String(element.id),
             name: cleanName,
             location: `${lat}, ${lon}`,
             source: 'OpenStreetMap',
