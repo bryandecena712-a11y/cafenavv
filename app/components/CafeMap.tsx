@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
-import { MapPin, Car, Moped, Coffee } from '@phosphor-icons/react';
+import { MapPin, Car, Moped } from '@phosphor-icons/react';
 // @ts-ignore
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Link from 'next/link';
@@ -177,7 +177,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     } catch {
       const cachedRoute = getCachedDirections(start, end, osrmMode);
       const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
-
+      
       let speedKmh = 30;
       let multiplier = 1.2;
       let trafficText = 'Standard Route';
@@ -223,7 +223,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !cafes || cafes.length === 0 || !userLocation) return;
-
+    
     const checkHash = () => {
       const hash = window.location.hash;
       if (hash.includes('lat=') || hash.includes('name=')) {
@@ -270,7 +270,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
             }
             const foundCafe = cafes.find((c) => (c.name || '').toLowerCase() === name.toLowerCase()) || { name, id: 'survey-target' };
             setSelectedCafe({ cafe: foundCafe, coords: { lat: targetLat, lng: targetLng } });
-
+            
             handleGetDirections(targetLat, targetLng, name);
             window.history.replaceState(null, '', window.location.pathname);
           }
@@ -542,6 +542,18 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         )}
 
         <div className="w-full h-full">
+          <Map
+            ref={mapRef}
+            initialViewState={{
+              longitude: center.lng,
+              latitude: center.lat,
+              zoom: 13,
+            }}
+            mapStyle={openStreetMapStyle as any}
+            style={{ width: '100%', height: '100%' }}
+            onLoad={updateSvgOverlay}
+            onMove={updateSvgOverlay}
+          >
             <NavigationControl position="top-right" />
 
             {userLocation && (
@@ -567,8 +579,8 @@ export default function CafeMap({ cafes }: CafeMapProps) {
                     setSelectedCafe({ cafe, coords });
                   }}
                 >
-                  <div className="w-9 h-9 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300/40 cursor-pointer hover:scale-110 transition-transform">
-                    <Coffee size={20} weight="fill" />
+                  <div className="w-9 h-9 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-sm shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300/40 cursor-pointer hover:scale-110 transition-transform">
+                    ☕
                   </div>
                 </Marker>
               );
