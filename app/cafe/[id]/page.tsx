@@ -1,29 +1,18 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { prisma } from '@/app/lib/prisma';
 import React from 'react';
 import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
-import { 
-  Coffee, 
-  Cookie, 
-  ForkKnife, 
-  Cake, 
-  Sparkle, 
-  Star, 
-  Clock, 
-  Info, 
-  ChatCircle 
-} from '@phosphor-icons/react';
 
-// Safely isolate ALL client components from SSR to permanently resolve the createContext build crash
+// Isolate client components from SSR to prevent createContext build crashes
 const ReviewForm = nextDynamic(() => import('./ReviewForm'), { ssr: false });
 const BookmarkButton = nextDynamic(() => import('@/app/components/BookmarkButton'), { ssr: false });
 const ShareButton = nextDynamic(() => import('@/app/components/ShareButton'), { ssr: false });
 const DeleteReviewButton = nextDynamic(() => import('./DeleteReviewButton'), { ssr: false });
 const MenuWithScroll = nextDynamic(() => import('./MenuWithScroll'), { ssr: false });
 const SuggestProductForm = nextDynamic(() => import('./SuggestProductForm'), { ssr: false });
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -143,21 +132,21 @@ async function fetchCafeWithRetry(cafeId: number) {
 function OfferingIcon({ label }: { label: string }) {
   const lower = label.toLowerCase().trim();
   if (lower.includes('coffee') && !lower.includes('non')) {
-    return <span className="inline-flex items-center text-amber-500"><Coffee size={16} /></span>;
+    return <span className="inline-flex items-center text-amber-500">☕</span>;
   }
   if (lower.includes('non-coffee') || lower.includes('tea') || lower.includes('matcha')) {
-    return <span className="inline-flex items-center text-emerald-400"><Coffee size={16} /></span>;
+    return <span className="inline-flex items-center text-emerald-400">🍵</span>;
   }
   if (lower.includes('pastr') || lower.includes('bakery') || lower.includes('croissant')) {
-    return <span className="inline-flex items-center text-amber-300"><Cookie size={16} /></span>;
+    return <span className="inline-flex items-center text-amber-300">🥐</span>;
   }
   if (lower.includes('quick') || lower.includes('bite') || lower.includes('snack') || lower.includes('sandwich')) {
-    return <span className="inline-flex items-center text-orange-400"><ForkKnife size={16} /></span>;
+    return <span className="inline-flex items-center text-orange-400">🥪</span>;
   }
   if (lower.includes('dessert') || lower.includes('cake') || lower.includes('sweet')) {
-    return <span className="inline-flex items-center text-pink-400"><Cake size={16} /></span>;
+    return <span className="inline-flex items-center text-pink-400">🍰</span>;
   }
-  return <span className="inline-flex items-center text-amber-400"><Sparkle size={16} /></span>;
+  return <span className="inline-flex items-center text-amber-400">✨</span>;
 }
 
 function parseReviewContent(rawContent: string): { text: string; imageUrl: string | null } {
@@ -206,9 +195,7 @@ export default async function CafeDetailsPage(props: any) {
   if (!cafe) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center">
-        <span className="text-amber-500 mb-4 inline-flex items-center justify-center">
-          <Coffee size={64} />
-        </span>
+        <span className="text-amber-500 mb-4 text-5xl">☕</span>
         <h1 className="text-3xl font-bold mb-2">Cafe Not Found</h1>
         <p className="text-zinc-400 mb-6 max-w-md">
           We couldn't find a cafe matching "{rawId || 'unknown'}".
@@ -269,9 +256,7 @@ export default async function CafeDetailsPage(props: any) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-zinc-900 opacity-50">
-            <span className="text-amber-500 inline-flex items-center justify-center">
-              <Coffee size={80} />
-            </span>
+            <span className="text-amber-500 text-6xl">☕</span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
@@ -289,7 +274,7 @@ export default async function CafeDetailsPage(props: any) {
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm">
-            <Coffee size={18} weight="bold" />
+            ☕
           </span>
           Menu Products
         </h2>
@@ -302,8 +287,8 @@ export default async function CafeDetailsPage(props: any) {
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-bold flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
-                <Clock size={18} weight="bold" />
+              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-base">
+                🕒
               </span>
               Opening Hours & Schedule
             </h2>
@@ -340,8 +325,8 @@ export default async function CafeDetailsPage(props: any) {
       {/* Community Reviews */}
       <div className="max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
-            <Star size={18} weight="bold" />
+          <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-base">
+            ★
           </span>
           Community Reviews
         </h2>
@@ -365,16 +350,13 @@ export default async function CafeDetailsPage(props: any) {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 text-amber-500">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <span
                               key={star}
                               className={star <= review.rating ? 'text-amber-500' : 'text-zinc-700'}
                             >
-                              <Star
-                                size={18}
-                                weight={star <= review.rating ? "fill" : "regular"}
-                              />
+                              ★
                             </span>
                           ))}
                         </div>
@@ -401,9 +383,7 @@ export default async function CafeDetailsPage(props: any) {
               })
             ) : (
               <div className="text-center py-12 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col items-center">
-                <span className="text-zinc-600 mb-4 inline-block">
-                  <ChatCircle size={40} />
-                </span>
+                <span className="text-zinc-600 mb-4 text-3xl">💬</span>
                 <h3 className="text-xl font-medium text-white mb-2">No reviews yet</h3>
                 <p className="text-zinc-500">Be the first to share your thoughts on {cafe.name}!</p>
               </div>
@@ -419,8 +399,8 @@ export default async function CafeDetailsPage(props: any) {
       <div className="max-w-6xl mx-auto p-8 pb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
         <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center">
-              <Info size={18} weight="bold" />
+            <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-base">
+              ℹ
             </span>
             About {cafe.name}
           </h2>
