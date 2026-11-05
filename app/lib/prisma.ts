@@ -5,9 +5,9 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Initialize the PostgreSQL driver adapter required by Prisma 7
+// Initialize the PostgreSQL adapter using pg pool / connection string
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL!,
 });
 
 export const prisma =
