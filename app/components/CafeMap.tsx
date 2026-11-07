@@ -10,15 +10,6 @@ import Link from 'next/link';
 import { cafeCoordinates, defaultCenter } from '@/app/lib/coordinates';
 import { getCachedDirections, getDirections, prefetchRoutes } from '@/app/lib/directionsService';
 
-let maplibregl: any;
-if (typeof window !== 'undefined') {
-  try {
-    maplibregl = require('maplibre-gl');
-  } catch (e: any) {
-    console.warn('MapLibre GL client import fallback engaged:', e);
-  }
-}
-
 interface CafeMapProps {
   cafes: any[];
 }
@@ -167,11 +158,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
 
       setRouteCoordinates(coords);
 
-      if (mapRef.current && maplibregl) {
+      if (mapRef.current) {
         const map = mapRef.current.getMap();
-        const bounds = new maplibregl.LngLatBounds();
-        bounds.extend([startPoint.lng, startPoint.lat]);
-        bounds.extend([destLng, destLat]);
+        const bounds: [[number, number], [number, number]] = [
+          [startPoint.lng, startPoint.lat],
+          [destLng, destLat],
+        ];
         map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
       }
     } catch {
