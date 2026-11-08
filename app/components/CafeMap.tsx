@@ -99,6 +99,29 @@ export default function CafeMap({ cafes }: CafeMapProps) {
     return null;
   };
 
+  const fitRouteInView = (coordinates: [number, number][]) => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const bounds: [[number, number], [number, number]] = [
+      [Infinity, Infinity],
+      [-Infinity, -Infinity],
+    ];
+    for (const [lng, lat] of coordinates) {
+      if (!Number.isFinite(lng) || !Number.isFinite(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 90) {
+        continue;
+      }
+
+      bounds[0][0] = Math.min(bounds[0][0], lng);
+      bounds[0][1] = Math.min(bounds[0][1], lat);
+      bounds[1][0] = Math.max(bounds[1][0], lng);
+      bounds[1][1] = Math.max(bounds[1][1], lat);
+    }
+    if (!Number.isFinite(bounds[0][0])) return;
+
+    map.fitBounds(bounds, { padding: 90, maxZoom: 15, duration: 700 });
+  };
+
   const handleGetDirections = async (destLat: number, destLng: number, cafeName: string, modeOverride?: 'car' | 'two-wheeler' | 'walk') => {
     const startPoint = userLocation || defaultCenter;
 
@@ -157,15 +180,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
       });
 
       setRouteCoordinates(coords);
-
-      if (mapRef.current) {
-        const map = mapRef.current.getMap();
-        const bounds: [[number, number], [number, number]] = [
-          [startPoint.lng, startPoint.lat],
-          [destLng, destLat],
-        ];
-        map.fitBounds(bounds, { padding: 90, maxZoom: 15 });
-      }
+      fitRouteInView(coords);
     } catch {
       const cachedRoute = getCachedDirections(start, end, osrmMode);
       const distanceKm = getStraightLineDistanceKm(startPoint.lat, startPoint.lng, destLat, destLng);
@@ -198,6 +213,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
           trafficLevel: trafficText,
         });
         setRouteCoordinates(cachedRoute.geometry.coordinates);
+        fitRouteInView(cachedRoute.geometry.coordinates);
         return;
       }
 
@@ -207,7 +223,12 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         destinationName: cafeName,
         trafficLevel: trafficText,
       });
-      setRouteCoordinates([[startPoint.lng, startPoint.lat], [destLng, destLat]]);
+      const fallbackCoordinates: [number, number][] = [
+        [startPoint.lng, startPoint.lat],
+        [destLng, destLat],
+      ];
+      setRouteCoordinates(fallbackCoordinates);
+      fitRouteInView(fallbackCoordinates);
     } finally {
       setLoadingRoute(false);
     }
@@ -315,7 +336,7 @@ export default function CafeMap({ cafes }: CafeMapProps) {
         if (map) {
           map.easeTo({
             center: [lng, lat],
-            zoom: 16,
+            zoom: Math.max(map.getZoom(), 16),
             duration: 500,
             essential: true,
           });
