@@ -42,18 +42,28 @@ export default function AIAssistant() {
         body: JSON.stringify({ messages: newMessages })
       });
       
-      const data = await res.json();
-      
-      if (res.ok) {
-        setMessages([...newMessages, { role: 'assistant', content: data.text }]);
-      } else {
-        setMessages([...newMessages, { role: 'assistant', content: "Oops, my espresso machine broke down! I couldn't brew a response right now." }]);
-      }
+      const data = await res.json().catch(() => ({}));
+      const reply = res.ok
+        ? data.text
+        : data.error || 'I couldn’t get a recommendation right now. Please try again.';
+      setMessages([
+        ...newMessages,
+        {
+          role: 'assistant',
+          content: typeof reply === 'string' && reply.trim()
+            ? reply
+            : 'I couldn’t get a recommendation right now. Please try again.',
+        },
+      ]);
     } catch (err) {
-      setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I am having trouble connecting right now.' }]);
+      console.error('Failed to send chat message:', err);
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'I’m having trouble connecting right now. Please try again shortly.' },
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

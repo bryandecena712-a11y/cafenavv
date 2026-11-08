@@ -286,19 +286,19 @@ export default function ManageCafes() {
 
                 <button
                   onClick={() => handleOpenEditModal(cafe)}
-                  className="bg-zinc-800 hover:bg-amber-500/20 hover:text-amber-400 border border-white/10 text-zinc-300 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-amber-500 font-semibold px-2.5 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                   title="Edit Cafe"
                 >
-                  <i className="ph-bold ph-pencil-simple"></i>
+                  <PencilSimple size={14} weight="bold" /> Edit
                 </button>
 
                 <button
                   onClick={() => handleDeleteCafe(cafe.id, cafe.name)}
                   disabled={deletingId === cafe.id}
-                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-medium px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer"
+                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-semibold px-2.5 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-50"
                   title="Delete Cafe"
                 >
-                  {deletingId === cafe.id ? '...' : <i className="ph-bold ph-trash"></i>}
+                  {deletingId === cafe.id ? 'Deleting...' : <><Trash size={14} weight="bold" /> Delete</>}
                 </button>
               </div>
             </div>
