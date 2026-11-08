@@ -79,6 +79,8 @@ export default function SuggestPage() {
 
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [isScraping, setIsScraping] = useState(false);
+  const [autoFillMessage, setAutoFillMessage] = useState('');
+  const [autoFillMessageIsError, setAutoFillMessageIsError] = useState(false);
 
   const [cafeFileName, setCafeFileName] = useState<string>('');
   const [cafePhotoSuccess, setCafePhotoSuccess] = useState<boolean>(false);
@@ -160,11 +162,13 @@ export default function SuggestPage() {
 
   const handleAutoFill = async () => {
     if (!scrapeUrl) {
-      alert('Please enter a valid link first.');
+      setAutoFillMessage('Enter a website or social media link first.');
+      setAutoFillMessageIsError(true);
       return;
     }
 
     setIsScraping(true);
+    setAutoFillMessage('');
     try {
       const res = await fetch('/api/scrape', {
         method: 'POST',
@@ -174,40 +178,79 @@ export default function SuggestPage() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        if (suggestionType === 'cafe') {
-          setCafeFormData((prev) => ({
-            ...prev,
-            name: data.title ? data.title.split('|')[0].split('-')[0].trim() : prev.name,
-            description: data.description || prev.description,
-            image_url: data.image_url || prev.image_url,
-            location: data.location || prev.location,
-            lat: data.lat ? Number(data.lat) : prev.lat,
-            lng: data.lng ? Number(data.lng) : prev.lng,
-          }));
-          if (data.image_url) {
-            setCafeFileName('Scraped Image');
-            setCafePhotoSuccess(true);
-          }
-        } else {
-          setProductFormData((prev) => ({
-            ...prev,
-            name: data.title ? data.title.split('|')[0].split('-')[0].trim() : prev.name,
-            description: data.description || prev.description,
-            image_url: data.image_url || prev.image_url,
-          }));
-          if (data.image_url) {
-            setProductFileName('Scraped Image');
-            setProductPhotoSuccess(true);
-          }
-        }
-        alert('Details auto-filled successfully!');
-      } else {
-        alert(data.error || 'Failed to auto-fill details from this link.');
+      if (!res.ok) {
+        throw new Error(data.error || 'Could not auto-fill details from that link.');
       }
+
+      const hasCoordinates =
+        Number.isFinite(data.lat) &&
+        Number.isFinite(data.lng) &&
+        Math.abs(data.lat) <= 90 &&
+        Math.abs(data.lng) <= 180;
+
+      if (suggestionType === 'cafe') {
+        if (data.content_type === 'product' && !data.cafe_name) {
+          throw new Error('This link appears to describe a menu item. Choose Suggest Menu Item to use it.');
+        }
+
+        const validPriceRanges = ['₱100-300', '₱150-300', '₱200-500', 'Any Price'];
+        const validVibes = ['Deep Work', 'Social Catch-up', 'Quick Grab', 'Reading/Chill'];
+        const validEnvironments = ['Indoor Cafe', 'Outdoor Cafe', 'Both Indoor & Outdoor'];
+        setCafeFormData((prev) => ({
+          ...prev,
+          name: data.cafe_name || data.title || prev.name,
+          description: data.cafe_description || data.description || prev.description,
+          image_url: data.cafe_image_url || data.image_url || prev.image_url,
+          location: hasCoordinates
+            ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`
+            : data.location || prev.location,
+          lat: hasCoordinates ? data.lat : prev.lat,
+          lng: hasCoordinates ? data.lng : prev.lng,
+          price_range: validPriceRanges.includes(data.price_range) ? data.price_range : prev.price_range,
+          vibe: validVibes.includes(data.vibe) ? data.vibe : prev.vibe,
+          environment: validEnvironments.includes(data.environment) ? data.environment : prev.environment,
+        }));
+        const imageUrl = data.cafe_image_url || data.image_url;
+        if (imageUrl) {
+          setCafeFileName('Auto-filled from link');
+          setCafePhotoSuccess(true);
+        }
+        setAutoFillMessage(
+          `Cafe details filled where available${hasCoordinates ? ', including the map pin' : ''}. Verify price range, vibe, and environment before submitting.`
+        );
+      } else {
+        if (data.content_type === 'cafe' && !data.item_name) {
+          throw new Error('This link describes a cafe, but does not publish menu-item details. Try a direct menu item link.');
+        }
+
+        const cafeMatch = cafes.find(
+          (cafe) =>
+            data.cafe_name &&
+            cafe.name.trim().toLowerCase() === String(data.cafe_name).trim().toLowerCase()
+        );
+        setProductFormData((prev) => ({
+          ...prev,
+          cafeId: cafeMatch ? String(cafeMatch.id) : prev.cafeId,
+          name: data.item_name || data.title || prev.name,
+          price: data.item_price != null ? String(data.item_price) : prev.price,
+          description: data.item_description || data.description || prev.description,
+          image_url: data.item_image_url || data.image_url || prev.image_url,
+        }));
+        const imageUrl = data.item_image_url || data.image_url;
+        if (imageUrl) {
+          setProductFileName('Auto-filled from link');
+          setProductPhotoSuccess(true);
+        }
+        setAutoFillMessage(
+          `Menu details filled where available${data.item_price != null ? ', including listed price' : ''}. Confirm the cafe and price before submitting.`
+        );
+      }
+      setAutoFillMessageIsError(false);
     } catch (err) {
-      console.error(err);
-      alert('Error connecting to scraper service.');
+      const message = err instanceof Error ? err.message : 'Could not connect to the auto-fill service.';
+      console.error('Auto-fill failed:', err);
+      setAutoFillMessage(message);
+      setAutoFillMessageIsError(true);
     } finally {
       setIsScraping(false);
     }
@@ -293,6 +336,7 @@ export default function SuggestPage() {
         setProductFileName('');
         setProductPhotoSuccess(false);
         setScrapeUrl('');
+        setAutoFillMessage('');
       } else {
         const errorData = await res.json().catch(() => ({}));
         alert(errorData.error || errorData.message || 'Failed to submit suggestion.');
@@ -395,6 +439,14 @@ export default function SuggestPage() {
               {isScraping ? 'Scraping...' : 'Auto-Fill'}
             </button>
           </div>
+          {autoFillMessage && (
+            <p
+              role={autoFillMessageIsError ? 'alert' : 'status'}
+              className={`mt-3 text-xs ${autoFillMessageIsError ? 'text-rose-400' : 'text-emerald-400'}`}
+            >
+              {autoFillMessage}
+            </p>
+          )}
         </div>
 
         <div className="flex bg-zinc-900 border border-white/5 rounded-xl p-1 mb-8">

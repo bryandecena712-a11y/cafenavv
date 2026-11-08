@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
 // Fix default marker icon issues in Next.js
@@ -21,6 +21,21 @@ function LocationMarker({ position, setPosition }: { position: { lat: number; ln
   });
 
   return position ? <Marker position={[position.lat, position.lng]} icon={customIcon} /> : null;
+}
+
+function MapPositionUpdater({ position }: { position: { lat: number; lng: number } }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      map.invalidateSize();
+      map.setView([position.lat, position.lng], map.getZoom(), { animate: false });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [map, position.lat, position.lng]);
+
+  return null;
 }
 
 export default function MapPicker({
@@ -49,6 +64,7 @@ export default function MapPicker({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <MapPositionUpdater position={position} />
       <LocationMarker position={position} setPosition={setPosition} />
     </MapContainer>
   );

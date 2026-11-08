@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import "leaflet/dist/leaflet.css";
 // @ts-ignore
 import "./globals.css";
 import Navbar from "./components/Navbar";
