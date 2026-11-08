@@ -53,6 +53,22 @@ model users {
   reviews       reviews[]
   bookmarks     bookmarks[]
   notifications notifications[]
+  password_reset_otp password_reset_otps?
+}
+
+model password_reset_otps {
+  id           Int       @id @default(autoincrement())
+  user_id      Int       @unique
+  code_hash    String
+  expires_at   DateTime
+  attempts     Int       @default(0)
+  created_at   DateTime  @default(now())
+  last_sent_at DateTime  @default(now())
+  used_at      DateTime?
+
+  user         users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
 }
 
 model notifications {
